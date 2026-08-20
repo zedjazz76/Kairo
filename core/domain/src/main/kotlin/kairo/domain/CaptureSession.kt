@@ -30,7 +30,7 @@ class CaptureSession(
     }
 }
 
-class CaptureCandidate(
+class CaptureCandidate private constructor(
     val id: CaptureCandidateId,
     val captureSessionId: CaptureSessionId,
     val text: String,
@@ -43,5 +43,28 @@ class CaptureCandidate(
     init {
         require(text.isNotBlank()) { "Capture candidate text must not be blank" }
         require(evidenceAnchors.isNotEmpty()) { "Capture candidate must retain contributing source anchors" }
+    }
+
+    companion object {
+        fun from(
+            id: CaptureCandidateId,
+            captureSession: CaptureSession,
+            text: String,
+            scope: KnowledgeScope,
+            state: EvidenceState,
+            evidenceAnchors: Set<SourceAnchor>,
+        ): CaptureCandidate {
+            require(captureSession.anchors.containsAll(evidenceAnchors)) {
+                "Capture candidate anchors must belong to its capture session"
+            }
+            return CaptureCandidate(
+                id = id,
+                captureSessionId = captureSession.id,
+                text = text,
+                scope = scope,
+                state = state,
+                evidenceAnchors = evidenceAnchors,
+            )
+        }
     }
 }

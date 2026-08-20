@@ -35,6 +35,9 @@ class WorkflowStep(
     init {
         require(name.isNotBlank()) { "Workflow step name must not be blank" }
         require(system.isNotBlank()) { "Workflow step system must not be blank" }
+        require(!evidenceState.requiresAnchoredProvenance() || anchors.isNotEmpty()) {
+            "Confirmed or observed workflow steps require source anchors"
+        }
     }
 }
 
@@ -60,5 +63,11 @@ class Workflow(
         }
         require(this.steps.isNotEmpty()) { "Workflow must contain at least one step" }
         require(this.steps.map { it.id }.toSet().size == this.steps.size) { "Workflow step identifiers must be unique" }
+        require(!evidenceState.requiresAnchoredProvenance() || this.evidenceAnchors.isNotEmpty()) {
+            "Confirmed or observed workflows require source anchors"
+        }
     }
 }
+
+private fun EvidenceState.requiresAnchoredProvenance(): Boolean =
+    this == EvidenceState.CONFIRMED || this == EvidenceState.OBSERVED

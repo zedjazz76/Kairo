@@ -165,10 +165,35 @@ class Source(
 
     init {
         require(contentHash.isNotBlank()) { "Source contentHash must not be blank" }
-        require(variants.isNotEmpty()) { "Source must retain at least one variant" }
-        require(variants.all { it.sourceId == id }) { "Source variants must belong to the source" }
-        require(variants.map { it.id }.toSet().size == variants.size) { "Source variant identifiers must be unique" }
-        require(this.anchors.all { it.sourceId == id }) { "Source anchors must belong to the source" }
+        require(this.variants.isNotEmpty()) { "Source must retain at least one variant" }
+        require(this.variants.all { it.sourceId == id }) { "Source variants must belong to the source" }
+        require(this.variants.map { it.id }.toSet().size == this.variants.size) {
+            "Source variant identifiers must be unique"
+        }
+        require(this.variants.map { it.version }.toSet().size == this.variants.size) {
+            "Source variant version numbers must be unique"
+        }
+
+        val variantsById = this.variants.associateBy { it.id }
+        val rootVariants = this.variants.filter { it.parentVariantId == null }
+        require(rootVariants.size == 1) { "Source must retain exactly one root variant" }
+        val root = rootVariants.single()
+        require(root.contentHash == contentHash && root.importedAt == importedAt) {
+            "Source content hash and import time must identify its root variant"
+        }
+        this.variants
+            .filter { it.parentVariantId != null }
+            .forEach { variant ->
+                val parent = variantsById[variant.parentVariantId]
+                require(parent != null && parent.version < variant.version) {
+                    "Source variant parent must resolve to an earlier variant"
+                }
+            }
+
+        val retainedAnchors = this.variants.flatMap { it.anchors }.toSet()
+        require(this.anchors == retainedAnchors) {
+            "Source anchors must exactly equal the anchors retained by its variants"
+        }
     }
 }
 

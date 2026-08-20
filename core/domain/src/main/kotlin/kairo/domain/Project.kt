@@ -38,11 +38,15 @@ value class ActionItemId(val value: String) {
 }
 
 enum class ProjectStatus {
+    IDEA,
+    DISCOVERY,
     PLANNING,
-    ACTIVE,
-    ON_HOLD,
-    COMPLETE,
-    ARCHIVED,
+    IMPLEMENTATION,
+    VALIDATION,
+    GO_LIVE,
+    HYPERCARE,
+    COMPLETED,
+    HISTORICAL,
 }
 
 data class ProjectTimeline(
@@ -165,8 +169,25 @@ class Project(
         require(historicalArchitecture.all { it.state == WorkflowState.HISTORICAL }) {
             "Historical architecture must contain historical workflows"
         }
+        val architecture = currentArchitecture + transitionArchitecture + futureArchitecture + historicalArchitecture
+        require(architecture.all { it.scope == KnowledgeScope.PROJECT }) {
+            "Project architecture workflows must remain project-scoped"
+        }
+        requireUnique(architecture.map { it.id }, "workflow")
         require(this.knowledge.all { it.scope == KnowledgeScope.PROJECT }) {
             "Project knowledge must remain project-scoped"
         }
+        requireUnique(this.knowledge.map { it.id }, "fact")
+        requireUnique(this.decisions.map { it.id }, "decision")
+        requireUnique(this.risks.map { it.id }, "risk")
+        requireUnique(this.openQuestions.map { it.id }, "open question")
+        requireUnique(this.actionItems.map { it.id }, "action item")
+        require(this.meetings.all { it.captureSessionId in this.captureSessionIds }) {
+            "Project meetings must reference retained capture sessions"
+        }
+    }
+
+    private fun <T> requireUnique(ids: List<T>, label: String) {
+        require(ids.toSet().size == ids.size) { "Project $label identifiers must be unique" }
     }
 }
