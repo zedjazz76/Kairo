@@ -177,6 +177,29 @@ class TemporalProjectionTest {
     }
 
     @Test
+    fun `projection rejects duplicate fact identifiers before selecting current truth`() {
+        val original = fact(id = "fact-duplicate", objectValue = "Merge RIS")
+        val conflictingDuplicate = fact(id = "fact-duplicate", objectValue = "AbbaDox")
+
+        val exception = assertFailsWith<IllegalArgumentException> {
+            CurrentBestUnderstanding.project(listOf(original, conflictingDuplicate))
+        }
+
+        assertTrue(exception.message.orEmpty().contains("fact-duplicate"))
+    }
+
+    @Test
+    fun `projection rejects identical duplicate fact identifiers`() {
+        val duplicate = fact(id = "fact-duplicate")
+
+        val exception = assertFailsWith<IllegalArgumentException> {
+            CurrentBestUnderstanding.project(listOf(duplicate, duplicate.copy()))
+        }
+
+        assertTrue(exception.message.orEmpty().contains("fact-duplicate"))
+    }
+
+    @Test
     fun `fact evidence is an immutable snapshot and copy remains usable`() {
         val suppliedEvidence = mutableSetOf(EvidenceRef("source-1", extractionConfidence = 0.91))
         val fact = fact(evidence = suppliedEvidence)

@@ -128,3 +128,55 @@ verification used the system Kotlin cache without that fallback.
 
 - `fix: preserve temporal scope boundaries and snapshots` (this round's local
   commit includes this report update)
+
+---
+
+## Fix round 2 — duplicate fact identity ingress validation
+
+### Status
+
+Complete. Projection now rejects every duplicate `FactId` at ingress before
+building its identifier index or evaluating retirement. This prevents
+last-write-wins and retirement behavior from depending on iterable order.
+Both conflicting and otherwise identical duplicate records are rejected; the
+error names the duplicate identifier(s) in deterministic identifier order.
+
+### RED
+
+`gradlew.bat --no-daemon :core:domain:test --tests "*TemporalProjectionTest"`
+ran 16 tests and failed the two new intended regressions:
+
+- conflicting duplicate `FactId` records were not rejected;
+- identical duplicate `FactId` records were not rejected.
+
+The first attempt was blocked before test execution by a malformed inherited
+`JAVA_HOME`. Rerunning unchanged with the established workspace-local JDK and
+Gradle cache reached the intended test failures. Kotlin daemon client-marker
+access was denied in the sandbox, so Gradle used its successful in-process
+compiler fallback.
+
+### GREEN
+
+- `gradlew.bat --no-daemon :core:domain:test --tests "*TemporalProjectionTest"`
+  passed in 13 seconds.
+- `gradlew.bat --no-daemon :core:domain:test` passed in 6 seconds.
+- `gradlew.bat --no-daemon verifyContracts` passed in 5 seconds with all 12
+  contract tests green after prepending the bundled Node and pnpm directories
+  to `PATH`.
+- `git diff --check` passed.
+
+### Changed files
+
+- `core/domain/src/main/kotlin/kairo/domain/TemporalProjection.kt`
+- `core/domain/src/test/kotlin/kairo/domain/TemporalProjectionTest.kt`
+- `.superpowers/sdd/2026-08-20-kairo-v1-implementation/task-2-report.md`
+
+### Commit
+
+- `fix: reject duplicate temporal fact identifiers`
+
+### Concerns
+
+- Existing Gradle 10 deprecation notices remain outside this fix. The sandbox
+  Kotlin-daemon marker restriction is environmental; all requested verification
+  commands completed successfully through Gradle's in-process fallback.

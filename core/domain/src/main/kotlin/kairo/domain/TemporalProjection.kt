@@ -17,6 +17,15 @@ class CurrentBestUnderstanding(
             at: Instant = Instant.now(),
         ): CurrentBestUnderstanding {
             val allVersions = versions.toList()
+            val duplicateFactIds = allVersions
+                .groupingBy { it.id }
+                .eachCount()
+                .filterValues { it > 1 }
+                .keys
+                .sortedBy { it.value }
+            require(duplicateFactIds.isEmpty()) {
+                "Duplicate FactId values are not allowed: ${duplicateFactIds.joinToString { it.value }}"
+            }
             val versionsById = allVersions.associateBy { it.id }
             val retiredFactIds = allVersions
                 .asSequence()
