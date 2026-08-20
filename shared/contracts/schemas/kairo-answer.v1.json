@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kairo.local/contracts/kairo-answer.v1.json",
+  "title": "KairoAnswerV1",
+  "type": "object",
+  "required": ["assessment", "claims"],
+  "properties": {
+    "assessment": { "type": "string", "minLength": 1 },
+    "claims": { "type": "array", "items": { "$ref": "#/$defs/claim" } }
+  },
+  "$defs": {
+    "knowledgeScope": {
+      "type": "string",
+      "enum": ["MANA_PRODUCTION", "PRODUCT", "PROJECT", "INCIDENT", "EXTERNAL_RESEARCH"]
+    },
+    "evidenceState": {
+      "type": "string",
+      "enum": ["CONFIRMED", "OBSERVED", "PLANNED", "PROPOSED", "HYPOTHESIS", "VERIFY", "DEPRECATED", "CONTRADICTED"]
+    },
+    "claim": {
+      "type": "object",
+      "required": ["text", "scope", "evidenceState", "evidenceRefs"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "scope": { "$ref": "#/$defs/knowledgeScope" },
+        "evidenceState": { "$ref": "#/$defs/evidenceState" },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

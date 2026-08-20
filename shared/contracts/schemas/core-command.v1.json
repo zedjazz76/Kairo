@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kairo.local/contracts/core-command.v1.json",
+  "title": "Kairo Core command and result envelopes",
+  "$defs": {
+    "CoreCommandV1": {
+      "type": "object",
+      "required": ["requestId", "type", "contractVersion", "payload"],
+      "properties": {
+        "requestId": { "type": "string", "format": "uuid" },
+        "type": { "type": "string", "minLength": 1 },
+        "contractVersion": { "const": "v1" },
+        "payload": { "type": "object" }
+      }
+    },
+    "CoreResultV1": {
+      "type": "object",
+      "required": ["requestId", "type", "contractVersion", "payload"],
+      "properties": {
+        "requestId": { "type": "string", "format": "uuid" },
+        "type": { "type": "string", "minLength": 1 },
+        "contractVersion": { "const": "v1" },
+        "payload": { "type": "object" }
+      }
+    }
+  }
+}
