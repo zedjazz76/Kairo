@@ -1,5 +1,6 @@
 .worktrees/
 .superpowers/
+work/
 .gradle/
 build/
 **/build/
