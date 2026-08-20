@@ -13,9 +13,14 @@ pnpm install --frozen-lockfile
 pnpm test --filter @kairo/contracts
 ```
 
-The checked-in Gradle settings reserve the JVM build entry point. A Gradle
-wrapper and Java toolchain are not yet available in this environment, so
-`gradlew.bat tasks` cannot be run until those prerequisites are provided.
+With Java 17 and pnpm available on `PATH`, the checked-in Gradle 9.6.1 wrapper
+also exposes the same contract suite through the JVM build entry point:
+
+```powershell
+.\gradlew.bat verifyContracts
+```
+
+The Gradle `check` lifecycle task depends on `verifyContracts`.
 
 ## Contract locations
 
