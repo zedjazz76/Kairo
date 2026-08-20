@@ -16,6 +16,7 @@ sealed interface FactObject {
 
 class FactVersion(
     val id: FactId,
+    val lineageId: FactLineageId = FactLineageId(id.value),
     val subject: EntityId,
     val predicate: String,
     val objectValue: FactObject,
@@ -42,6 +43,7 @@ class FactVersion(
 
     fun copy(
         id: FactId = this.id,
+        lineageId: FactLineageId = this.lineageId,
         subject: EntityId = this.subject,
         predicate: String = this.predicate,
         objectValue: FactObject = this.objectValue,
@@ -55,6 +57,7 @@ class FactVersion(
         supersedes: FactId? = this.supersedes,
     ): FactVersion = FactVersion(
         id = id,
+        lineageId = lineageId,
         subject = subject,
         predicate = predicate,
         objectValue = objectValue,
@@ -71,6 +74,7 @@ class FactVersion(
     override fun equals(other: Any?): Boolean =
         other is FactVersion &&
             id == other.id &&
+            lineageId == other.lineageId &&
             subject == other.subject &&
             predicate == other.predicate &&
             objectValue == other.objectValue &&
@@ -85,6 +89,7 @@ class FactVersion(
 
     override fun hashCode(): Int = listOf(
         id,
+        lineageId,
         subject,
         predicate,
         objectValue,
@@ -99,7 +104,7 @@ class FactVersion(
     ).hashCode()
 
     override fun toString(): String =
-        "FactVersion(id=$id, subject=$subject, predicate=$predicate, objectValue=$objectValue, " +
+        "FactVersion(id=$id, lineageId=$lineageId, subject=$subject, predicate=$predicate, objectValue=$objectValue, " +
             "scope=$scope, state=$state, effectiveFrom=$effectiveFrom, effectiveTo=$effectiveTo, " +
             "recordedAt=$recordedAt, lastValidatedAt=$lastValidatedAt, evidence=$evidence, " +
             "supersedes=$supersedes)"

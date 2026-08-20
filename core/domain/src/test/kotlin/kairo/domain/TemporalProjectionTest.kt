@@ -8,6 +8,36 @@ import kotlin.test.assertTrue
 
 class TemporalProjectionTest {
     @Test
+    fun `fact lineage identifiers reject blank values`() {
+        assertFailsWith<IllegalArgumentException> {
+            FactLineageId("   ")
+        }
+    }
+
+    @Test
+    fun `new root fact defaults lineage from its fact identifier`() {
+        val root = fact(id = "fact-root")
+
+        assertEquals(FactLineageId("fact-root"), root.lineageId)
+    }
+
+    @Test
+    fun `successor copy preserves lineage in value semantics`() {
+        val root = fact(id = "fact-root")
+        val successor = root.copy(
+            id = FactId("fact-successor"),
+            recordedAt = Instant.parse("2026-08-02T00:00:00Z"),
+            supersedes = root.id,
+        )
+        val unrelated = successor.copy(lineageId = FactLineageId("other-lineage"))
+
+        assertEquals(root.lineageId, successor.lineageId)
+        assertTrue(successor != unrelated)
+        assertTrue(successor.hashCode() != unrelated.hashCode())
+        assertTrue(successor.toString().contains("lineageId=FactLineageId(value=fact-root)"))
+    }
+
+    @Test
     fun `planned project fact never replaces confirmed production fact`() {
         val confirmedProduction = fact(
             id = "fact-production",

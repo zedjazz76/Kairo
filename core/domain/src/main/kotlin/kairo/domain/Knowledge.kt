@@ -14,6 +14,13 @@ value class FactId(val value: String) {
     }
 }
 
+@JvmInline
+value class FactLineageId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "FactLineageId must not be blank" }
+    }
+}
+
 enum class KnowledgeScope {
     MANA_PRODUCTION,
     PRODUCT,

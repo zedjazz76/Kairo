@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "kairo"
 
 include(":core:domain")
+include(":core:application")
+include(":platform:android")
