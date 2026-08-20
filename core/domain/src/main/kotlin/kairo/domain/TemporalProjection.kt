@@ -1,21 +1,29 @@
 package kairo.domain
 
 import java.time.Instant
+import java.util.Collections
+import java.util.ArrayList
 
-data class CurrentBestUnderstanding(
-    val current: List<FactVersion>,
-    val history: List<FactVersion>,
-) : List<FactVersion> by current {
+class CurrentBestUnderstanding(
+    current: List<FactVersion>,
+    history: List<FactVersion>,
+) : List<FactVersion> by immutableListSnapshot(current) {
+    val current: List<FactVersion> = immutableListSnapshot(current)
+    val history: List<FactVersion> = immutableListSnapshot(history)
+
     companion object {
         fun project(
             versions: Iterable<FactVersion>,
             at: Instant = Instant.now(),
         ): CurrentBestUnderstanding {
             val allVersions = versions.toList()
+            val versionsById = allVersions.associateBy { it.id }
             val retiredFactIds = allVersions
                 .asSequence()
-                .filter { it.state == EvidenceState.CONTRADICTED || it.state == EvidenceState.DEPRECATED }
-                .mapNotNull { it.supersedes }
+                .mapNotNull { successor ->
+                    val predecessor = successor.supersedes?.let(versionsById::get) ?: return@mapNotNull null
+                    predecessor.id.takeIf { successor.retires(predecessor, at) }
+                }
                 .toSet()
             val current = allVersions
                 .asSequence()
@@ -37,7 +45,14 @@ data class CurrentBestUnderstanding(
                 (effectiveFrom == null || !effectiveFrom.isAfter(at)) &&
                 (effectiveTo == null || effectiveTo.isAfter(at))
 
+        private fun FactVersion.retires(predecessor: FactVersion, at: Instant): Boolean =
+            scope == predecessor.scope &&
+                recordedAt.isAfter(predecessor.recordedAt) &&
+                (isCurrentAt(at) || state in terminalEvidenceStates)
+
         private val currentEvidenceStates = setOf(EvidenceState.CONFIRMED, EvidenceState.OBSERVED)
+
+        private val terminalEvidenceStates = setOf(EvidenceState.CONTRADICTED, EvidenceState.DEPRECATED)
 
         private val currentFactOrder = compareBy<FactVersion> { it.scope.currentPriority }
             .thenBy { it.state.currentPriority }
@@ -51,6 +66,9 @@ data class CurrentBestUnderstanding(
 
     private data class FactKey(val subject: EntityId, val predicate: String)
 }
+
+private fun <T> immutableListSnapshot(values: List<T>): List<T> =
+    Collections.unmodifiableList(ArrayList(values))
 
 private val KnowledgeScope.currentPriority: Int
     get() = when (this) {

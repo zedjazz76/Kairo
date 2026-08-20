@@ -1,6 +1,8 @@
 package kairo.domain
 
 import java.time.Instant
+import java.util.Collections
+import java.util.LinkedHashSet
 
 sealed interface FactObject {
     data class Entity(val value: EntityId) : FactObject
@@ -12,7 +14,7 @@ sealed interface FactObject {
     }
 }
 
-data class FactVersion(
+class FactVersion(
     val id: FactId,
     val subject: EntityId,
     val predicate: String,
@@ -23,9 +25,11 @@ data class FactVersion(
     val effectiveTo: Instant?,
     val recordedAt: Instant,
     val lastValidatedAt: Instant?,
-    val evidence: Set<EvidenceRef>,
+    evidence: Set<EvidenceRef>,
     val supersedes: FactId? = null,
 ) {
+    val evidence: Set<EvidenceRef> = immutableSetSnapshot(evidence)
+
     init {
         require(predicate.isNotBlank()) { "Fact predicate must not be blank" }
         require(effectiveFrom == null || effectiveTo == null || !effectiveTo.isBefore(effectiveFrom)) {
@@ -35,7 +39,74 @@ data class FactVersion(
             "Important active facts require evidence"
         }
     }
+
+    fun copy(
+        id: FactId = this.id,
+        subject: EntityId = this.subject,
+        predicate: String = this.predicate,
+        objectValue: FactObject = this.objectValue,
+        scope: KnowledgeScope = this.scope,
+        state: EvidenceState = this.state,
+        effectiveFrom: Instant? = this.effectiveFrom,
+        effectiveTo: Instant? = this.effectiveTo,
+        recordedAt: Instant = this.recordedAt,
+        lastValidatedAt: Instant? = this.lastValidatedAt,
+        evidence: Set<EvidenceRef> = this.evidence,
+        supersedes: FactId? = this.supersedes,
+    ): FactVersion = FactVersion(
+        id = id,
+        subject = subject,
+        predicate = predicate,
+        objectValue = objectValue,
+        scope = scope,
+        state = state,
+        effectiveFrom = effectiveFrom,
+        effectiveTo = effectiveTo,
+        recordedAt = recordedAt,
+        lastValidatedAt = lastValidatedAt,
+        evidence = evidence,
+        supersedes = supersedes,
+    )
+
+    override fun equals(other: Any?): Boolean =
+        other is FactVersion &&
+            id == other.id &&
+            subject == other.subject &&
+            predicate == other.predicate &&
+            objectValue == other.objectValue &&
+            scope == other.scope &&
+            state == other.state &&
+            effectiveFrom == other.effectiveFrom &&
+            effectiveTo == other.effectiveTo &&
+            recordedAt == other.recordedAt &&
+            lastValidatedAt == other.lastValidatedAt &&
+            evidence == other.evidence &&
+            supersedes == other.supersedes
+
+    override fun hashCode(): Int = listOf(
+        id,
+        subject,
+        predicate,
+        objectValue,
+        scope,
+        state,
+        effectiveFrom,
+        effectiveTo,
+        recordedAt,
+        lastValidatedAt,
+        evidence,
+        supersedes,
+    ).hashCode()
+
+    override fun toString(): String =
+        "FactVersion(id=$id, subject=$subject, predicate=$predicate, objectValue=$objectValue, " +
+            "scope=$scope, state=$state, effectiveFrom=$effectiveFrom, effectiveTo=$effectiveTo, " +
+            "recordedAt=$recordedAt, lastValidatedAt=$lastValidatedAt, evidence=$evidence, " +
+            "supersedes=$supersedes)"
 }
+
+private fun <T> immutableSetSnapshot(values: Set<T>): Set<T> =
+    Collections.unmodifiableSet(LinkedHashSet(values))
 
 private fun EvidenceState.requiresEvidence(): Boolean = when (this) {
     EvidenceState.HYPOTHESIS,

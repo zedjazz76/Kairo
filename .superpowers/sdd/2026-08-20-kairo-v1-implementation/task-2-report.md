@@ -72,3 +72,59 @@ presenting them as current production truth.
   this task adds no deprecated API use.
 - The proxy and runtime `PATH` additions were process-local verification aids
   only and were not committed.
+
+---
+
+## Fix round 1 — temporal supersession and immutable snapshots
+
+### Status
+
+Complete. Later same-scope current revisions now retire their predecessor;
+planned, proposed, and hypothesis successors do not. Terminal contradiction
+and deprecation retirement follows the same scope boundary. All source
+versions remain in chronological history.
+
+### RED
+
+The focused command
+`gradlew.bat --no-daemon :core:domain:test --tests "*TemporalProjectionTest"`
+executed 14 tests and failed four intended regressions:
+
+- a newer OBSERVED revision did not retire a CONFIRMED predecessor;
+- a PROJECT contradiction incorrectly retired MANA production truth;
+- a cleared caller-owned `MutableSet` cleared `FactVersion.evidence`;
+- clearing caller-owned projection lists altered `CurrentBestUnderstanding`.
+
+The sandboxed Kotlin daemon could not write its local client marker and fell
+back to in-process compilation; test execution itself completed. Elevated
+verification used the system Kotlin cache without that fallback.
+
+### GREEN
+
+- Focused `TemporalProjectionTest` passed in 10 seconds after the fix.
+- `gradlew.bat --no-daemon :core:domain:test verifyContracts` passed in 6
+  seconds. Contract verification reported 12 passes and zero failures.
+- `git diff --check` passed before commit.
+
+### Added coverage
+
+- Same-scope current revision retirement, and planned successor non-retirement.
+- Scope isolation for project terminal successors versus MANA production.
+- Concurrent MANA/project precedence.
+- Inclusive `effectiveFrom` and exclusive `effectiveTo` boundaries.
+- Deterministic equal-timestamp current/history ordering.
+- Immutable evidence, current, and history snapshots plus `FactVersion.copy`.
+
+### Implementation notes
+
+- `FactVersion` is now a value-semantic immutable class with an explicit
+  `copy`, `equals`, `hashCode`, and `toString`, preserving its public fields
+  while taking an unmodifiable evidence snapshot.
+- `CurrentBestUnderstanding` takes unmodifiable snapshots of both public
+  lists.
+- `.kotlin/` is ignored as generated local compiler state and was not staged.
+
+### Commit
+
+- `fix: preserve temporal scope boundaries and snapshots` (this round's local
+  commit includes this report update)

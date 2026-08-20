@@ -2,6 +2,7 @@
 .superpowers/
 work/
 .gradle/
+.kotlin/
 build/
 **/build/
 node_modules/
