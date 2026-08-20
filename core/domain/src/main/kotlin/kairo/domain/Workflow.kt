@@ -35,7 +35,7 @@ class WorkflowStep(
     init {
         require(name.isNotBlank()) { "Workflow step name must not be blank" }
         require(system.isNotBlank()) { "Workflow step system must not be blank" }
-        require(!evidenceState.requiresAnchoredProvenance() || anchors.isNotEmpty()) {
+        require(!evidenceState.requiresAnchoredProvenance() || this.anchors.isNotEmpty()) {
             "Confirmed or observed workflow steps require source anchors"
         }
     }

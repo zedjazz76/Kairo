@@ -38,11 +38,11 @@ class CaptureCandidate private constructor(
     val state: EvidenceState,
     evidenceAnchors: Set<SourceAnchor>,
 ) {
-    val evidenceAnchors: Set<SourceAnchor> = contextSetSnapshot(evidenceAnchors)
+    val evidenceAnchors: Set<SourceAnchor> = evidenceAnchors
 
     init {
         require(text.isNotBlank()) { "Capture candidate text must not be blank" }
-        require(evidenceAnchors.isNotEmpty()) { "Capture candidate must retain contributing source anchors" }
+        require(this.evidenceAnchors.isNotEmpty()) { "Capture candidate must retain contributing source anchors" }
     }
 
     companion object {
@@ -54,7 +54,8 @@ class CaptureCandidate private constructor(
             state: EvidenceState,
             evidenceAnchors: Set<SourceAnchor>,
         ): CaptureCandidate {
-            require(captureSession.anchors.containsAll(evidenceAnchors)) {
+            val anchorSnapshot = contextSetSnapshot(evidenceAnchors)
+            require(captureSession.anchors.containsAll(anchorSnapshot)) {
                 "Capture candidate anchors must belong to its capture session"
             }
             return CaptureCandidate(
@@ -63,7 +64,7 @@ class CaptureCandidate private constructor(
                 text = text,
                 scope = scope,
                 state = state,
-                evidenceAnchors = evidenceAnchors,
+                evidenceAnchors = anchorSnapshot,
             )
         }
     }

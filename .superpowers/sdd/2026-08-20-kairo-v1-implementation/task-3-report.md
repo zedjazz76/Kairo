@@ -177,3 +177,81 @@ session-bound candidate API and the locked lifecycle before implementation.
 - Existing Gradle 10 deprecation notices remain.
 - The sandbox Kotlin-daemon marker restriction remains environmental; all
   requested checks completed through the successful in-process fallback.
+
+---
+
+## Fix round 2 — snapshot validation boundaries
+
+### Status
+
+Complete. The collection-valued context boundaries now validate the exact
+defensive snapshots they retain, preventing a stateful caller collection from
+presenting one view during validation and a different view for storage.
+
+### RED
+
+Before production changes, the focused command was run:
+
+```powershell
+.\\gradlew.bat --offline --no-daemon :core:domain:test --tests "*ContextDomainTest"
+```
+
+Result: exit 1 after the known Kotlin in-process fallback. Of 17 focused tests,
+four failed as intended:
+
+- `candidate stores the same anchor snapshot it validates`
+- `confirmed step validates its stored anchor snapshot`
+- `project validates the stored architecture scope snapshot`
+- `project validates duplicate workflow identifiers from stored snapshots`
+
+Each uses a deterministic multi-iteration Set or List that serves distinct
+snapshots across reads, proving the pre-fix validation/storage aliasing paths.
+
+### GREEN
+
+- Focused `ContextDomainTest`: passed.
+- `:core:domain:test`: passed.
+- `verifyContracts`: passed with 12 passing contract tests and zero failures.
+- `git diff --check`: passed.
+
+### Regression coverage and implementation
+
+- `CaptureCandidate.from` snapshots evidence anchors once at factory ingress,
+  validates that snapshot against the Capture Session, and passes that same
+  immutable snapshot to its private constructor. Constructor invariants check
+  `this.evidenceAnchors`.
+- `Project` validates the stored current, transition, future, and historical
+  architecture snapshots and builds its scope/ID aggregate only from those
+  fields.
+- `WorkflowStep` checks its stored anchor snapshot before allowing
+  CONFIRMED/OBSERVED provenance states.
+
+### Changed files
+
+- `core/domain/src/main/kotlin/kairo/domain/CaptureSession.kt`
+- `core/domain/src/main/kotlin/kairo/domain/Project.kt`
+- `core/domain/src/main/kotlin/kairo/domain/Workflow.kt`
+- `core/domain/src/test/kotlin/kairo/domain/ContextDomainTest.kt`
+- `.superpowers/sdd/2026-08-20-kairo-v1-implementation/task-3-report.md`
+
+### Self-review
+
+- The fixes do not widen the deferred value-equality concern and do not change
+  non-collection domain behavior.
+- All validation now reads a stored snapshot when a record exposes that
+  collection; no caller-owned architecture list or workflow-step anchor set is
+  read after its defensive copy.
+- The candidate factory's one ingress snapshot prevents a source anchor that
+  was not present in the validated set from entering the candidate record.
+- No cardiology terminology or deferred persistence, ingestion, retrieval, UI,
+  or PHI-scanning scope was introduced.
+
+### Commit
+
+- `fix: validate contextual snapshots` (local only; not pushed).
+
+### Concerns
+
+- Existing Gradle 10 deprecation notices remain.
+- The sandbox Kotlin-daemon marker restriction remains environmental; all
+  requested checks completed through the successful in-process fallback.

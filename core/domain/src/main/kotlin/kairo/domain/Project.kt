@@ -157,19 +157,22 @@ class Project(
     init {
         require(name.isNotBlank()) { "Project name must not be blank" }
         require(objective.isNotBlank()) { "Project objective must not be blank" }
-        require(currentArchitecture.all { it.state == WorkflowState.CURRENT }) {
+        require(this.currentArchitecture.all { it.state == WorkflowState.CURRENT }) {
             "Current architecture must contain current workflows"
         }
-        require(transitionArchitecture.all { it.state == WorkflowState.TRANSITION }) {
+        require(this.transitionArchitecture.all { it.state == WorkflowState.TRANSITION }) {
             "Transition architecture must contain transition workflows"
         }
-        require(futureArchitecture.all { it.state == WorkflowState.FUTURE }) {
+        require(this.futureArchitecture.all { it.state == WorkflowState.FUTURE }) {
             "Future architecture must contain future workflows"
         }
-        require(historicalArchitecture.all { it.state == WorkflowState.HISTORICAL }) {
+        require(this.historicalArchitecture.all { it.state == WorkflowState.HISTORICAL }) {
             "Historical architecture must contain historical workflows"
         }
-        val architecture = currentArchitecture + transitionArchitecture + futureArchitecture + historicalArchitecture
+        val architecture = this.currentArchitecture +
+            this.transitionArchitecture +
+            this.futureArchitecture +
+            this.historicalArchitecture
         require(architecture.all { it.scope == KnowledgeScope.PROJECT }) {
             "Project architecture workflows must remain project-scoped"
         }

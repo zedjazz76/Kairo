@@ -245,6 +245,29 @@ class ContextDomainTest {
     }
 
     @Test
+    fun `candidate stores the same anchor snapshot it validates`() {
+        val allowedAnchor = anchor(SourceId("meeting-notes"), "meeting-notes-v1", 0)
+        val unrelatedAnchor = anchor(SourceId("migration-tracker"), "migration-tracker-v1", 0)
+        val session = CaptureSession(
+            id = CaptureSessionId("migration-meeting"),
+            capturedAt = Instant.parse("2026-08-20T15:00:00Z"),
+            anchors = setOf(allowedAnchor),
+        )
+        val changingAnchors = StatefulSet(setOf(allowedAnchor), setOf(unrelatedAnchor))
+
+        val candidate = CaptureCandidate.from(
+            id = CaptureCandidateId("stable-candidate"),
+            captureSession = session,
+            text = "Radiology Workflow candidate",
+            scope = KnowledgeScope.PROJECT,
+            state = EvidenceState.VERIFY,
+            evidenceAnchors = changingAnchors,
+        )
+
+        assertEquals(setOf(allowedAnchor), candidate.evidenceAnchors)
+    }
+
+    @Test
     fun `project rejects non project workflows in its architecture`() {
         val productionFuture = workflow(
             id = "production-future",
@@ -298,6 +321,60 @@ class ContextDomainTest {
     }
 
     @Test
+    fun `project validates the stored architecture scope snapshot`() {
+        val storedProductionWorkflow = workflow(
+            id = "stored-production-workflow",
+            name = "Stored production Radiology Workflow",
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = WorkflowState.FUTURE,
+            evidenceState = EvidenceState.PLANNED,
+        )
+        val laterProjectWorkflow = workflow(
+            id = "later-project-workflow",
+            name = "Later project Radiology Workflow",
+            scope = KnowledgeScope.PROJECT,
+            state = WorkflowState.FUTURE,
+            evidenceState = EvidenceState.PLANNED,
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            project(futureArchitecture = StatefulList(listOf(storedProductionWorkflow), listOf(laterProjectWorkflow)))
+        }
+    }
+
+    @Test
+    fun `project validates duplicate workflow identifiers from stored snapshots`() {
+        val transitionWorkflow = workflow(
+            id = "duplicate-workflow",
+            name = "Transition Radiology Workflow",
+            scope = KnowledgeScope.PROJECT,
+            state = WorkflowState.TRANSITION,
+            evidenceState = EvidenceState.PLANNED,
+        )
+        val storedDuplicateFuture = workflow(
+            id = "duplicate-workflow",
+            name = "Stored future Radiology Workflow",
+            scope = KnowledgeScope.PROJECT,
+            state = WorkflowState.FUTURE,
+            evidenceState = EvidenceState.PLANNED,
+        )
+        val laterUniqueFuture = workflow(
+            id = "unique-workflow",
+            name = "Later future Radiology Workflow",
+            scope = KnowledgeScope.PROJECT,
+            state = WorkflowState.FUTURE,
+            evidenceState = EvidenceState.PLANNED,
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            project(
+                transitionArchitecture = listOf(transitionWorkflow),
+                futureArchitecture = StatefulList(listOf(storedDuplicateFuture), listOf(laterUniqueFuture)),
+            )
+        }
+    }
+
+    @Test
     fun `project meetings must reference retained capture sessions`() {
         assertFailsWith<IllegalArgumentException> {
             project(
@@ -341,6 +418,22 @@ class ContextDomainTest {
                     ),
                 ),
                 evidenceAnchors = emptySet(),
+            )
+        }
+    }
+
+    @Test
+    fun `confirmed step validates its stored anchor snapshot`() {
+        val anchor = anchor(SourceId("meeting-notes"), "meeting-notes-v1", 0)
+        val changingAnchors = StatefulSet(emptySet(), setOf(anchor))
+
+        assertFailsWith<IllegalArgumentException> {
+            WorkflowStep(
+                id = WorkflowStepId("changing-confirmed-step"),
+                name = "Schedule radiology imaging",
+                system = "Merge RIS",
+                evidenceState = EvidenceState.CONFIRMED,
+                anchors = changingAnchors,
             )
         }
     }
@@ -453,4 +546,38 @@ class ContextDomainTest {
     private fun question(id: String) = OpenQuestion(OpenQuestionId(id), "Which interface should be verified?", emptySet())
 
     private fun action(id: String) = ActionItem(ActionItemId(id), "Validate the radiology interface", null, emptySet())
+
+    private class StatefulSet<T>(vararg snapshots: Set<T>) : AbstractSet<T>() {
+        private val iterations = snapshots.toList()
+        private var nextIteration = 0
+
+        private fun current(): Set<T> = iterations[nextIteration.coerceAtMost(iterations.lastIndex)]
+
+        override val size: Int
+            get() = current().size
+
+        override fun iterator(): Iterator<T> {
+            val snapshot = current()
+            nextIteration += 1
+            return snapshot.iterator()
+        }
+    }
+
+    private class StatefulList<T>(vararg snapshots: List<T>) : AbstractList<T>() {
+        private val iterations = snapshots.toList()
+        private var nextIteration = 0
+
+        private fun current(): List<T> = iterations[nextIteration.coerceAtMost(iterations.lastIndex)]
+
+        override val size: Int
+            get() = current().size
+
+        override fun get(index: Int): T = current()[index]
+
+        override fun iterator(): Iterator<T> {
+            val snapshot = current()
+            nextIteration += 1
+            return snapshot.iterator()
+        }
+    }
 }
