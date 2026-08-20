@@ -177,6 +177,39 @@ class RoomKnowledgeRepositoryTest {
     }
 
     @Test
+    fun `querying an old predicate does not resurrect its cross-key predecessor`() = runTest {
+        val source = source("source-cross-key", "hash-cross-key")
+        repository.saveSource(source, audit("audit-source-cross-key", "SAVE_SOURCE", source.id.value))
+        val predecessor = fact(
+            id = "fact-cross-key-v1",
+            lineageId = FactLineageId("cross-key-lineage"),
+            sourceId = source.id.value,
+            recordedAt = "2026-08-20T10:00:00Z",
+        )
+        val successor = predecessor.copy(
+            id = FactId("fact-cross-key-v2"),
+            predicate = "ROUTES_TO",
+            recordedAt = Instant.parse("2026-08-20T11:00:00Z"),
+            supersedes = predecessor.id,
+        )
+        repository.appendFactVersion(
+            predecessor,
+            audit("audit-cross-key-v1", "APPEND_FACT", predecessor.id.value),
+        )
+        repository.appendFactVersion(
+            successor,
+            audit("audit-cross-key-v2", "APPEND_FACT", successor.id.value),
+        )
+        val at = Instant.parse("2026-08-21T00:00:00Z")
+
+        val oldKey = repository.currentUnderstanding(FactQuery(predecessor.subject, predecessor.predicate, at))
+        val newKey = repository.currentUnderstanding(FactQuery(successor.subject, successor.predicate, at))
+
+        assertTrue(oldKey.isEmpty())
+        assertEquals(listOf(successor), newKey)
+    }
+
+    @Test
     fun `source variants and capture session anchors round trip exactly`() = runTest {
         val expectedSource = sourceWithEveryAnchor()
         repository.saveSource(expectedSource, audit("audit-source-round-trip", "SAVE_SOURCE", expectedSource.id.value))

@@ -175,13 +175,8 @@ interface KnowledgeDao {
     @Query("SELECT * FROM fact_versions WHERE lineage_id = :lineageId ORDER BY recorded_at, fact_id")
     suspend fun history(lineageId: String): List<FactVersionEntity>
 
-    @Query(
-        """SELECT * FROM fact_versions
-            WHERE (:subject IS NULL OR subject = :subject)
-              AND (:predicate IS NULL OR predicate = :predicate)
-            ORDER BY recorded_at, fact_id""",
-    )
-    suspend fun factsForProjection(subject: String?, predicate: String?): List<FactVersionEntity>
+    @Query("SELECT * FROM fact_versions ORDER BY recorded_at, fact_id")
+    suspend fun factsForProjection(): List<FactVersionEntity>
 
     @Query("SELECT * FROM fact_evidence WHERE fact_id = :factId ORDER BY ordinal")
     suspend fun evidenceForFact(factId: String): List<FactEvidenceEntity>

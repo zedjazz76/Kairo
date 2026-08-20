@@ -207,3 +207,79 @@ The equivalent AndroidJUnit4 fixture is present under `src/androidTest` and comp
 
 - Device SQLite/Room behavior still needs `connectedDebugAndroidTest` in an environment with an Android device or emulator.
 - The KSP compatibility flag and duplicate Kotlin-plugin warning are known build-tool concerns described above; neither changes runtime semantics, and all compile/test gates are green.
+
+## Fix round 1/5 — preserve cross-key supersession during repository queries
+
+### Reviewer finding and verification
+
+The finding was confirmed. `RoomKnowledgeRepository.currentUnderstanding()` previously passed a subject/predicate-filtered subset of fact rows into `CurrentBestUnderstanding.project()`. The reviewed domain projection computes retirement from explicit predecessor/successor relationships before grouping current facts by subject/predicate. A current eligible successor that changed subject or predicate was absent from the repository's prefiltered subset, so its predecessor could be incorrectly returned as current for the old key.
+
+The two deferred Minor review candidates were intentionally left unchanged in this round.
+
+### RED
+
+A real Room regression was added before the production change. It persists a confirmed predecessor with predicate `USES`, appends a later confirmed successor in the same lineage that changes the predicate to `ROUTES_TO`, and queries both the old and new keys.
+
+```powershell
+.\gradlew.bat :platform:android:testDebugUnitTest --tests 'kairo.platform.db.RoomKnowledgeRepositoryTest.querying an old predicate does not resurrect its cross-key predecessor' "-Pkairo.testTempDir=$testTemp" '-Pkotlin.compiler.execution.strategy=in-process' --no-daemon --console=plain
+```
+
+Result: expected failure, 1 test executed and 1 failed at `RoomKnowledgeRepositoryTest.kt:180`. The old-key result contained the retired predecessor because the successor had been filtered out before projection.
+
+### GREEN
+
+The DAO now loads the complete authoritative `fact_versions` set for projection. `currentUnderstanding()` delegates that complete graph to `CurrentBestUnderstanding.project()` at the requested instant and only then applies the optional subject/predicate query filters to projected current results. The returned filtered list is wrapped as an immutable defensive snapshot.
+
+Focused regression:
+
+```powershell
+.\gradlew.bat :platform:android:testDebugUnitTest --tests 'kairo.platform.db.RoomKnowledgeRepositoryTest.querying an old predicate does not resurrect its cross-key predecessor' "-Pkairo.testTempDir=$testTemp" '-Pkotlin.compiler.execution.strategy=in-process' --no-daemon --console=plain
+```
+
+Result: `BUILD SUCCESSFUL`, 1 test, 0 failures.
+
+Focused repository suite:
+
+```powershell
+.\gradlew.bat :platform:android:testDebugUnitTest --tests 'kairo.platform.db.RoomKnowledgeRepositoryTest' "-Pkairo.testTempDir=$testTemp" '-Pkotlin.compiler.execution.strategy=in-process' --no-daemon --console=plain
+```
+
+Result: `BUILD SUCCESSFUL`, 9 repository tests, 0 failures.
+
+Full verification:
+
+```powershell
+.\gradlew.bat :core:domain:test :platform:android:testDebugUnitTest :platform:android:compileDebugAndroidTestKotlin verifyContracts "-Pkairo.testTempDir=$testTemp" '-Pkotlin.compiler.execution.strategy=in-process' --no-daemon --console=plain
+```
+
+Result: `BUILD SUCCESSFUL`.
+
+- Domain: 36 tests, 0 failures/errors.
+- Android JVM: 10 tests, 0 failures/errors (9 repository tests plus 1 JVM migration test).
+- Root contracts: 12 tests, 12 passed.
+- Instrumentation migration source: compiled successfully; no connected-device execution was claimed.
+
+```powershell
+git diff --check
+```
+
+Result: exit 0; no whitespace errors, with only the existing Windows LF-to-CRLF advisory.
+
+### Changed files
+
+- `platform/android/src/main/kotlin/kairo/platform/db/KairoDatabase.kt`
+- `platform/android/src/main/kotlin/kairo/platform/db/RoomKnowledgeRepository.kt`
+- `platform/android/src/test/kotlin/kairo/platform/db/RoomKnowledgeRepositoryTest.kt`
+- `.superpowers/sdd/2026-08-20-kairo-v1-implementation/task-4-report.md`
+
+### Self-review and mutation check
+
+- Restoring DAO prefiltering would make the new old-key assertion fail by resurrecting the predecessor.
+- Filtering projected results incorrectly would make either the old-key empty assertion or the new-key successor assertion fail.
+- The implementation continues to use the reviewed domain ranking/retirement model; it adds no competing persistence ranking.
+- Query results remain defensive immutable snapshots after the new post-projection filter.
+- Schema version and migration DDL are unchanged by this repository-only semantic correction.
+
+### Fix commit
+
+- `fix: preserve cross-key fact supersession` (local only; not pushed)
