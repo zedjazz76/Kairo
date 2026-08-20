@@ -1,0 +1,16 @@
+.worktrees/
+.superpowers/
+.gradle/
+build/
+**/build/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.idea/
+local.properties
+.env
+.env.*
+!.env.example
+validation/reports/*
+!validation/reports/.gitkeep
