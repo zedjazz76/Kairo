@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "scripts": {
-    "test": "scripts\\run-contract-tests.cmd"
+    "contracts:generate": "node scripts/generate-contract-types.mjs",
+    "test": "node scripts/run-contract-tests.mjs"
   }
 }

@@ -1,85 +1,127 @@
-openapi: 3.1.0
-info:
-  title: Kairo Relay API
-  version: v1
-  description: >-
-    Ephemeral pairing and encrypted tunnel routing for a browser client and the
-    authoritative Kairo Core. The relay does not persist Kairo knowledge,
-    sources, prompts, or tunnel payloads.
-paths:
-  /v1/pairings:
-    post:
-      operationId: createPairing
-      summary: Start a short-lived desktop-to-Core pairing ceremony.
-      responses:
-        '201':
-          description: A pending pairing that expires if not confirmed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PairingCreatedV1'
-  /v1/pairings/{pairingId}/confirm:
-    post:
-      operationId: confirmPairing
-      summary: Confirm a pairing on the authoritative Core.
-      parameters:
-        - $ref: '#/components/parameters/PairingId'
-      responses:
-        '200':
-          description: The mutually authenticated tunnel session is available.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TunnelSessionV1'
-  /v1/tunnels/{sessionId}/commands:
-    post:
-      operationId: routeEncryptedCommand
-      summary: Route an encrypted Core command frame without decrypting it.
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EncryptedFrameV1'
-      responses:
-        '202':
-          description: The encrypted frame was accepted for live routing.
-components:
-  parameters:
-    PairingId:
-      name: pairingId
-      in: path
-      required: true
-      schema: { type: string }
-    SessionId:
-      name: sessionId
-      in: path
-      required: true
-      schema: { type: string }
-  schemas:
-    PairingCreatedV1:
-      type: object
-      required: [pairingId, expiresAt]
-      properties:
-        pairingId: { type: string }
-        expiresAt: { type: string, format: date-time }
-    TunnelSessionV1:
-      type: object
-      required: [sessionId, expiresAt]
-      properties:
-        sessionId: { type: string }
-        expiresAt: { type: string, format: date-time }
-    EncryptedFrameV1:
-      type: object
-      required: [sequence, ciphertext]
-      properties:
-        sequence: { type: integer, minimum: 0 }
-        ciphertext: { type: string, contentEncoding: base64 }
-    CoreCommandV1:
-      $ref: ../schemas/core-command.v1.json#/$defs/CoreCommandV1
-    CoreResultV1:
-      $ref: ../schemas/core-command.v1.json#/$defs/CoreResultV1
-    KairoAnswerV1:
-      $ref: ../schemas/kairo-answer.v1.json
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kairo Relay API",
+    "version": "v1",
+    "description": "Ephemeral pairing and encrypted tunnel routing for a browser client and the authoritative Kairo Core."
+  },
+  "security": [{ "pairedTunnel": [] }],
+  "x-kairo-relay": {
+    "liveRoutingOnly": true,
+    "permanentRetention": "prohibited",
+    "payloadDecryption": "prohibited"
+  },
+  "paths": {
+    "/v1/pairings": {
+      "post": {
+        "operationId": "createPairing",
+        "summary": "Start a short-lived desktop-to-Core pairing ceremony.",
+        "responses": {
+          "201": {
+            "description": "A pending pairing that expires if not confirmed.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PairingCreatedV1" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pairings/{pairingId}/confirm": {
+      "post": {
+        "operationId": "confirmPairing",
+        "summary": "Confirm a pairing on the authoritative Core.",
+        "parameters": [{ "$ref": "#/components/parameters/PairingId" }],
+        "responses": {
+          "200": {
+            "description": "The mutually authenticated tunnel session is available.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TunnelSessionV1" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tunnels/{sessionId}/commands": {
+      "post": {
+        "operationId": "routeEncryptedCommand",
+        "summary": "Route an encrypted Core command frame without decrypting it.",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EncryptedFrameV1" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The encrypted frame was accepted for live routing."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "pairedTunnel": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "paired tunnel session"
+      }
+    },
+    "parameters": {
+      "PairingId": {
+        "name": "pairingId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "SessionId": {
+        "name": "sessionId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "schemas": {
+      "PairingCreatedV1": {
+        "type": "object",
+        "required": ["pairingId", "expiresAt"],
+        "properties": {
+          "pairingId": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TunnelSessionV1": {
+        "type": "object",
+        "required": ["sessionId", "expiresAt"],
+        "properties": {
+          "sessionId": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "EncryptedFrameV1": {
+        "type": "object",
+        "required": ["sequence", "ciphertext"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 0 },
+          "ciphertext": { "type": "string", "contentEncoding": "base64" }
+        }
+      },
+      "CoreCommandV1": {
+        "$ref": "../schemas/core-command.v1.json#/$defs/CoreCommandV1"
+      },
+      "CoreResultV1": {
+        "$ref": "../schemas/core-command.v1.json#/$defs/CoreResultV1"
+      },
+      "KairoAnswerV1": {
+        "$ref": "../schemas/kairo-answer.v1.json"
+      }
+    }
+  }
+}

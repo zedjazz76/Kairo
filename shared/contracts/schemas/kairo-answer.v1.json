@@ -6,24 +6,29 @@
   "required": ["assessment", "claims"],
   "properties": {
     "assessment": { "type": "string", "minLength": 1 },
-    "claims": { "type": "array", "items": { "$ref": "#/$defs/claim" } }
+    "claims": { "type": "array", "items": { "$ref": "#/$defs/KairoClaimV1" } }
   },
   "$defs": {
-    "knowledgeScope": {
+    "KnowledgeScopeV1": {
       "type": "string",
       "enum": ["MANA_PRODUCTION", "PRODUCT", "PROJECT", "INCIDENT", "EXTERNAL_RESEARCH"]
     },
-    "evidenceState": {
+    "TemporalContextV1": {
+      "type": "string",
+      "enum": ["CURRENT", "TRANSITION", "FUTURE", "HISTORICAL"]
+    },
+    "EvidenceStateV1": {
       "type": "string",
       "enum": ["CONFIRMED", "OBSERVED", "PLANNED", "PROPOSED", "HYPOTHESIS", "VERIFY", "DEPRECATED", "CONTRADICTED"]
     },
-    "claim": {
+    "KairoClaimV1": {
       "type": "object",
-      "required": ["text", "scope", "evidenceState", "evidenceRefs"],
+      "required": ["text", "scope", "temporalContext", "evidenceState", "evidenceRefs"],
       "properties": {
         "text": { "type": "string", "minLength": 1 },
-        "scope": { "$ref": "#/$defs/knowledgeScope" },
-        "evidenceState": { "$ref": "#/$defs/evidenceState" },
+        "scope": { "$ref": "#/$defs/KnowledgeScopeV1" },
+        "temporalContext": { "$ref": "#/$defs/TemporalContextV1" },
+        "evidenceState": { "$ref": "#/$defs/EvidenceStateV1" },
         "evidenceRefs": {
           "type": "array",
           "minItems": 1,

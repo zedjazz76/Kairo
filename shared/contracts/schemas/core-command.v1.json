@@ -3,25 +3,40 @@
   "$id": "https://kairo.local/contracts/core-command.v1.json",
   "title": "Kairo Core command and result envelopes",
   "$defs": {
+    "CoreCommandTypeV1": {
+      "type": "string",
+      "enum": [
+        "AskKairo",
+        "CaptureSource",
+        "SearchKnowledge",
+        "GetSystem",
+        "TraceWorkflow",
+        "GetProject",
+        "ReviewMemoryCandidate",
+        "OpenEvidence"
+      ]
+    },
     "CoreCommandV1": {
       "type": "object",
       "required": ["requestId", "type", "contractVersion", "payload"],
       "properties": {
         "requestId": { "type": "string", "format": "uuid" },
-        "type": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/$defs/CoreCommandTypeV1" },
         "contractVersion": { "const": "v1" },
         "payload": { "type": "object" }
-      }
+      },
+      "additionalProperties": false
     },
     "CoreResultV1": {
       "type": "object",
       "required": ["requestId", "type", "contractVersion", "payload"],
       "properties": {
         "requestId": { "type": "string", "format": "uuid" },
-        "type": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/$defs/CoreCommandTypeV1" },
         "contractVersion": { "const": "v1" },
         "payload": { "type": "object" }
-      }
+      },
+      "additionalProperties": false
     }
   }
 }

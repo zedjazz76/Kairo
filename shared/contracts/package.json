@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "exports": {
+    "./contracts.v1": "./generated/contracts.v1.ts"
+  },
   "scripts": {
-    "test": "..\\..\\scripts\\run-contract-tests.cmd"
+    "test": "node ../../scripts/run-contract-tests.mjs"
   }
 }
