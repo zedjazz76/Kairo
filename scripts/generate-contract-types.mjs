@@ -17,6 +17,18 @@ function referenceName(reference) {
   return reference.slice(reference.lastIndexOf("/") + 1);
 }
 
+function objectTypeExpression(schema) {
+  const required = new Set(schema.required ?? []);
+  const properties = Object.entries(schema.properties ?? {}).map(
+    ([propertyName, propertySchema]) => {
+      const optional = required.has(propertyName) ? "" : "?";
+      return `${propertyName}${optional}: ${typeExpression(propertySchema)};`;
+    }
+  );
+
+  return `{ ${properties.join(" ")} }`;
+}
+
 function typeExpression(schema) {
   if (schema.$ref) {
     return referenceName(schema.$ref);
@@ -35,7 +47,9 @@ function typeExpression(schema) {
   }
 
   if (schema.type === "object") {
-    return schema.properties ? "{ [key: string]: unknown }" : "Record<string, unknown>";
+    return schema.properties
+      ? objectTypeExpression(schema)
+      : "Record<string, unknown>";
   }
 
   if (schema.type === "integer" || schema.type === "number") {
@@ -47,6 +61,33 @@ function typeExpression(schema) {
   }
 
   return "string";
+}
+
+function withEnvelopeProperties(schema, branch) {
+  const properties = {
+    ...(schema.properties ?? {}),
+    ...(branch.properties ?? {})
+  };
+
+  for (const propertyName of branch.not?.required ?? []) {
+    delete properties[propertyName];
+  }
+
+  return {
+    type: schema.type,
+    required: [...new Set([...(schema.required ?? []), ...(branch.required ?? [])])],
+    properties
+  };
+}
+
+function renderUnion(name, schema) {
+  const members = schema.oneOf.map((branch) =>
+    objectTypeExpression(withEnvelopeProperties(schema, branch))
+  );
+
+  return `export type ${name} =\n${members
+    .map((member) => `  | ${member}`)
+    .join("\n")};`;
 }
 
 function renderObject(name, schema) {
@@ -67,6 +108,10 @@ function renderObject(name, schema) {
 }
 
 function renderNamedSchema(name, schema) {
+  if (schema.oneOf) {
+    return renderUnion(name, schema);
+  }
+
   if (schema.type === "object") {
     return renderObject(name, schema);
   }

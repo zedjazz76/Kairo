@@ -5,16 +5,58 @@
   "$defs": {
     "CoreCommandTypeV1": {
       "type": "string",
-      "enum": [
-        "AskKairo",
-        "CaptureSource",
-        "SearchKnowledge",
-        "GetSystem",
-        "TraceWorkflow",
-        "GetProject",
-        "ReviewMemoryCandidate",
-        "OpenEvidence"
-      ]
+      "enum": ["AskKairo", "CaptureSource", "SearchKnowledge", "GetSystem", "TraceWorkflow", "GetProject", "ReviewMemoryCandidate", "OpenEvidence"]
+    },
+    "AskKairoCommandPayloadV1": {
+      "type": "object",
+      "required": ["question"],
+      "properties": { "question": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "CaptureSourceCommandPayloadV1": {
+      "type": "object",
+      "required": ["captureSessionId", "sourceRef"],
+      "properties": {
+        "captureSessionId": { "type": "string", "minLength": 1 },
+        "sourceRef": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "SearchKnowledgeCommandPayloadV1": {
+      "type": "object",
+      "required": ["query"],
+      "properties": { "query": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "GetSystemCommandPayloadV1": {
+      "type": "object",
+      "required": ["systemId"],
+      "properties": { "systemId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "TraceWorkflowCommandPayloadV1": {
+      "type": "object",
+      "required": ["workflowId"],
+      "properties": { "workflowId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "GetProjectCommandPayloadV1": {
+      "type": "object",
+      "required": ["projectId"],
+      "properties": { "projectId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "ReviewMemoryCandidateCommandPayloadV1": {
+      "type": "object",
+      "required": ["candidateId"],
+      "properties": { "candidateId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "OpenEvidenceCommandPayloadV1": {
+      "type": "object",
+      "required": ["evidenceRef"],
+      "properties": { "evidenceRef": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
     },
     "CoreCommandV1": {
       "type": "object",
@@ -25,18 +67,109 @@
         "contractVersion": { "const": "v1" },
         "payload": { "type": "object" }
       },
+      "additionalProperties": false,
+      "oneOf": [
+        { "properties": { "type": { "const": "AskKairo" }, "payload": { "$ref": "#/$defs/AskKairoCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "CaptureSource" }, "payload": { "$ref": "#/$defs/CaptureSourceCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "SearchKnowledge" }, "payload": { "$ref": "#/$defs/SearchKnowledgeCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "GetSystem" }, "payload": { "$ref": "#/$defs/GetSystemCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "TraceWorkflow" }, "payload": { "$ref": "#/$defs/TraceWorkflowCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "GetProject" }, "payload": { "$ref": "#/$defs/GetProjectCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "ReviewMemoryCandidate" }, "payload": { "$ref": "#/$defs/ReviewMemoryCandidateCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "OpenEvidence" }, "payload": { "$ref": "#/$defs/OpenEvidenceCommandPayloadV1" } } }
+      ]
+    },
+    "CoreResultStatusV1": {
+      "type": "string",
+      "enum": ["SUCCESS", "ERROR"]
+    },
+    "CoreErrorCodeV1": {
+      "type": "string",
+      "enum": ["INVALID_REQUEST", "NOT_FOUND", "UNAVAILABLE", "INTERNAL"]
+    },
+    "CoreErrorV1": {
+      "type": "object",
+      "required": ["code"],
+      "properties": { "code": { "$ref": "#/$defs/CoreErrorCodeV1" } },
+      "additionalProperties": false
+    },
+    "AskKairoSuccessDataV1": {
+      "type": "object",
+      "required": ["answerRef"],
+      "properties": { "answerRef": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "CaptureSourceSuccessDataV1": {
+      "type": "object",
+      "required": ["captureSessionId"],
+      "properties": { "captureSessionId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "SearchKnowledgeSuccessDataV1": {
+      "type": "object",
+      "required": ["resultRefs"],
+      "properties": {
+        "resultRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "GetSystemSuccessDataV1": {
+      "type": "object",
+      "required": ["systemRef"],
+      "properties": { "systemRef": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "TraceWorkflowSuccessDataV1": {
+      "type": "object",
+      "required": ["traceRef"],
+      "properties": { "traceRef": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "GetProjectSuccessDataV1": {
+      "type": "object",
+      "required": ["projectRef"],
+      "properties": { "projectRef": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "ReviewMemoryCandidateSuccessDataV1": {
+      "type": "object",
+      "required": ["reviewRef"],
+      "properties": { "reviewRef": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "OpenEvidenceSuccessDataV1": {
+      "type": "object",
+      "required": ["evidenceRef"],
+      "properties": { "evidenceRef": { "type": "string", "minLength": 1 } },
       "additionalProperties": false
     },
     "CoreResultV1": {
       "type": "object",
-      "required": ["requestId", "type", "contractVersion", "payload"],
+      "required": ["requestId", "type", "contractVersion", "status"],
       "properties": {
         "requestId": { "type": "string", "format": "uuid" },
         "type": { "$ref": "#/$defs/CoreCommandTypeV1" },
         "contractVersion": { "const": "v1" },
-        "payload": { "type": "object" }
+        "status": { "$ref": "#/$defs/CoreResultStatusV1" },
+        "data": { "type": "object" },
+        "error": { "$ref": "#/$defs/CoreErrorV1" }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        { "required": ["data"], "properties": { "type": { "const": "AskKairo" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/AskKairoSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "CaptureSource" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/CaptureSourceSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "SearchKnowledge" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/SearchKnowledgeSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "GetSystem" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/GetSystemSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "TraceWorkflow" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/TraceWorkflowSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "GetProject" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/GetProjectSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "ReviewMemoryCandidate" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/ReviewMemoryCandidateSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "OpenEvidence" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/OpenEvidenceSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["error"], "properties": { "status": { "const": "ERROR" }, "error": { "$ref": "#/$defs/CoreErrorV1" } }, "not": { "required": ["data"] } }
+      ]
     }
   }
 }

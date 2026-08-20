@@ -73,53 +73,106 @@ export function validateKairoAnswer(answer) {
   return { valid: issues.length === 0, issues };
 }
 
-function validateCoreEnvelope(envelopeName, envelope) {
-  const issues = [];
-  const envelopeSchema = commandSchema.$defs[envelopeName];
-
-  if (!isObject(envelope)) {
-    return { valid: false, issues: [`${envelopeName} must be an object`] };
+function resolveCoreSchema(schema) {
+  if (!schema.$ref) {
+    return schema;
   }
 
-  for (const propertyName of envelopeSchema.required) {
-    if (!(propertyName in envelope)) {
-      issues.push(`${propertyName} is required`);
+  return commandSchema.$defs[schema.$ref.slice(schema.$ref.lastIndexOf("/") + 1)];
+}
+
+function matchesCoreSchema(value, schema) {
+  const resolved = resolveCoreSchema(schema);
+
+  if (resolved.const !== undefined && value !== resolved.const) {
+    return false;
+  }
+
+  if (resolved.enum && !resolved.enum.includes(value)) {
+    return false;
+  }
+
+  if (resolved.type === "string") {
+    if (typeof value !== "string") {
+      return false;
+    }
+
+    if (resolved.minLength && value.length < resolved.minLength) {
+      return false;
+    }
+
+    if (
+      resolved.format === "uuid" &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (resolved.type === "array") {
+    if (!Array.isArray(value) || (resolved.minItems && value.length < resolved.minItems)) {
+      return false;
+    }
+
+    if (resolved.items && value.some((item) => !matchesCoreSchema(item, resolved.items))) {
+      return false;
     }
   }
 
   if (
-    typeof envelope.requestId !== "string" ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      envelope.requestId
-    )
+    resolved.type === "object" ||
+    resolved.properties ||
+    resolved.required
   ) {
-    issues.push("requestId must be a UUID");
+    if (!isObject(value)) {
+      return false;
+    }
+
+    if ((resolved.required ?? []).some((propertyName) => !(propertyName in value))) {
+      return false;
+    }
+
+    if (
+      resolved.additionalProperties === false &&
+      Object.keys(value).some(
+        (propertyName) => !Object.hasOwn(resolved.properties ?? {}, propertyName)
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      Object.entries(resolved.properties ?? {}).some(
+        ([propertyName, propertySchema]) =>
+          propertyName in value &&
+          !matchesCoreSchema(value[propertyName], propertySchema)
+      )
+    ) {
+      return false;
+    }
   }
 
   if (
-    !commandSchema.$defs.CoreCommandTypeV1.enum.includes(envelope.type)
+    resolved.oneOf &&
+    resolved.oneOf.filter((candidate) => matchesCoreSchema(value, candidate)).length !== 1
   ) {
-    issues.push("type must be an approved advisory Core capability");
+    return false;
   }
 
-  if (envelope.contractVersion !== "v1") {
-    issues.push("contractVersion must be v1");
+  if (resolved.not && matchesCoreSchema(value, resolved.not)) {
+    return false;
   }
 
-  if (!isObject(envelope.payload)) {
-    issues.push("payload must be an object");
-  }
+  return true;
+}
 
-  if (
-    envelopeSchema.additionalProperties === false &&
-    Object.keys(envelope).some(
-      (propertyName) => !Object.hasOwn(envelopeSchema.properties, propertyName)
-    )
-  ) {
-    issues.push("unexpected envelope property");
-  }
-
-  return { valid: issues.length === 0, issues };
+function validateCoreEnvelope(envelopeName, envelope) {
+  return {
+    valid: matchesCoreSchema(envelope, commandSchema.$defs[envelopeName]),
+    issues: []
+  };
 }
 
 export function validateCoreCommand(command) {

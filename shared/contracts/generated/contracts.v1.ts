@@ -21,16 +21,96 @@ export interface KairoClaimV1 {
 
 export type CoreCommandTypeV1 = "AskKairo" | "CaptureSource" | "SearchKnowledge" | "GetSystem" | "TraceWorkflow" | "GetProject" | "ReviewMemoryCandidate" | "OpenEvidence";
 
-export interface CoreCommandV1 {
-  requestId: string;
-  type: CoreCommandTypeV1;
-  contractVersion: "v1";
-  payload: Record<string, unknown>;
+export interface AskKairoCommandPayloadV1 {
+  question: string;
 }
 
-export interface CoreResultV1 {
-  requestId: string;
-  type: CoreCommandTypeV1;
-  contractVersion: "v1";
-  payload: Record<string, unknown>;
+export interface CaptureSourceCommandPayloadV1 {
+  captureSessionId: string;
+  sourceRef: string;
 }
+
+export interface SearchKnowledgeCommandPayloadV1 {
+  query: string;
+}
+
+export interface GetSystemCommandPayloadV1 {
+  systemId: string;
+}
+
+export interface TraceWorkflowCommandPayloadV1 {
+  workflowId: string;
+}
+
+export interface GetProjectCommandPayloadV1 {
+  projectId: string;
+}
+
+export interface ReviewMemoryCandidateCommandPayloadV1 {
+  candidateId: string;
+}
+
+export interface OpenEvidenceCommandPayloadV1 {
+  evidenceRef: string;
+}
+
+export type CoreCommandV1 =
+  | { requestId: string; type: "AskKairo"; contractVersion: "v1"; payload: AskKairoCommandPayloadV1; }
+  | { requestId: string; type: "CaptureSource"; contractVersion: "v1"; payload: CaptureSourceCommandPayloadV1; }
+  | { requestId: string; type: "SearchKnowledge"; contractVersion: "v1"; payload: SearchKnowledgeCommandPayloadV1; }
+  | { requestId: string; type: "GetSystem"; contractVersion: "v1"; payload: GetSystemCommandPayloadV1; }
+  | { requestId: string; type: "TraceWorkflow"; contractVersion: "v1"; payload: TraceWorkflowCommandPayloadV1; }
+  | { requestId: string; type: "GetProject"; contractVersion: "v1"; payload: GetProjectCommandPayloadV1; }
+  | { requestId: string; type: "ReviewMemoryCandidate"; contractVersion: "v1"; payload: ReviewMemoryCandidateCommandPayloadV1; }
+  | { requestId: string; type: "OpenEvidence"; contractVersion: "v1"; payload: OpenEvidenceCommandPayloadV1; };
+
+export type CoreResultStatusV1 = "SUCCESS" | "ERROR";
+
+export type CoreErrorCodeV1 = "INVALID_REQUEST" | "NOT_FOUND" | "UNAVAILABLE" | "INTERNAL";
+
+export interface CoreErrorV1 {
+  code: CoreErrorCodeV1;
+}
+
+export interface AskKairoSuccessDataV1 {
+  answerRef: string;
+}
+
+export interface CaptureSourceSuccessDataV1 {
+  captureSessionId: string;
+}
+
+export interface SearchKnowledgeSuccessDataV1 {
+  resultRefs: Array<string>;
+}
+
+export interface GetSystemSuccessDataV1 {
+  systemRef: string;
+}
+
+export interface TraceWorkflowSuccessDataV1 {
+  traceRef: string;
+}
+
+export interface GetProjectSuccessDataV1 {
+  projectRef: string;
+}
+
+export interface ReviewMemoryCandidateSuccessDataV1 {
+  reviewRef: string;
+}
+
+export interface OpenEvidenceSuccessDataV1 {
+  evidenceRef: string;
+}
+
+export type CoreResultV1 =
+  | { requestId: string; type: "AskKairo"; contractVersion: "v1"; status: "SUCCESS"; data: AskKairoSuccessDataV1; }
+  | { requestId: string; type: "CaptureSource"; contractVersion: "v1"; status: "SUCCESS"; data: CaptureSourceSuccessDataV1; }
+  | { requestId: string; type: "SearchKnowledge"; contractVersion: "v1"; status: "SUCCESS"; data: SearchKnowledgeSuccessDataV1; }
+  | { requestId: string; type: "GetSystem"; contractVersion: "v1"; status: "SUCCESS"; data: GetSystemSuccessDataV1; }
+  | { requestId: string; type: "TraceWorkflow"; contractVersion: "v1"; status: "SUCCESS"; data: TraceWorkflowSuccessDataV1; }
+  | { requestId: string; type: "GetProject"; contractVersion: "v1"; status: "SUCCESS"; data: GetProjectSuccessDataV1; }
+  | { requestId: string; type: "ReviewMemoryCandidate"; contractVersion: "v1"; status: "SUCCESS"; data: ReviewMemoryCandidateSuccessDataV1; }
+  | { requestId: string; type: "OpenEvidence"; contractVersion: "v1"; status: "SUCCESS"; data: OpenEvidenceSuccessDataV1; }
+  | { requestId: string; type: CoreCommandTypeV1; contractVersion: "v1"; status: "ERROR"; error: CoreErrorV1; };

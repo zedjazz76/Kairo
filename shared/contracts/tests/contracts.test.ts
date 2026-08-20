@@ -100,23 +100,68 @@ test("rejects a production-write command outside the approved Core capability se
   assert.equal(validateCoreCommand(command).valid, false);
 });
 
-test("accepts approved Core commands and matching result envelopes", () => {
+test("rejects production-operation fields embedded in an allowed Core command", () => {
   const command = {
+    requestId: "5d827e6f-7118-4c9e-ab31-f76b92b90efd",
+    type: "AskKairo",
+    contractVersion: "v1",
+    payload: {
+      question: "Which system hosts DMWL?",
+      writeProductionConfiguration: { system: "PACS", enabled: true }
+    }
+  };
+
+  assert.equal(validateCoreCommand(command).valid, false);
+});
+
+test("accepts representative exact Core command and result payloads", () => {
+  const askCommand = {
     requestId: "02c42a6d-4887-4a70-bc3c-f75c5b113d34",
     type: "AskKairo",
     contractVersion: "v1",
     payload: { question: "Which system hosts DMWL?" }
   };
+  const searchCommand = {
+    requestId: "4c98b6cf-024f-4ca2-9b91-01cb6066afc4",
+    type: "SearchKnowledge",
+    contractVersion: "v1",
+    payload: { query: "DMWL" }
+  };
   const result = {
-    requestId: command.requestId,
+    requestId: askCommand.requestId,
     type: "AskKairo",
     contractVersion: "v1",
-    payload: { answer: "Insufficient MANA evidence." }
+    status: "SUCCESS",
+    data: { answerRef: "answer-1" }
+  };
+  const errorResult = {
+    requestId: searchCommand.requestId,
+    type: "SearchKnowledge",
+    contractVersion: "v1",
+    status: "ERROR",
+    error: { code: "UNAVAILABLE" }
   };
 
   assert.equal(typeof validateCoreResult, "function");
-  assert.equal(validateCoreCommand(command).valid, true);
+  assert.equal(validateCoreCommand(askCommand).valid, true);
+  assert.equal(validateCoreCommand(searchCommand).valid, true);
   assert.equal(validateCoreResult(result).valid, true);
+  assert.equal(validateCoreResult(errorResult).valid, true);
+});
+
+test("rejects executable operation data in a Core result", () => {
+  const result = {
+    requestId: "57a5fcd6-f0d4-47ce-8795-ae7671c1b27c",
+    type: "GetSystem",
+    contractVersion: "v1",
+    status: "SUCCESS",
+    data: {
+      systemRef: "system-1",
+      executeProductionWrite: { system: "PACS", enabled: true }
+    }
+  };
+
+  assert.equal(validateCoreResult(result).valid, false);
 });
 
 test("parses the relay contract and requires paired encrypted live-only routing", async () => {
