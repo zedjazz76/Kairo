@@ -19,4 +19,5 @@ rootProject.name = "kairo"
 include(":core:domain")
 include(":core:application")
 include(":core:security")
+include(":core:ingestion")
 include(":platform:android")
