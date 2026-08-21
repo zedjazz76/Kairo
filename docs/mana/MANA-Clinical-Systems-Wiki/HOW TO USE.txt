@@ -1,0 +1,47 @@
+MANA CLINICAL SYSTEMS WIKI — SIMPLE WORKFLOW
+
+OPEN
+Double-click: Open MANA Wiki.cmd
+
+ADD OR UPDATE THROUGH CODEX/CHATGPT
+In any Codex task, say one of these:
+
+  Add this to my MANA wiki: [information]
+  Add a MANA wiki ticket: [issue]
+  Update the AbbaDox project page: [change]
+  Update my first-weeks roadmap with: [completed work]
+  Open my MANA wiki.
+
+The personal MANA Wiki skill points future Codex tasks to this permanent folder.
+If a task cannot access the folder, approve access only to:
+C:\Users\rdunn\Documents\Codex\MANA-Clinical-Systems-Wiki
+
+EDIT MANUALLY
+Open the wiki, select Edit wiki, make the change, and save.
+Use Export backup after important manual edits and save the JSON in the backups folder.
+
+SAVE A VERSION MANUALLY
+Double-click: Save Version.cmd
+This copies the complete site into a timestamped folder under versions and
+records a SHA-256 checksum in versions\VERSION-HISTORY.csv.
+
+THIS IS THE ACTIVE VERSION-CONTROL METHOD
+Git is not installed on this computer. You do not need it. The complete,
+timestamped folders are independent restore points and the checksum history
+shows when each version was captured.
+
+ENABLE LOCAL GIT HISTORY — OPTIONAL, ONLY AFTER INSTALLING GIT
+Double-click: Enable Git History.cmd
+If Git is ever installed later, this creates a local repository and first
+commit. Nothing is uploaded. Skip this for the current snapshot workflow.
+
+SAVE A SNAPSHOT
+Use Save Version.cmd. Save and Commit Version.cmd also falls back safely to a
+normal snapshot when Git is unavailable.
+
+IMPORTANT
+- The permanent master is site\index.html.
+- Do not update dated Codex output copies.
+- Do not store patient names, MRNs, dates of birth, credentials, or raw clinical messages.
+- The local ticket page is an analyst tracker, not MANA's official service desk.
+- Local Git history and snapshots stay on this computer unless you explicitly choose to publish them.

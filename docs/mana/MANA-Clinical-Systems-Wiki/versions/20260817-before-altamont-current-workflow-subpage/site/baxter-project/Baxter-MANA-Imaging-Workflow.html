@@ -1,0 +1,755 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Baxter â†” MANA Imaging Workflow and Integration Design</title><style>@page { size: Letter; margin: 0.58in 0.6in 0.65in; @bottom-right { content: counter(page); font: 9pt Arial; color:#64748b; } }
+*{box-sizing:border-box} body{font-family:"Segoe UI",Arial,sans-serif;color:#172033;font-size:10.1pt;line-height:1.42;margin:0} 
+.cover{height:9.45in;display:flex;flex-direction:column;justify-content:center;padding:0.45in;background:linear-gradient(145deg,#0b3854,#17658a);color:white;page-break-after:always;border-radius:18px}
+.cover .eyebrow{text-transform:uppercase;letter-spacing:2px;font-size:10pt;color:#9ed7e6}.cover h1{font-size:32pt;line-height:1.08;margin:18px 0}.cover .sub{font-size:15pt;max-width:6.2in;color:#d9f2f7}.cover .meta{margin-top:50px;border-top:1px solid #77b9ca;padding-top:18px;color:#cce8ef}
+h1{font-size:23pt;color:#0b4968;margin:0 0 16px}h2{font-size:17pt;color:#0b5f7f;margin:24px 0 8px;border-bottom:2px solid #8dc8d6;padding-bottom:5px;break-after:avoid}h3{font-size:13pt;color:#174b65;margin:18px 0 6px;break-after:avoid}h4{font-size:11pt;color:#31546a;margin:14px 0 5px;break-after:avoid}p{margin:5px 0 8px}strong{color:#103f56}code{font-family:Consolas,"Courier New",monospace;background:#eaf2f5;padding:1px 3px;border-radius:3px}
+.summary{background:#edf8f8;border-left:5px solid #1597a5;padding:14px 18px;margin:12px 0 20px}.section-title{page-break-before:always;background:#0b4968;color:white;padding:14px 18px;margin:0 0 18px;border-radius:8px}.section-title h1{color:white;margin:0}.section-title p{color:#d7edf2;margin:4px 0 0}
+.diagram{background:#f5f8fa;border:1px solid #afbdc7;border-left:5px solid #157b99;border-radius:7px;padding:10px 12px;margin:10px 0 15px;break-inside:avoid;overflow:hidden}.diagram pre{font-family:Consolas,"Courier New",monospace;font-size:7.35pt;line-height:1.13;white-space:pre;margin:0;color:#142532}
+table{width:100%;border-collapse:collapse;margin:10px 0 16px;break-inside:avoid;font-size:9.2pt}th{background:#155d7a;color:white;text-align:left;padding:7px}td{border:1px solid #cbd5dc;padding:6px;vertical-align:top}tr:nth-child(even) td{background:#f3f7f9}blockquote{margin:10px 0;padding:10px 15px;background:#eaf5f7;border-left:5px solid #1597a5;font-weight:600}ul{margin:5px 0 10px 20px;padding:0}.steps{counter-reset:item;list-style:none}.steps li{margin:4px 0}.steps li:before{counter-increment:item;content:counter(item) ". ";font-weight:bold;color:#0b6684}
+.note{font-size:8.5pt;color:#536371;border-top:1px solid #cbd5dc;margin-top:25px;padding-top:8px}</style></head><body><section class="cover"><div class="eyebrow">Imaging interoperability technical brief</div><h1>Baxter â†” MANA<br>Imaging Workflow and<br>Integration Design</h1><div class="sub">A practical design for preserving patient and order identity, returning radiology results to Oracle Health/Cerner, and providing secure image access.</div><div class="meta">Prepared August 12, 2026<br>Scope: Highlands Oncology CT, ultrasound, X-ray, PET and mammography workflows</div></section><div class="summary"><strong>Refined operating model.</strong> Baxter owns the patient relationship and places the imaging order. MANA acts as the external imaging provider: it schedules and performs the exam, stores the images, provides the radiologist interpretation, returns the final result to Baxter, and optionally returns or provides access to the images. The safest integration preserves Baxter MRN, assigning authority, and placer order number from the beginning while retaining MANA MRN and accession/filler number as MANA identifiers.</div><div class="section-title"><h1>Part I â€” Initial Integration Design</h1><p>The original deep-research response, presented in full.</p></div><p>Yes. Based on what we have already uncovered about <strong>MANA’s actual stack</strong>, I think there is a very workable design here.</p>
+<p>The key is this:</p>
+<blockquote><strong>Do not solve the Baxter problem by trying to figure out which MANA MRN belongs to which Baxter MRN after the report is final. Preserve Baxter’s identity and Baxter’s order number from the very beginning of the workflow.</strong></blockquote>
+<p>That changes this from a fuzzy patient-matching problem into a deterministic interface problem.</p>
+<h2>The architecture I would aim for</h2>
+<div class="diagram"><pre>                         BAXTER
+                Oracle Health / Cerner
+                         │
+                         │ HL7 ORM / ADT
+                         │
+                         ▼
+                ┌───────────────────┐
+                │ MANA interface/RIS│
+                │ Merge RIS OR      │
+                │ AbbaDox           │
+                └────────┬──────────┘
+                         │
+                 create/link order
+                         │
+               retain BOTH identities
+                         │
+          Baxter MRN + MANA MRN
+          Baxter Order + MANA Order
+                         │
+                         ▼
+                   MODALITY WORKLIST
+                         │
+             CT / XR / US / Mammo etc.
+                         │
+                         │ DICOM
+                         ▼
+                  MERGE / AMICAS PACS
+                         │
+                         ▼
+                 MANA RADIOLOGIST
+                         │
+                     FINAL REPORT
+                         │
+                         ▼
+                    ORU^R01
+                         │
+          contains Baxter order identity
+          + Baxter MRN / assigning authority
+                         │
+                         ▼
+                Baxter Oracle/Cerner</pre></div>
+<p>For images, there are <strong>two separate possibilities</strong>:</p>
+<div class="diagram"><pre>Baxter Provider
+     │
+     └──── secure web access ────► MANA Merge PACS
+
+OR
+
+Merge PACS
+     │
+     └──── DICOM C-STORE ────────► Baxter PACS / VNA</pre></div>
+<p>Those solve two different problems.</p>
+<h1>1. The MRN problem is solvable without guessing</h1>
+<p>The current concern is:</p>
+<blockquote>MANA generates the final report using the MANA MRN, but Baxter needs the Baxter MRN to file the result in Oracle/Cerner.</blockquote>
+<p>I would <strong>not make demographics the primary cross-match</strong>.</p>
+<p>Instead, carry both identifiers.</p>
+<p>HL7 supports repeating patient identifiers with different <strong>assigning authorities</strong>, so conceptually PID-3 can contain:</p>
+<div class="diagram"><pre>MANA123456^^^MANA^MR
+~
+BAX789012^^^BAXTER^MR</pre></div>
+<p>The assigning authority is specifically how HL7 distinguishes identifiers issued by different systems or organizations. IHE&#39;s patient-identity profiles are built around exactly this problem: one person having identifiers in multiple patient-identity domains. </p>
+<p>That immediately gives you a much better solution than:</p>
+<blockquote>“MANA MRN 12345 came back. Can Baxter figure out who that is?”</blockquote>
+<p>Instead Baxter receives:</p>
+<blockquote>“Here is the MANA identifier, <strong>and here is the Baxter identifier that you originally gave us</strong>.”</blockquote>
+<h1>2. Even better: match the result to the original Baxter order</h1>
+<p>This is the part I would push hardest in the meeting.</p>
+<p>The <strong>Baxter order number should survive the entire trip.</strong></p>
+<p>HL7 explicitly distinguishes:</p>
+<p><strong>Placer Order Number</strong></p>
+<p>The identifier assigned by the system that originally places the order.</p>
+<p><strong>Filler Order Number</strong></p>
+<p>The identifier assigned by the system that performs/fills the order.</p>
+<p>HL7 uses <code>ORC-2 / OBR-2</code> for the placer number and <code>ORC-3 / OBR-3</code> for the filler number. The standard specifically emphasizes preserving these identifiers when results are returned in an ORU. </p>
+<p>That is almost tailor-made for Baxter/MANA.</p>
+<h3>Example</h3>
+<p>Baxter orders:</p>
+<div class="diagram"><pre>Baxter MRN:       BAX12345
+Baxter Order:     BAXORD778899</pre></div>
+<p>MANA receives it and creates:</p>
+<div class="diagram"><pre>MANA MRN:         MANA45678
+MANA accession:   MANAACC991122</pre></div>
+<p>Don&#39;t throw the Baxter values away.</p>
+<p>Store the relationship:</p>
+<table><thead><tr><th>Identity</th><th>Baxter</th><th>MANA</th></tr></thead><tbody>
+<tr><td>Patient</td><td><code>BAX12345</code></td><td><code>MANA45678</code></td></tr>
+<tr><td>Order</td><td><code>BAXORD778899</code></td><td><code>MANAACC991122</code></td></tr>
+</tbody></table>
+<p>Then the result leaving MANA can conceptually contain:</p>
+<div class="diagram"><pre>PID|||MANA45678^^^MANA^MR~BAX12345^^^BAXTER^MR
+
+OBR|1|
+BAXORD778899^BAXTER|
+MANAACC991122^MANA|
+...</pre></div>
+<p>Now Baxter doesn&#39;t have to infer anything.</p>
+<p>It sees:</p>
+<p><strong>Baxter patient + Baxter original order = exact Cerner chart/order</strong></p>
+<p>and the MANA identifiers remain available for troubleshooting.</p>
+<p>That is the architecture I would advocate.</p>
+<h1>3. The crosswalk should be created <strong>when the order arrives</strong></h1>
+<p>This is a big distinction.</p>
+<h3>Bad approach</h3>
+<div class="diagram"><pre>MANA final report
+      ↓
+MANA MRN
+      ↓
+Try to figure out Baxter patient
+      ↓
+name + DOB + maybe address
+      ↓
+😬</pre></div>
+<p>That introduces ambiguity.</p>
+<p>Twins, name changes, duplicate patients, typos and demographic variations all become problems.</p>
+<h3>Better</h3>
+<div class="diagram"><pre>Baxter sends order
+       ↓
+Baxter MRN known
+Baxter Order known
+       ↓
+MANA patient/order created
+       ↓
+Cross-reference saved immediately
+       ↓
+result produced days later
+       ↓
+cross-reference already exists</pre></div>
+<p>If this relationship eventually grows beyond radiology, an <strong>enterprise MPI / PIX-style patient cross-reference service</strong> becomes a legitimate architectural option. IHE PIX/PIXm is specifically designed to manage corresponding patient identifiers across different identifier domains. </p>
+<p>For a September 1 launch, though, a deterministic interface crosswalk may be much easier than standing up an enterprise MPI project.</p>
+<h1>Where this fits into MANA&#39;s systems</h1>
+<p>This is where what you&#39;ve discovered at work becomes extremely useful.</p>
+<p>We know MANA currently has:</p>
+<p><strong>eCW</strong></p>
+<p><strong>Merge RIS 9.2.2.122</strong></p>
+<p><strong>AbbaDox CareFlow</strong></p>
+<p><strong>Merge/AMICAS PACS 8.1.6.7</strong></p>
+<p><strong>MagView</strong></p>
+<p>And your Merge RIS already exposes live interfaces such as:</p>
+<div class="diagram"><pre>ECW INBOUND GLOBAL
+ECW OUTBOUND GLOBAL
+INBOUND MAGVIEW REPORTS
+MAGVIEW
+MERGE PACS
+AMICAS PACS - PSH REPORTS</pre></div>
+<p>That tells me MANA already has the conceptual infrastructure for another pair:</p>
+<div class="diagram"><pre>BAXTER INBOUND ORDERS
+BAXTER OUTBOUND RESULTS</pre></div>
+<p>The major architectural question I would settle <strong>before anything else</strong> is:</p>
+<blockquote><strong>Which MANA RIS owns the Highlands workflow: Merge RIS or AbbaDox?</strong></blockquote>
+<p>Do not let both systems become competing order authorities.</p>
+<p>If Highlands runs through <strong>Merge RIS</strong>, I would build the Baxter interface there or feed it through whatever engine currently supplies Merge RIS.</p>
+<p>If Highlands is an <strong>AbbaDox CareFlow site</strong>, then the same Baxter-ID/order-preservation strategy should be implemented there.</p>
+<p>The identity strategy does not change.</p>
+<h1>There are actually two different Baxter workflows</h1>
+<p>The agenda combines them a little, but technically they&#39;re separate.</p>
+<h2>Workflow A: Baxter acquires images and MANA reads them</h2>
+<p>Likely Highlands CT/US/XR.</p>
+<div class="diagram"><pre>Baxter Cerner
+     │
+   Order
+     ▼
+MANA RIS
+     │
+    MWL
+     ▼
+Baxter modality
+     │
+ DICOM images
+     ▼
+MANA Merge PACS
+     │
+MANA radiologist
+     │
+   ORU
+     ▼
+Baxter Cerner</pre></div>
+<p>This is a classic remote-reading/teleradiology workflow.</p>
+<h2>Workflow B: MANA performs/reads an exam and Baxter needs the result</h2>
+<p>Your PET/Mammo example sounds closer to:</p>
+<div class="diagram"><pre>Baxter patient/order
+        ↓
+MANA PET / Mammo workflow
+        ↓
+Merge PACS / MagView
+        ↓
+MANA interpretation
+        ↓
+ORU
+        ↓
+Baxter Cerner</pre></div>
+<p>Workflow B is where the <strong>MRN crosswalk becomes especially important</strong>, because MANA may legitimately create a MANA patient record.</p>
+<p>The same strategy still works:</p>
+<p><strong>retain Baxter patient ID + Baxter order ID when the patient enters the MANA workflow.</strong></p>
+<h1>Provider access to images</h1>
+<p>The easiest September 1 solution may be exactly what Brian proposed:</p>
+<blockquote><strong>Give Baxter providers secure MANA PACS access.</strong></blockquote>
+<p>Merge PACS supports remote web-based access and is designed for referring physicians and remote users. </p>
+<p>So:</p>
+<div class="diagram"><pre>Baxter desktop
+      │
+      ▼
+MANA PACS URL
+      │
+authenticated Baxter provider
+      │
+      ▼
+patient/study search
+      │
+   images + report</pre></div>
+<h3>But I would NOT expose your old PACS directly to the public internet.</h3>
+<p>You&#39;re running a legacy Merge/AMICAS generation.</p>
+<p>The better pattern is something like:</p>
+<div class="diagram"><pre>Baxter network
+      │
+VPN / approved secure connection
+      │
+MANA network
+      │
+Merge PACS web access</pre></div>
+<p>with:</p>
+<p><strong>individual Baxter accounts, not shared accounts</strong></p>
+<p><strong>provider-specific access</strong></p>
+<p><strong>auditing</strong></p>
+<p><strong>account expiration/deprovisioning</strong></p>
+<p><strong>support contact</strong></p>
+<p><strong>documented access request process</strong></p>
+<p>HIPAA permits provider-to-provider disclosure for treatment, but electronic systems still require appropriate access control and audit mechanisms. HHS specifically identifies unique-user identification and audit controls as Security Rule requirements. </p>
+<p>Your planned <strong>MANA PACS access forms</strong> therefore make perfect sense.</p>
+<h1>Longer term: launch MANA images directly from Baxter Cerner</h1>
+<p>This would be much better than:</p>
+<blockquote>Log into MANA PACS → search patient → search study.</blockquote>
+<p>Eventually I&#39;d investigate:</p>
+<div class="diagram"><pre>Baxter Cerner patient chart
+        │
+        ▼
+&quot;View MANA Images&quot;
+        │
+        ▼
+study-specific PACS URL
+        │
+        ▼
+Merge viewer</pre></div>
+<p>A context launch can potentially pass:</p>
+<p><strong>patient identifier</strong></p>
+<p><strong>accession</strong></p>
+<p><strong>study UID</strong></p>
+<p>depending on what your Merge version supports.</p>
+<p>Current Merge products explicitly support web-based remote viewing and integration with EHRs/physician dashboards. </p>
+<p>Whether <strong>your 8.1.6.7 environment</strong> supports a clean authenticated context launch is something I would take to Merge support rather than assume.</p>
+<h1>Can we send Baxter the actual images?</h1>
+<p>Absolutely, technically.</p>
+<p>If Baxter has a PACS/VNA capable of receiving DICOM:</p>
+<div class="diagram"><pre>MANA Merge PACS
+      │
+      │ DICOM C-STORE
+      ▼
+Baxter PACS / VNA</pre></div>
+<p>You already know Merge has <strong>Autorouting</strong> and <strong>Forwarding</strong> queues.</p>
+<p>This could potentially become:</p>
+<div class="diagram"><pre>IF
+Institution = Highlands
+AND
+reading workflow complete
+
+THEN
+send study to BAXTER_PACS</pre></div>
+<p>However, I would <strong>not start there</strong>.</p>
+<p>Why?</p>
+<p>Because the patient-identity problem exists in DICOM too.</p>
+<p>The DICOM image has:</p>
+<div class="diagram"><pre>Patient ID (0010,0020)</pre></div>
+<p>If it contains the <strong>MANA MRN</strong>, Baxter&#39;s PACS may not associate it with the Baxter patient.</p>
+<p>So we&#39;d need to understand:</p>
+<p><strong>What Patient ID is actually in the images?</strong></p>
+<p>This is particularly interesting for Highlands.</p>
+<p>If Baxter&#39;s modality receives its worklist from Baxter, the original DICOM may already contain:</p>
+<div class="diagram"><pre>Baxter MRN
+Baxter Accession</pre></div>
+<p>🔥 <strong>That could simplify the whole project considerably.</strong></p>
+<p>MANA might receive those images with Baxter identity, create its own internal patient/order relationship, and then return results based on the original Baxter identifiers.</p>
+<p>That is something I would test immediately.</p>
+<h1>The first real-world test I&#39;d perform</h1>
+<p>Take <strong>one non-production/test Baxter exam</strong> and document these values at every hop:</p>
+<table><thead><tr><th>Stage</th><th>Patient ID</th><th>Accession/order</th></tr></thead><tbody>
+<tr><td>Baxter Cerner order</td><td>?</td><td>?</td></tr>
+<tr><td>Modality Worklist</td><td>?</td><td>?</td></tr>
+<tr><td>DICOM image header</td><td>?</td><td>?</td></tr>
+<tr><td>Merge PACS</td><td>?</td><td>?</td></tr>
+<tr><td>Merge RIS/AbbaDox</td><td>?</td><td>?</td></tr>
+<tr><td>Final ORU</td><td>?</td><td>?</td></tr>
+<tr><td>Baxter interface received</td><td>?</td><td>?</td></tr>
+</tbody></table>
+<p>That one trace will answer <strong>half of the architectural questions</strong>.</p>
+<p>You&#39;re trying to see exactly where:</p>
+<div class="diagram"><pre>BAXTER MRN</pre></div>
+<p>turns into:</p>
+<div class="diagram"><pre>MANA MRN</pre></div>
+<p>and where:</p>
+<div class="diagram"><pre>BAXTER ORDER</pre></div>
+<p>turns into:</p>
+<div class="diagram"><pre>MANA ACCESSION</pre></div>
+<p>Once we find the transition point, that&#39;s where the cross-reference belongs.</p>
+<h1>The ultrasound / Echo wrinkle</h1>
+<p>This is also solvable.</p>
+<p>The physical ultrasound machine is just one DICOM device. The workflow doesn&#39;t have to be one thing.</p>
+<p>DICOM Modality Worklist contains attributes including:</p>
+<p><strong>Scheduled Station AE Title</strong></p>
+<p><strong>Modality</strong></p>
+<p><strong>Scheduled Procedure Step Description</strong></p>
+<p><strong>Requested Procedure ID</strong></p>
+<p><strong>procedure/protocol information</strong>. </p>
+<p>So the preferred design would be:</p>
+<div class="diagram"><pre>                Same Ultrasound
+                     │
+            choose scheduled exam
+                /             \
+        Radiology US           Echo
+             │                  │
+         US procedure       Echo procedure
+             │                  │
+             ▼                  ▼
+        MANA PACS        Cardiology workflow</pre></div>
+<h3>Best option</h3>
+<p>Route using <strong>worklist procedure codes</strong>.</p>
+<p>For example:</p>
+<div class="diagram"><pre>US ABDOMEN
+US RENAL
+US THYROID
+      ↓
+MANA Merge PACS</pre></div>
+<p>while:</p>
+<div class="diagram"><pre>ECHO COMPLETE
+ECHO LIMITED
+STRESS ECHO
+      ↓
+Cardiology PACS/system</pre></div>
+<p>This is much safer than relying on the tech to type a description.</p>
+<p>The DICOM standard explicitly lets the worklist identify the scheduled station, modality and procedure step, which gives you deterministic data to drive this type of workflow. </p>
+<h3>Second-best option</h3>
+<p>Configure two destinations:</p>
+<div class="diagram"><pre>MANA_RAD_PACS
+BAXTER_CARDIO</pre></div>
+<p>and have the technologist select the appropriate destination.</p>
+<p>That works, but humans become the router.</p>
+<h3>Better if you have a DICOM router</h3>
+<p>Send everything to one routing layer:</p>
+<div class="diagram"><pre>Ultrasound
+    ↓
+DICOM Router
+    │
+    ├── RAD procedures → Merge PACS
+    │
+    └── ECHO procedures → Cardiology</pre></div>
+<p>That is the cleaner enterprise design.</p>
+<h1>The design I would recommend for September 1</h1>
+<p>I&#39;d break it into one focused implementation sequence:</p>
+<ul class="steps">
+<li><strong>Decide whether Merge RIS or AbbaDox owns Highlands orders.</strong></li>
+<li>Have Baxter send an <strong>HL7 order before the examination</strong>, carrying Baxter MRN and Baxter placer order number.</li>
+<li>Preserve the <strong>Baxter MRN with a Baxter assigning authority</strong> in MANA&#39;s workflow.</li>
+<li>Preserve <strong>Baxter&#39;s original placer order number</strong> even if MANA generates its own accession/filler number.</li>
+<li>Test what Patient ID and accession actually appear in the modality DICOM.</li>
+<li>Send those images into <strong>Merge PACS</strong> and verify normal MANA worklist behavior.</li>
+<li>Build an outbound <strong>BAXTER RESULTS ORU</strong> that returns the Baxter patient identifier and Baxter order identifier.</li>
+<li>Have Baxter&#39;s interface match primarily on <strong>Baxter order + Baxter MRN</strong>, not MANA MRN.</li>
+<li>Give Baxter providers secure, individual <strong>MANA PACS web access</strong> as the initial image-access solution.</li>
+<li>Handle US versus Echo with <strong>procedure-code-driven routing</strong>, preferably automated rather than manual.</li>
+</ul>
+<p>If that works, you&#39;ve got a clean September workflow without needing to deploy an MPI, replace systems, or build a new imaging application.</p>
+<h1>Questions I&#39;d take into the Baxter/MANA meeting</h1>
+<p>These are the questions that will unlock the design fastest:</p>
+<table><thead><tr><th>Ask Baxter</th><th>Why</th></tr></thead><tbody>
+<tr><td>Can Baxter send an ORM for every exam MANA will read?</td><td>Gives us patient + order identity before images</td></tr>
+<tr><td>What does Baxter use as its placer order number/accession?</td><td>Best result-correlation key</td></tr>
+<tr><td>Can Baxter&#39;s Cerner interface consume repeated PID-3 identifiers with assigning authorities?</td><td>May solve MRN problem natively</td></tr>
+<tr><td>Can it match ORU results using OBR-2 placer order number?</td><td>Probably the cleanest answer</td></tr>
+<tr><td>What interface engine does Baxter use?</td><td>Determines where crosswalk/transforms can live</td></tr>
+<tr><td>Does Baxter have a PACS/VNA DICOM endpoint?</td><td>Determines whether images can be returned locally</td></tr>
+<tr><td>Does Baxter want images copied, or is MANA PACS web access enough?</td><td>Avoid unnecessary architecture</td></tr>
+<tr><td>What system supplies MWL to Highlands CT/US/XR?</td><td>Critical for identity</td></tr>
+<tr><td>What MRN/accession appears in a Highlands DICOM header today?</td><td>Tells us current identity domain</td></tr>
+<tr><td>Where do Echo studies go today?</td><td>Determines US routing design</td></tr>
+<tr><td>Does Baxter support authenticated context links from Cerner?</td><td>Future one-click image access</td></tr>
+</tbody></table>
+<h2>My strongest recommendation</h2>
+<p><strong>The Baxter MRN should not be “cross-matched” at the end if we can avoid it.</strong></p>
+<p>Treat:</p>
+<div class="diagram"><pre>Baxter MRN
++
+Baxter Placer Order Number</pre></div>
+<p>as information that travels <strong>with the examination from order creation through final result</strong>.</p>
+<p>MANA can still have:</p>
+<div class="diagram"><pre>MANA MRN
++
+MANA Accession/Filler Number</pre></div>
+<p>The systems just need to preserve the relationship.</p>
+<p>HL7 was deliberately designed to carry exactly this kind of multi-organization order identity. </p>
+<p>If we implement that correctly, <strong>getting MANA-read radiology results back into Baxter Cerner becomes much less mysterious</strong>. And once that spine is working, image access is the easier half of the project.</p>
+<p>::chatgpt-content-reference{index=&quot;10&quot;}</p>
+<div class="section-title"><h1>Part II â€” Refined Baxter-Owned-Patient Workflow</h1><p>The clarified operating model and implementation design, presented in full.</p></div><p>Yes. That clarification changes the design substantially, and it actually makes the workflow cleaner.</p>
+<p><strong>Baxter owns the patient relationship and orders the imaging. MANA is the external imaging provider that performs the exam, interprets it, and returns the result, and possibly the images, to Baxter.</strong></p>
+<p>So the target should look like this:</p>
+<div class="diagram"><pre>BAXTER / Oracle Cerner
+Patient belongs to Baxter
+        │
+        │ Imaging order/referral
+        │ Baxter MRN
+        │ Baxter order number
+        ▼
+──────────────────────────────────
+              MANA
+──────────────────────────────────
+        │
+        ▼
+MANA RIS / scheduling
+AbbaDox or Merge RIS
+        │
+        │ MANA may create:
+        │ • MANA MRN
+        │ • MANA accession
+        │
+        │ BUT KEEP:
+        │ • Baxter MRN
+        │ • Baxter order number
+        ▼
+Modality Worklist
+        │
+        ▼
+CT / XR / US / Mammo / PET
+        │
+        │ DICOM
+        ▼
+Merge / AMICAS PACS
+        │
+        ▼
+MANA Radiologist
+        │
+        ▼
+Final Report
+        │
+        ├──────── HL7 ORU ───────► Baxter Cerner
+        │
+        └──────── DICOM ─────────► Baxter PACS/VNA
+                     optional</pre></div>
+<h2>The most important design decision</h2>
+<p>The <strong>Baxter identity must enter MANA with the order and survive the entire encounter</strong>.</p>
+<p>I would want every Baxter referral/order entering MANA to carry at minimum:</p>
+<p><strong>Baxter MRN</strong></p>
+<p><strong>Baxter assigning authority</strong></p>
+<p><strong>Baxter order/placer number</strong></p>
+<p><strong>Patient name</strong></p>
+<p><strong>DOB</strong></p>
+<p><strong>Sex</strong></p>
+<p><strong>Procedure ordered</strong></p>
+<p><strong>Ordering provider</strong></p>
+<p>MANA can absolutely assign its own:</p>
+<p><strong>MANA MRN</strong></p>
+<p><strong>MANA accession</strong></p>
+<p>That&#39;s normal. The mistake would be losing the Baxter identifiers after MANA registration.</p>
+<p>Think of the encounter as having two passports:</p>
+<table><thead><tr><th></th><th>Baxter identity</th><th>MANA identity</th></tr></thead><tbody>
+<tr><td>Patient</td><td>Baxter MRN</td><td>MANA MRN</td></tr>
+<tr><td>Order</td><td>Baxter order number</td><td>MANA accession</td></tr>
+<tr><td>Authority</td><td>Baxter</td><td>MANA</td></tr>
+</tbody></table>
+<p>The systems shouldn&#39;t have to <strong>rediscover the relationship at the end</strong>. They should already know it.</p>
+<h1>How I would build the HL7 workflow</h1>
+<h3>Step 1: Baxter sends MANA an imaging order</h3>
+<p>Ideally:</p>
+<div class="diagram"><pre>Baxter Cerner
+      │
+      │ ORM^O01
+      ▼
+MANA interface</pre></div>
+<p>That order should contain something conceptually like:</p>
+<div class="diagram"><pre>PID-3 = Baxter MRN
+ORC/OBR placer number = Baxter order number</pre></div>
+<p>MANA receives it and registers/schedules the patient.</p>
+<p>Then MANA may generate:</p>
+<div class="diagram"><pre>MANA MRN = 445566
+MANA accession = MANA987654</pre></div>
+<p>Internally, you preserve:</p>
+<div class="diagram"><pre>BAXTER MRN 1234567
+        ↕
+MANA MRN 445566
+
+BAXTER ORDER BX778899
+        ↕
+MANA ACCESSION MANA987654</pre></div>
+<p>That&#39;s your crosswalk.</p>
+<h1>Then MANA performs the exam</h1>
+<p>MANA&#39;s RIS provides the modality with the scheduled procedure.</p>
+<div class="diagram"><pre>MANA RIS
+    │
+    │ DICOM MWL
+    ▼
+CT / XR / US</pre></div>
+<p>Tech selects the patient rather than manually typing demographics.</p>
+<p>Images go:</p>
+<div class="diagram"><pre>Modality
+    │
+    │ DICOM C-STORE
+    ▼
+Merge PACS</pre></div>
+<p>Then:</p>
+<div class="diagram"><pre>Merge PACS
+    ↓
+MANA radiologist
+    ↓
+final interpretation</pre></div>
+<p>That is your normal MANA workflow.</p>
+<p>The Baxter piece doesn&#39;t need to distort how your PACS works.</p>
+<h1>Returning the report to Baxter</h1>
+<p>This is where the original concern about MRNs came from.</p>
+<p>You <strong>do not want to send Baxter an ORU containing only the MANA MRN.</strong></p>
+<p>Instead, the outbound interface needs to construct the result using the identity Baxter understands.</p>
+<p>Conceptually:</p>
+<div class="diagram"><pre>MANA final result
+       │
+       ▼
+Interface translation
+       │
+       ├── MANA MRN retained if useful
+       ├── Baxter MRN restored/included
+       ├── MANA accession retained
+       └── Baxter order number restored/included
+       │
+       ▼
+      ORU^R01
+       │
+       ▼
+Baxter Cerner</pre></div>
+<p>Baxter should preferably match the result against:</p>
+<h3><strong>Baxter order number</strong></h3>
+<p>first, with:</p>
+<h3><strong>Baxter MRN</strong></h3>
+<p>as another strong identifier.</p>
+<p>That&#39;s vastly better than asking Cerner:</p>
+<blockquote>“Can you figure out who MANA MRN 445566 is?”</blockquote>
+<h1>The really important field: Baxter&#39;s original order number</h1>
+<p>Suppose Baxter places:</p>
+<p><strong>CT Chest with contrast</strong></p>
+<p>with:</p>
+<div class="diagram"><pre>Baxter MRN:        7654321
+Baxter Order #:    BX-10002988</pre></div>
+<p>MANA produces:</p>
+<div class="diagram"><pre>MANA MRN:          112233
+MANA Accession:    MANA-998877</pre></div>
+<p>The final result should ideally still know:</p>
+<div class="diagram"><pre>Baxter MRN          7654321
+Baxter Order        BX-10002988
+
+MANA MRN            112233
+MANA Accession      MANA-998877</pre></div>
+<p>Then the ORU can essentially say:</p>
+<blockquote><strong>This is the result for the Baxter order BX-10002988.</strong></blockquote>
+<p>Cerner has a deterministic target.</p>
+<p>That&#39;s the crux of the project.</p>
+<h1>What about sending the actual images back?</h1>
+<p>This is the second half.</p>
+<p>You have three realistic choices.</p>
+<h2>Option A: Baxter providers view MANA PACS</h2>
+<p>This may be the easiest <strong>September 1 solution</strong>.</p>
+<div class="diagram"><pre>Baxter provider
+      │
+      ▼
+MANA PACS web viewer
+      │
+      ▼
+MANA study/images/report</pre></div>
+<p>Baxter providers get individual MANA PACS accounts.</p>
+<p>You already have this in the meeting notes:</p>
+<p><strong>MANA PACS access forms</strong></p>
+<p><strong>MANA URL on Baxter desktops</strong></p>
+<p>That&#39;s completely reasonable for phase 1.</p>
+<h3>Advantage</h3>
+<p>Almost no DICOM integration work.</p>
+<h3>Downside</h3>
+<p>Provider has to leave Cerner and use another system.</p>
+<h1>Option B: Push images into Baxter PACS</h1>
+<p>This is the much better enterprise workflow if Baxter has a PACS/VNA.</p>
+<div class="diagram"><pre>MANA Merge PACS
+       │
+       │ DICOM C-STORE
+       ▼
+Baxter PACS / VNA
+       │
+       ▼
+Baxter Cerner</pre></div>
+<p>Then Baxter providers see:</p>
+<p><strong>Baxter patient → report → images</strong></p>
+<p>without logging into MANA.</p>
+<p>Your Merge system already has exactly the sort of machinery you&#39;d expect to use:</p>
+<p><strong>Autorouting Queue</strong></p>
+<p><strong>Forwarding Queue</strong></p>
+<p>So technically, Merge could potentially send completed studies to a configured Baxter DICOM destination.</p>
+<p>We need:</p>
+<div class="diagram"><pre>Baxter PACS AE Title
+Baxter PACS IP/FQDN
+DICOM port
+accepted SOP Classes
+accepted transfer syntaxes
+network/VPN route</pre></div>
+<p>and then a routing rule.</p>
+<h1>But images bring the MRN problem back</h1>
+<p>Suppose MANA sends this:</p>
+<div class="diagram"><pre>PatientID = MANA112233</pre></div>
+<p>into Baxter&#39;s PACS.</p>
+<p>Baxter wants:</p>
+<div class="diagram"><pre>PatientID = BAX7654321</pre></div>
+<p>Otherwise the study may create an <strong>unmatched/foreign patient</strong>.</p>
+<p>This is where preserving Baxter identity from the beginning becomes even more valuable.</p>
+<h3>Ideal</h3>
+<p>MANA&#39;s workflow retains Baxter MRN as an external identifier and the outbound DICOM path can send/reconcile against that identity.</p>
+<p>There are several ways vendors solve this:</p>
+<p><strong>1. Baxter PACS reconciles the inbound study against its existing order.</strong></p>
+<p>Best if Baxter has an order matching workflow.</p>
+<p><strong>2. A DICOM router/interface layer changes the outbound patient identifier to Baxter&#39;s MRN.</strong></p>
+<p>Possible, but this needs careful validation and auditing.</p>
+<p><strong>3. Baxter receives it into an exception/reconciliation queue and matches based on accession/order.</strong></p>
+<p>Works, but introduces manual work.</p>
+<p>I would ask Baxter PACS exactly:</p>
+<blockquote><strong>“If we send you a DICOM study acquired at MANA, what identifiers do you require for automatic reconciliation to the existing Baxter patient and order?”</strong></blockquote>
+<p>That question should be on the meeting agenda.</p>
+<h1>An even better design</h1>
+<p>If Baxter electronically sends the order first, we potentially have:</p>
+<div class="diagram"><pre>Baxter order
+   │
+   ├── Baxter MRN
+   ├── Baxter order #
+   └── procedure
+        │
+        ▼
+MANA
+        │
+        ▼
+Modality Worklist</pre></div>
+<p>If MANA can preserve the <strong>Baxter MRN/order information in the acquisition workflow</strong>, then the DICOM objects themselves may already carry enough Baxter identity to make returning them much easier.</p>
+<p>This is what I would test in your proof-of-concept.</p>
+<h1>I would build one test case end-to-end</h1>
+<p>Don&#39;t start by designing 40 interfaces on paper.</p>
+<p>Take one test patient/order.</p>
+<h3>Baxter</h3>
+<p>Record:</p>
+<div class="diagram"><pre>Baxter MRN
+Baxter order number
+Patient demographics
+Procedure</pre></div>
+<h3>MANA intake</h3>
+<p>Record:</p>
+<div class="diagram"><pre>MANA MRN
+MANA accession
+Baxter MRN retained where?
+Baxter order retained where?</pre></div>
+<h3>Modality Worklist</h3>
+<p>Look at:</p>
+<div class="diagram"><pre>PatientID
+AccessionNumber
+RequestedProcedureID
+ScheduledProcedureStepID</pre></div>
+<h3>DICOM</h3>
+<p>Open one image header and record:</p>
+<div class="diagram"><pre>(0010,0020) Patient ID
+(0008,0050) Accession Number
+(0020,000D) Study Instance UID
+(0020,000E) Series Instance UID</pre></div>
+<h3>PACS</h3>
+<p>Determine what Merge sees.</p>
+<h3>Result</h3>
+<p>Inspect the final outbound ORU:</p>
+<div class="diagram"><pre>PID-3
+ORC-2
+ORC-3
+OBR-2
+OBR-3
+OBR-4
+OBX</pre></div>
+<h3>Baxter</h3>
+<p>Confirm:</p>
+<div class="diagram"><pre>result filed to correct patient?
+result attached to original order?
+images matched correctly?</pre></div>
+<p>That single test will expose exactly where the identity breaks.</p>
+<h1>Where MANA&#39;s systems probably fit</h1>
+<p>Based on everything you&#39;ve discovered, I would currently model it as:</p>
+<div class="diagram"><pre>                     BAXTER
+              Oracle Health/Cerner
+                     │
+                     │ ORDER
+                     ▼
+              MANA INTERFACE
+                     │
+             ┌───────┴────────┐
+             ▼                ▼
+         Merge RIS         AbbaDox
+            or             CareFlow
+          whichever owns this site
+                 │
+                 ▼
+          Modality Worklist
+                 │
+                 ▼
+            CT / XR / US
+                 │
+                 ▼
+         Merge/AMICAS PACS
+             8.1.6.7
+                 │
+          MANA Radiologist
+                 │
+             Final Report
+                 │
+       ┌─────────┴─────────┐
+       │                   │
+       ▼                   ▼
+   ORU^R01              DICOM
+       │                   │
+       ▼                   ▼
+Baxter Cerner       Baxter PACS/VNA</pre></div>
+<p><strong>The one thing we need to establish first is whether Highlands Oncology will live in Merge RIS or AbbaDox.</strong></p>
+<p>Everything downstream depends on who owns the <strong>order/accession/MWL workflow</strong>.</p>
+<h1>What I would propose at the meeting</h1>
+<h3>Phase 1: Sept. 1 go-live</h3>
+<p>Get the clinical workflow functioning safely:</p>
+<p><strong>Baxter sends electronic order/referral → MANA performs/reads → MANA sends ORU result → Baxter providers get MANA PACS web access.</strong></p>
+<p>That gives Baxter:</p>
+<p><strong>results in Cerner + access to images</strong></p>
+<p>without making DICOM image-return a day-one dependency.</p>
+<h3>Phase 2</h3>
+<p>Build:</p>
+<p><strong>Merge PACS → Baxter PACS/VNA</strong></p>
+<p>with automatic patient/order reconciliation.</p>
+<p>Then Baxter providers no longer need to live in two imaging worlds.</p>
+<h2>And I would make this the meeting&#39;s number-one technical requirement</h2>
+<blockquote><strong>Baxter must send MANA enough identity at order time to allow MANA to return the result to the exact Baxter patient and order without demographic guessing.</strong></blockquote>
+<p>Specifically:</p>
+<p><strong>Baxter MRN + assigning authority + Baxter placer/order number.</strong></p>
+<p>MANA then keeps those alongside its own identifiers for the lifetime of the encounter.</p>
+<p>If we nail that one thing, <strong>reports become straightforward, images become solvable, and troubleshooting becomes dramatically easier.</strong></p>
+<p>That is the Baxter/MANA workflow I would design around.</p>
+<p class="note">Planning document. Interface field use, patient-identity rules, security controls, and DICOM reconciliation behavior must be validated with the Baxter, MANA, RIS, PACS, interface-engine, and Oracle Health/Cerner teams before production use.</p></body></html>
