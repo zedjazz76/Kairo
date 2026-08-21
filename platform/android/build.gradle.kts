@@ -59,6 +59,7 @@ dependencies {
     robolectricRuntime("org.robolectric:android-all-instrumented:15-robolectric-13954326-i7@jar")
     implementation(project(":core:application"))
     implementation(project(":core:domain"))
+    implementation(project(":core:security"))
     implementation("androidx.room:room-runtime:2.8.4")
     implementation("androidx.room:room-ktx:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")
