@@ -586,6 +586,55 @@ class AskKairoServiceTest {
         )
     }
 
+
+    @Test
+    fun `product capability cannot support MANA production claim`() {
+        val fact = FactVersion(
+            id = FactId("product-capability"),
+            subject = EntityId("vendor-product"),
+            predicate = "supports",
+            objectValue = FactObject.Literal("DICOM SR"),
+            scope = KnowledgeScope.PRODUCT,
+            state = EvidenceState.CONFIRMED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            evidence = setOf(
+                EvidenceRef("product-evidence"),
+            ),
+        )
+
+        val answer = KairoAnswer(
+            text = "Our production system sends DICOM SR.",
+            claims = listOf(
+                AnswerClaim(
+                    text = "Our production system sends DICOM SR.",
+                    scope = KnowledgeScope.MANA_PRODUCTION,
+                    evidenceRefs = setOf(
+                        EvidenceRef("product-evidence"),
+                    ),
+                ),
+            ),
+        )
+
+        val result = AnswerValidator().validate(
+            answer = answer,
+            bundle = EvidenceBundle(
+                rankedClaims = listOf(
+                    RankedFact(
+                        fact = fact,
+                        score = 100,
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(
+            result is ValidationResult.Rejected,
+        )
+    }
+
     private class CountingReasoningProvider : ReasoningProvider {
         var calls = 0
 
