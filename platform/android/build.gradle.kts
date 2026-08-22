@@ -2,8 +2,9 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.Sync
 
 plugins {
-    id("com.android.library") version "9.3.1"
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp") version "2.2.20-2.0.4"
 }
 
 android {

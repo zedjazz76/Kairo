@@ -23,3 +23,5 @@ include(":core:ingestion")
 include(":platform:android")
 
 include(":core:retrieval")
+
+include(":apps:android")
