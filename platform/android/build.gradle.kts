@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:ingestion"))
     implementation(project(":core:security"))
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     implementation("androidx.room:room-runtime:2.8.4")
     implementation("androidx.room:room-ktx:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")

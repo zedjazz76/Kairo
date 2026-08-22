@@ -29,8 +29,61 @@ abstract class LocalTextExtractor(private vararg val formats: ArtifactFormat) : 
     protected open fun extractText(bytes: ByteArray): String = bytes.decodeToString()
 }
 
-class PdfExtractor : LocalTextExtractor(ArtifactFormat.PDF) {
-    override fun extractText(bytes: ByteArray): String = printableRuns(bytes)
+class PdfExtractor : ArtifactExtractor {
+
+    override fun supports(format: ArtifactFormat): Boolean =
+        format == ArtifactFormat.PDF
+
+    override fun extract(
+        artifact: IngestionArtifact,
+        format: ArtifactFormat,
+    ): ExtractedArtifact {
+        require(format == ArtifactFormat.PDF) {
+            "PdfExtractor only supports PDF artifacts"
+        }
+
+        com.tom_roush.pdfbox.pdmodel.PDDocument.load(artifact.bytes).use { document ->
+            val textParts = mutableListOf<String>()
+            val anchors = linkedSetOf<SourceAnchor>()
+
+            for (pageIndex in 0 until document.numberOfPages) {
+                val pageNumber = pageIndex + 1
+                val stripper = com.tom_roush.pdfbox.text.PDFTextStripper().apply {
+                    startPage = pageNumber
+                    endPage = pageNumber
+                }
+
+                val pageText = stripper.getText(document).trim()
+                if (pageText.isNotBlank()) {
+                    textParts += pageText
+                }
+
+                val mediaBox = document.getPage(pageIndex).mediaBox
+
+                anchors += SourceAnchor(
+                    sourceId = artifact.sourceId,
+                    variantId = artifact.variantId,
+                    locator = AnchorLocator.PdfPageBox(
+                        page = pageNumber,
+                        left = mediaBox.lowerLeftX.toDouble(),
+                        top = mediaBox.lowerLeftY.toDouble(),
+                        right = mediaBox.upperRightX.toDouble(),
+                        bottom = mediaBox.upperRightY.toDouble(),
+                    ),
+                )
+            }
+
+            val text = textParts.joinToString("\n\n")
+                .ifBlank { "[No extractable text in ${artifact.fileName}]" }
+
+            return ExtractedArtifact(
+                artifact = artifact,
+                format = format,
+                text = text,
+                anchors = anchors,
+            )
+        }
+    }
 }
 
 class DocxExtractor : LocalTextExtractor(ArtifactFormat.DOCX) {
