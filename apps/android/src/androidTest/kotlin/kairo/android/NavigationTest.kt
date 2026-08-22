@@ -96,4 +96,33 @@ class NavigationTest {
     }
 
 
+    @Test
+    fun projects_destination_opens_and_returns_home() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Offline,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Projects")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Projects overview")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Back")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Projects")
+            .assertIsDisplayed()
+    }
+
+
 }
