@@ -95,6 +95,110 @@ class HybridRetrieverTest {
         )
     }
 
+
+    @Test
+    fun `currently applicable production fact outranks expired historical fact`() {
+        val historical = FactVersion(
+            id = FactId("fact-historical-ris"),
+            subject = EntityId("non-breast-imaging"),
+            predicate = "uses-ris",
+            objectValue = FactObject.Literal("Merge RIS"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.CONFIRMED,
+            effectiveFrom = Instant.parse("2025-01-01T00:00:00Z"),
+            effectiveTo = Instant.parse("2026-09-01T23:59:59Z"),
+            recordedAt = Instant.parse("2026-01-01T00:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-01T00:00:00Z"),
+            evidence = setOf(EvidenceRef("source-historical")),
+        )
+
+        val current = FactVersion(
+            id = FactId("fact-current-ris"),
+            subject = EntityId("non-breast-imaging"),
+            predicate = "uses-ris",
+            objectValue = FactObject.Literal("AbbaDox CareFlow"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.CONFIRMED,
+            effectiveFrom = Instant.parse("2026-09-02T00:00:00Z"),
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T00:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T00:00:00Z"),
+            evidence = setOf(EvidenceRef("source-current")),
+        )
+
+        val retriever = HybridRetriever(
+            facts = listOf(
+                historical,
+                current,
+            ),
+        )
+
+        val result = retriever.retrieve(
+            RetrievalQuery(
+                text = "What RIS does non breast imaging use?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+                at = Instant.parse("2026-09-03T12:00:00Z"),
+            ),
+        )
+
+        assertEquals(
+            current.id,
+            result.rankedClaims.first().fact.id,
+        )
+    }
+
+
+    @Test
+    fun `contradicted production fact does not outrank valid current evidence`() {
+        val contradicted = FactVersion(
+            id = FactId("fact-contradicted"),
+            subject = EntityId("pacs-routing"),
+            predicate = "destination",
+            objectValue = FactObject.Literal("Legacy destination"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.CONTRADICTED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T00:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T00:00:00Z"),
+            evidence = emptySet(),
+        )
+
+        val current = FactVersion(
+            id = FactId("fact-current"),
+            subject = EntityId("pacs-routing"),
+            predicate = "destination",
+            objectValue = FactObject.Literal("Current production destination"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T01:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T01:00:00Z"),
+            evidence = setOf(EvidenceRef("source-current")),
+        )
+
+        val retriever = HybridRetriever(
+            facts = listOf(
+                contradicted,
+                current,
+            ),
+        )
+
+        val result = retriever.retrieve(
+            RetrievalQuery(
+                text = "What is the PACS routing destination?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+                at = Instant.parse("2026-08-22T12:00:00Z"),
+            ),
+        )
+
+        assertEquals(
+            current.id,
+            result.rankedClaims.first().fact.id,
+        )
+    }
+
     private fun fact(
         id: String,
         scope: KnowledgeScope,

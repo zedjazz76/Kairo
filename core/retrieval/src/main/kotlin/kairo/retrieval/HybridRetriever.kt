@@ -9,6 +9,7 @@ import kairo.domain.KnowledgeScope
 data class RetrievalQuery(
     val text: String,
     val scope: KnowledgeScope,
+    val at: java.time.Instant = java.time.Instant.now(),
 ) {
     init {
         require(text.isNotBlank()) { "Retrieval query text must not be blank" }
@@ -62,6 +63,11 @@ class HybridRetriever(
         if (fact.scope == query.scope) {
             score += 100
         }
+
+        score += temporalScore(
+            fact = fact,
+            at = query.at,
+        )
 
         score += when (fact.state) {
             EvidenceState.CONFIRMED -> 40
@@ -131,6 +137,24 @@ private class DefaultIncidentSemanticIndex :
                 },
             )
             .map { it.first }
+    }
+}
+
+
+private fun temporalScore(
+    fact: FactVersion,
+    at: java.time.Instant,
+): Int {
+    val startsAfterQuery =
+        fact.effectiveFrom?.isAfter(at) == true
+
+    val endedBeforeQuery =
+        fact.effectiveTo?.isBefore(at) == true
+
+    return when {
+        startsAfterQuery -> -80
+        endedBeforeQuery -> -80
+        else -> 60
     }
 }
 
