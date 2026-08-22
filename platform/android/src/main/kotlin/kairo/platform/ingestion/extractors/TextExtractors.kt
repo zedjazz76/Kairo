@@ -381,8 +381,63 @@ class XlsxExtractor : ArtifactExtractor {
 
 class CsvExtractor : LocalTextExtractor(ArtifactFormat.CSV)
 class TextExtractor : LocalTextExtractor(ArtifactFormat.TEXT, ArtifactFormat.MARKDOWN, ArtifactFormat.PASTED_TEXT)
-class ImageExtractor : LocalTextExtractor(ArtifactFormat.PNG, ArtifactFormat.JPEG) {
-    override fun extractText(bytes: ByteArray): String = printableRuns(bytes)
+class ImageExtractor(
+    private val ocrEngine: ImageOcrEngine = MlKitImageOcrEngine(),
+) : ArtifactExtractor {
+
+    override fun supports(format: ArtifactFormat): Boolean =
+        format == ArtifactFormat.PNG || format == ArtifactFormat.JPEG
+
+    override fun extract(
+        artifact: IngestionArtifact,
+        format: ArtifactFormat,
+    ): ExtractedArtifact {
+        require(supports(format)) {
+            "ImageExtractor only supports PNG and JPEG artifacts"
+        }
+
+        val result = ocrEngine.recognize(artifact.bytes)
+
+        val text = result.text.ifBlank {
+            "[No extractable text in ${artifact.fileName}]"
+        }
+
+        val anchors = result.regions
+            .map {
+                SourceAnchor(
+                    sourceId = artifact.sourceId,
+                    variantId = artifact.variantId,
+                    locator = AnchorLocator.ImageRegion(
+                        left = it.left,
+                        top = it.top,
+                        width = it.width,
+                        height = it.height,
+                    ),
+                )
+            }
+            .toSet()
+            .ifEmpty {
+                setOf(
+                    SourceAnchor(
+                        sourceId = artifact.sourceId,
+                        variantId = artifact.variantId,
+                        locator = AnchorLocator.ImageRegion(
+                            left = 0,
+                            top = 0,
+                            width = result.width,
+                            height = result.height,
+                        ),
+                    ),
+                )
+            }
+
+        return ExtractedArtifact(
+            artifact = artifact,
+            format = format,
+            text = text,
+            anchors = anchors,
+        )
+    }
 }
 
 fun defaultAndroidExtractors(): List<ArtifactExtractor> = listOf(
