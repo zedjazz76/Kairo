@@ -26,6 +26,8 @@ import kairo.platform.db.KairoDatabase
 import kairo.platform.vault.CacheBackedTemporarySessionStore
 import kairo.platform.vault.FixedMasterKeyProvider
 import kairo.security.SensitiveContentScan
+import kairo.security.SensitiveContentKind
+import kairo.security.SensitiveContentMatch
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -147,6 +149,58 @@ class RoomIngestionCheckpointStoreTest {
         assertEquals(1, runtimeCreations)
         assertEquals(1, extractions)
         assertEquals(IngestionStage.COMPLETE, RoomIngestionCheckpointStore(requireNotNull(database)).load(sessionId)?.stage)
+    }
+
+    @Test
+    fun `phi review checkpoint remains available and worker does not retry`() {
+        var extractions = 0
+        val sensitiveScan = SensitiveContentScan(
+            listOf(SensitiveContentMatch(SensitiveContentKind.MRN, 0, 11)),
+        )
+        val firstDatabase = openDatabase()
+        val firstCheckpoints = RoomIngestionCheckpointStore(firstDatabase)
+        val temporaryStore = CacheBackedTemporarySessionStore(temporaryRoot, FixedMasterKeyProvider(testKey))
+        val paused = IngestionPipeline(
+            extractors = listOf(CountingTextExtractor { extractions += 1 }),
+            scanner = { sensitiveScan },
+            checkpoints = firstCheckpoints,
+            payloads = TemporarySessionIngestionPayloadStore(temporaryStore),
+        ).run(
+            IngestionRequest(
+                sessionId = sessionId,
+                artifacts = listOf(artifact("MRN: 123456")),
+                capturedAt = Instant.parse("2026-08-21T12:00:00Z"),
+            ),
+        )
+        assertEquals(IngestionStage.PHI_REVIEW_REQUIRED, paused.stage)
+        val payloadReferences = temporaryStore.sessionIds()
+        firstDatabase.close()
+        database = null
+
+        val runtimeFactory = object : IngestionRuntimeFactory {
+            override fun create(): IngestionPipeline {
+                val restartedDatabase = openDatabase()
+                return IngestionPipeline(
+                    extractors = listOf(CountingTextExtractor { extractions += 1 }),
+                    scanner = { sensitiveScan },
+                    checkpoints = RoomIngestionCheckpointStore(restartedDatabase),
+                    payloads = TemporarySessionIngestionPayloadStore(
+                        CacheBackedTemporarySessionStore(temporaryRoot, FixedMasterKeyProvider(testKey)),
+                    ),
+                )
+            }
+        }
+        val worker = TestListenableWorkerBuilder<KairoIngestionWorker>(context)
+            .setWorkerFactory(KairoWorkerFactory(runtimeFactory))
+            .setInputData(workDataOf(IngestionWorkScheduler.SESSION_ID to sessionId.value))
+            .build()
+
+        val result = worker.doWork()
+
+        assertEquals(ListenableWorker.Result.success(), result)
+        assertEquals(IngestionStage.PHI_REVIEW_REQUIRED, RoomIngestionCheckpointStore(requireNotNull(database)).load(sessionId)?.stage)
+        assertEquals(payloadReferences, CacheBackedTemporarySessionStore(temporaryRoot, FixedMasterKeyProvider(testKey)).sessionIds())
+        assertEquals(1, extractions)
     }
 
     private fun openDatabase(): KairoDatabase = Room.databaseBuilder(context, KairoDatabase::class.java, databaseName)
