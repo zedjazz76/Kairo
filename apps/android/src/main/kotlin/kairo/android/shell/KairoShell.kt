@@ -14,6 +14,11 @@ import kairo.android.auth.Authenticator
 import kairo.android.offline.ConnectivityCapability
 import kotlinx.coroutines.launch
 
+private enum class KairoDestination {
+    Home,
+    Systems,
+}
+
 @Composable
 fun KairoShell(
     connectivity: ConnectivityCapability,
@@ -25,14 +30,19 @@ fun KairoShell(
         mutableStateOf(authenticationState)
     }
 
+    var destination by remember {
+        mutableStateOf(KairoDestination.Home)
+    }
+
     val scope = rememberCoroutineScope()
 
     if (state == AuthenticationState.Locked) {
         Column {
             Button(
                 onClick = {
-                    val auth = authenticator
-                        ?: return@Button
+                    val auth =
+                        authenticator
+                            ?: return@Button
 
                     scope.launch {
                         if (auth.authenticate()) {
@@ -50,6 +60,31 @@ fun KairoShell(
         return
     }
 
+    when (destination) {
+        KairoDestination.Home ->
+            HomeDestination(
+                connectivity = connectivity,
+                onSystems = {
+                    destination =
+                        KairoDestination.Systems
+                },
+            )
+
+        KairoDestination.Systems ->
+            SystemsDestination(
+                onBack = {
+                    destination =
+                        KairoDestination.Home
+                },
+            )
+    }
+}
+
+@Composable
+private fun HomeDestination(
+    connectivity: ConnectivityCapability,
+    onSystems: () -> Unit,
+) {
     val offline =
         connectivity == ConnectivityCapability.Offline
 
@@ -59,7 +94,7 @@ fun KairoShell(
         }
 
         Button(
-            onClick = {},
+            onClick = onSystems,
         ) {
             Text("Systems")
         }
@@ -76,5 +111,20 @@ fun KairoShell(
         ) {
             Text("Deep Analyze")
         }
+    }
+}
+
+@Composable
+private fun SystemsDestination(
+    onBack: () -> Unit,
+) {
+    Column {
+        Button(
+            onClick = onBack,
+        ) {
+            Text("Back")
+        }
+
+        Text("Systems overview")
     }
 }
