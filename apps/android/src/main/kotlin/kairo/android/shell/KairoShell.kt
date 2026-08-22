@@ -19,6 +19,7 @@ private enum class KairoDestination {
     Systems,
     Workflows,
     Projects,
+    Knowledge,
 }
 
 @Composable
@@ -78,6 +79,10 @@ fun KairoShell(
                     destination =
                         KairoDestination.Projects
                 },
+                onKnowledge = {
+                    destination =
+                        KairoDestination.Knowledge
+                },
             )
 
         KairoDestination.Systems ->
@@ -103,6 +108,14 @@ fun KairoShell(
                         KairoDestination.Home
                 },
             )
+
+        KairoDestination.Knowledge ->
+            KnowledgeDestination(
+                onBack = {
+                    destination =
+                        KairoDestination.Home
+                },
+            )
     }
 }
 
@@ -112,6 +125,7 @@ private fun HomeDestination(
     onSystems: () -> Unit,
     onWorkflows: () -> Unit,
     onProjects: () -> Unit,
+    onKnowledge: () -> Unit,
 ) {
     val offline =
         connectivity == ConnectivityCapability.Offline
@@ -140,11 +154,32 @@ private fun HomeDestination(
         }
 
         Button(
+            onClick = onKnowledge,
+        ) {
+            Text("Knowledge")
+        }
+
+        Button(
             onClick = {},
             enabled = !offline,
         ) {
             Text("Deep Analyze")
         }
+    }
+}
+
+@Composable
+private fun KnowledgeDestination(
+    onBack: () -> Unit,
+) {
+    Column {
+        Button(
+            onClick = onBack,
+        ) {
+            Text("Back")
+        }
+
+        Text("Knowledge overview")
     }
 }
 

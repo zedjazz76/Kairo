@@ -125,4 +125,33 @@ class NavigationTest {
     }
 
 
+    @Test
+    fun knowledge_destination_opens_and_returns_home() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Offline,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Knowledge")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Knowledge overview")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Back")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Knowledge")
+            .assertIsDisplayed()
+    }
+
+
 }
