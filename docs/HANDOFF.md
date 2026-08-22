@@ -48,8 +48,8 @@ In brief:
 | 2 — temporal evidence/domain | Complete | `25941eb` | Domain tests and contract tests passed; duplicate fact IDs rejected deterministically. |
 | 3 — sources, anchors, workflows, projects | Complete | `4114ef3` | Domain tests and contract tests passed; provenance and MANA/project scope rules added. |
 | 4 — Room persistence | Complete | `fff8488`, `26a7fe1` | JVM Room/repository tests and instrumentation-test compilation passed earlier. Connected-device tests remain for laptop. |
-| 5 — encrypted Source Vault / PHI boundary | Complete with one laptop recheck | `0e66c30` | Focused vault/security suite passed 13/13 before the final Android Keystore provider was added. Re-run Android JVM tests on the laptop. |
-| 6 — universal ingestion | **Foundation only; not complete** | `452a3d0` | Core ingestion tests pass. Real rich extractors, OCR, persistent checkpoints, Android WorkManager scheduling, fixtures, and Android verification remain. |
+| 5 — encrypted Source Vault / PHI boundary | Complete | `0e66c30` | Focused Android JVM vault/security verification passed. |
+| 6 — universal ingestion | In progress | `452a3d0` through `bd5509d` | Structured PDF/DOCX/XLSX extraction and real image/scanned-PDF OCR are verified; durable checkpoints, WorkManager scheduling, and launch-format coverage remain. |
 
 ## Exact current code state
 
@@ -64,23 +64,22 @@ Implemented under `platform/android/src/main/kotlin/kairo/platform/vault/` and `
 - Local scanner/policy for likely PHI and credentials.
 - `AndroidKeystoreMasterKeyProvider` was added in commit `0e66c30`.
 
-**Laptop action:** run:
+Focused Android JVM verification passed:
 
 ```bash
 ./gradlew :platform:android:testDebugUnitTest --tests '*SourceVaultTest' --tests '*SensitiveContentScannerTest'
 ```
 
-Then resolve any Android-API or Android Keystore behavior that differs from JVM tests before declaring Task 5 release-ready.
-
-### Task 6: Ingestion foundation
+### Task 6: Ingestion
 
 Implemented:
 
 - `core/ingestion` Gradle module.
 - `ArtifactFormat`, artifact/extractor contracts, structural anchor retention, explicit extraction ports.
-- `IngestionPipeline` with batch context, PHI-review pause/resume, candidate drafts, and idempotent in-memory checkpoints.
-- Android host adapter and format-specific adapter classes.
-- Tests for multi-artifact AbbaDox context/anchors and PHI pause/resume.
+- `IngestionPipeline` with batch context, PHI-review pause/resume, candidate drafts, and idempotent checkpoint contracts.
+- Structured PDF extraction with page anchors, DOCX ZIP/XML paragraph extraction, and XLSX ZIP/XML sheet/range extraction.
+- Android image OCR plus scanned-PDF fallback orchestration.
+- Real ML Kit image OCR and Android `PdfRenderer` + ML Kit scanned-PDF OCR passed on a connected device.
 
 Verified locally:
 
@@ -88,16 +87,14 @@ Verified locally:
 ./gradlew :core:ingestion:test
 ```
 
-**Do not call Task 6 complete yet.** The current platform extractor adapters intentionally provide only a temporary printable-text fallback for PDF, DOCX, XLSX, and images. They do **not** yet meet the locked V1 requirement to preserve document/page/table/sheet structure or perform image/scanned-PDF OCR. The checkpoint store is currently in-memory, so it is not process-restart durable. `IngestionWorker` is a host adapter, not yet a scheduled WorkManager chain.
+**Do not call Task 6 complete yet.** Rich PDF/DOCX/XLSX extraction and real image/scanned-PDF OCR are complete and focused tests passed. Checkpoints are still in-memory, and `IngestionWorker` is still a host adapter rather than real WorkManager scheduling.
 
 Required next Task 6 work:
 
-1. Select Android-compatible, locally running extraction/OCR engines.
-2. Implement page/heading/table, sheet/range/row, text-span, and image-region anchors.
-3. Persist ingestion checkpoints and stage states; ensure retries happen only at idempotent stages.
-4. Use real WorkManager scheduling from the Android app host.
-5. Add launch fixtures for each required format, including scanned PDF and image OCR.
-6. Run:
+1. Persist ingestion checkpoints and stage states; ensure retries happen only at idempotent stages.
+2. Use real WorkManager scheduling from the Android app host.
+3. Add launch fixtures for each required format, including scanned PDF and image OCR.
+4. Run:
 
 ```bash
 ./gradlew :core:ingestion:test :platform:android:testDebugUnitTest

@@ -84,9 +84,11 @@ class CacheBackedTemporarySessionStore(private val root: Path, private val keyPr
     override fun put(sessionId: String, bytes: ByteArray) = synchronized(this) { require(sessionId.isNotBlank()); val ids = readIds() + sessionId; Files.write(fileFor(sessionId), encrypt(bytes.copyOf(), keyProvider.masterKey())); Files.write(manifest, encrypt(serialize(LinkedHashSet(ids)), keyProvider.masterKey())); Unit }
     override fun open(sessionId: String): ByteArray? = synchronized(this) { fileFor(sessionId).takeIf(Files::exists)?.let { decrypt(Files.readAllBytes(it), keyProvider.masterKey()) } }
     override fun sessionIds(): Set<String> = synchronized(this) { readIds() }
+    override fun delete(sessionId: String) = synchronized(this) { Files.deleteIfExists(fileFor(sessionId)); writeIds(readIds() - sessionId); Unit }
     override fun clear() = synchronized(this) { readIds().forEach { Files.deleteIfExists(fileFor(it)) }; Files.deleteIfExists(manifest); Unit }
     private fun fileFor(id: String): Path = root.resolve(sha256(id.encodeToByteArray()))
     private fun readIds(): Set<String> = if (Files.exists(manifest)) deserialize(decrypt(Files.readAllBytes(manifest), keyProvider.masterKey())) else emptySet()
+    private fun writeIds(ids: Set<String>) { if (ids.isEmpty()) Files.deleteIfExists(manifest) else Files.write(manifest, encrypt(serialize(LinkedHashSet(ids)), keyProvider.masterKey())) }
 }
 
 internal data class ArchiveEntry(val entry: StoredImport, val bytes: ByteArray) : Serializable

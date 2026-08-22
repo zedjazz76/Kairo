@@ -20,12 +20,15 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CaptureSessionEntity::class,
         CaptureSessionAnchorEntity::class,
         AuditEventEntity::class,
+        IngestionCheckpointEntity::class,
+        IngestionCheckpointArtifactEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class KairoDatabase : RoomDatabase() {
     abstract fun knowledgeDao(): KnowledgeDao
+    abstract fun ingestionCheckpointDao(): IngestionCheckpointDao
 
     companion object {
         @JvmField
@@ -137,6 +140,12 @@ abstract class KairoDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_events_occurred_at` ON `audit_events` (`occurred_at`)")
             }
         }
+        @JvmField val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS ingestion_checkpoints (session_id TEXT NOT NULL PRIMARY KEY, captured_at TEXT NOT NULL, stage TEXT NOT NULL, sensitive_choice TEXT)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS ingestion_checkpoint_artifacts (session_id TEXT NOT NULL, source_id TEXT NOT NULL, variant_id TEXT NOT NULL, file_name TEXT NOT NULL, media_type TEXT, payload_ref TEXT NOT NULL, extraction_ref TEXT, PRIMARY KEY(session_id, variant_id))")
+            }
+        }
     }
 }
 
@@ -195,4 +204,13 @@ interface KnowledgeDao {
 
     @Query("SELECT * FROM capture_session_anchors WHERE capture_session_id = :captureSessionId ORDER BY source_id, variant_id, anchor_key")
     suspend fun captureSessionAnchors(captureSessionId: String): List<CaptureSessionAnchorEntity>
+}
+
+@Dao
+interface IngestionCheckpointDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE) fun save(checkpoint: IngestionCheckpointEntity)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) fun saveArtifacts(rows: List<IngestionCheckpointArtifactEntity>)
+    @Query("DELETE FROM ingestion_checkpoint_artifacts WHERE session_id = :sessionId") fun deleteArtifacts(sessionId: String)
+    @Query("SELECT * FROM ingestion_checkpoints WHERE session_id = :sessionId") fun checkpoint(sessionId: String): IngestionCheckpointEntity?
+    @Query("SELECT * FROM ingestion_checkpoint_artifacts WHERE session_id = :sessionId ORDER BY variant_id") fun artifacts(sessionId: String): List<IngestionCheckpointArtifactEntity>
 }

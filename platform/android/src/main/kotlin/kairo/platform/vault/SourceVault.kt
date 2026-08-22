@@ -70,5 +70,6 @@ interface TemporarySessionStore {
     fun put(sessionId: String, bytes: ByteArray)
     fun open(sessionId: String): ByteArray?
     fun sessionIds(): Set<String>
+    fun delete(sessionId: String)
     fun clear()
 }

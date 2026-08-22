@@ -316,3 +316,22 @@ data class AuditEventEntity(
     @ColumnInfo(name = "correlation_id")
     val correlationId: String,
 )
+
+@Entity(tableName = "ingestion_checkpoints")
+data class IngestionCheckpointEntity(
+    @PrimaryKey @ColumnInfo(name = "session_id") val sessionId: String,
+    @ColumnInfo(name = "captured_at") val capturedAt: String,
+    val stage: String,
+    @ColumnInfo(name = "sensitive_choice") val sensitiveChoice: String?,
+)
+
+@Entity(tableName = "ingestion_checkpoint_artifacts", primaryKeys = ["session_id", "variant_id"])
+data class IngestionCheckpointArtifactEntity(
+    @ColumnInfo(name = "session_id") val sessionId: String,
+    @ColumnInfo(name = "source_id") val sourceId: String,
+    @ColumnInfo(name = "variant_id") val variantId: String,
+    @ColumnInfo(name = "file_name") val fileName: String,
+    @ColumnInfo(name = "media_type") val mediaType: String?,
+    @ColumnInfo(name = "payload_ref") val payloadRef: String,
+    @ColumnInfo(name = "extraction_ref") val extractionRef: String?,
+)
