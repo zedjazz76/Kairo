@@ -503,6 +503,89 @@ class AskKairoServiceTest {
         assertTrue(packet.prohibitedActions.isNotEmpty())
     }
 
+
+    @Test
+    fun `temporary sensitive content blocks model reasoning`() = runTest {
+        val provider = CountingReasoningProvider()
+
+        val service = AskKairoService(
+            retriever = HybridRetriever(
+                facts = emptyList(),
+            ),
+            reasoningProvider = provider,
+            sensitiveContentGuard = SensitiveContentGuard { question ->
+                if (question.contains("MRN", ignoreCase = true)) {
+                    SensitiveContentDecision.BLOCK_CLOUD_REASONING
+                } else {
+                    SensitiveContentDecision.ALLOW
+                }
+            },
+        )
+
+        val result = service.analyze(
+            "Troubleshoot MRN 123456 routing.",
+        )
+
+        assertTrue(
+            result is ValidatedAnswer.Rejected,
+        )
+
+        assertEquals(
+            0,
+            provider.calls,
+        )
+    }
+
+
+    @Test
+    fun `production write recommendation is rejected`() {
+        val fact = FactVersion(
+            id = FactId("supported-write-fact"),
+            subject = EntityId("merge-pacs"),
+            predicate = "hosts",
+            objectValue = FactObject.Literal("DMWL"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.CONFIRMED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            evidence = setOf(
+                EvidenceRef("write-evidence"),
+            ),
+        )
+
+        val answer = KairoAnswer(
+            text = "Change the production Merge PACS DMWL configuration.",
+            claims = listOf(
+                AnswerClaim(
+                    text = "Change the production Merge PACS DMWL configuration.",
+                    scope = KnowledgeScope.MANA_PRODUCTION,
+                    evidenceRefs = setOf(
+                        EvidenceRef("write-evidence"),
+                    ),
+                    action = AnswerAction.PRODUCTION_WRITE,
+                ),
+            ),
+        )
+
+        val result = AnswerValidator().validate(
+            answer = answer,
+            bundle = EvidenceBundle(
+                rankedClaims = listOf(
+                    RankedFact(
+                        fact = fact,
+                        score = 100,
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(
+            result is ValidationResult.Rejected,
+        )
+    }
+
     private class CountingReasoningProvider : ReasoningProvider {
         var calls = 0
 

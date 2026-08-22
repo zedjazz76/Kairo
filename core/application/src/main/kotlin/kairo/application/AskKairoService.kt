@@ -22,6 +22,8 @@ class AskKairoService(
     private val retriever: HybridRetriever,
     private val reasoningProvider: ReasoningProvider,
     private val answerValidator: AnswerValidator = AnswerValidator(),
+    private val sensitiveContentGuard: SensitiveContentGuard =
+        SensitiveContentGuard.ALLOW_ALL,
     private val now: () -> Instant = Instant::now,
 ) {
     suspend fun quick(
@@ -67,6 +69,20 @@ class AskKairoService(
     ): ValidatedAnswer {
         require(question.isNotBlank()) {
             "Question must not be blank"
+        }
+
+        if (
+            sensitiveContentGuard.decide(question) ==
+            SensitiveContentDecision.BLOCK_CLOUD_REASONING
+        ) {
+            return ValidatedAnswer.Rejected(
+                answer = KairoAnswer(
+                    text = "Cloud reasoning blocked for sensitive temporary content.",
+                ),
+                reasons = listOf(
+                    "Sensitive temporary content cannot be sent to the reasoning provider.",
+                ),
+            )
         }
 
         val at = now()

@@ -16,10 +16,17 @@ data class ReasoningPacket(
     val prohibitedActions: List<String>,
 )
 
+enum class AnswerAction {
+    NONE,
+    ADVISORY,
+    PRODUCTION_WRITE,
+}
+
 data class AnswerClaim(
     val text: String,
     val scope: KnowledgeScope,
     val evidenceRefs: Set<EvidenceRef>,
+    val action: AnswerAction = AnswerAction.NONE,
 )
 
 data class KairoAnswer(

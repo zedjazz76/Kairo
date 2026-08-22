@@ -41,6 +41,12 @@ class AnswerValidator {
         bundle: EvidenceBundle,
         at: Instant,
     ): List<String> {
+        if (claim.action == AnswerAction.PRODUCTION_WRITE) {
+            return listOf(
+                "Production clinical-system writes are prohibited.",
+            )
+        }
+
         if (
             claim.scope == KnowledgeScope.MANA_PRODUCTION &&
             claim.evidenceRefs.isEmpty()
