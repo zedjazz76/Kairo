@@ -212,4 +212,33 @@ class NavigationTest {
     }
 
 
+    @Test
+    fun memory_inbox_destination_opens_and_returns_home() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Offline,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Memory Inbox")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Memory Inbox overview")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Back")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Memory Inbox")
+            .assertIsDisplayed()
+    }
+
+
 }

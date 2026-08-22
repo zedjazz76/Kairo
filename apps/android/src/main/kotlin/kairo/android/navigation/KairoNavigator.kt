@@ -8,6 +8,7 @@ enum class KairoDestination {
     Knowledge,
     Capture,
     Sources,
+    MemoryInbox,
 }
 
 class KairoNavigator(
