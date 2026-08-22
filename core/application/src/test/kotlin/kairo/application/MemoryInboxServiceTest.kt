@@ -72,6 +72,93 @@ class MemoryInboxServiceTest {
         }
     }
 
+
+    @Test
+    fun `reject records decision without creating active fact`() {
+        runSuspend {
+            val repository = RecordingKnowledgeRepository()
+            val service = MemoryInboxService(repository)
+
+            val pending = service.receive(
+                MemoryCandidateDraft(
+                    sessionId = CaptureSessionId("session-reject"),
+                    subjectLabel = "Merge PACS",
+                    text = "Merge PACS hosts DMWL.",
+                    evidenceAnchors = setOf(
+                        SourceAnchor(
+                            sourceId = SourceId("source-reject"),
+                            variantId = SourceVariantId("variant-reject"),
+                            locator = AnchorLocator.TextSpan(0, 21),
+                        ),
+                    ),
+                ),
+            )
+
+            service.reject(
+                candidateId = pending.id,
+                reviewer = "LOCAL_OWNER",
+            )
+
+            assertTrue(
+                repository.currentUnderstanding(
+                    FactQuery(subject = EntityId("merge-pacs")),
+                ).isEmpty(),
+            )
+
+            val decision = service.decisions().single()
+
+            assertEquals(pending.id, decision.candidateId)
+            assertEquals(MemoryDecisionType.REJECTED, decision.type)
+            assertEquals("LOCAL_OWNER", decision.reviewer)
+            assertTrue(service.pending().isEmpty())
+        }
+    }
+
+    @Test
+    fun `defer records decision and keeps candidate pending without creating fact`() {
+        runSuspend {
+            val repository = RecordingKnowledgeRepository()
+            val service = MemoryInboxService(repository)
+
+            val pending = service.receive(
+                MemoryCandidateDraft(
+                    sessionId = CaptureSessionId("session-defer"),
+                    subjectLabel = "AbbaDox",
+                    text = "AbbaDox workflow requires verification.",
+                    evidenceAnchors = setOf(
+                        SourceAnchor(
+                            sourceId = SourceId("source-defer"),
+                            variantId = SourceVariantId("variant-defer"),
+                            locator = AnchorLocator.TextSpan(0, 38),
+                        ),
+                    ),
+                ),
+            )
+
+            service.defer(
+                candidateId = pending.id,
+                reviewer = "LOCAL_OWNER",
+            )
+
+            assertTrue(
+                repository.currentUnderstanding(
+                    FactQuery(subject = EntityId("abbadox")),
+                ).isEmpty(),
+            )
+
+            val decision = service.decisions().single()
+
+            assertEquals(pending.id, decision.candidateId)
+            assertEquals(MemoryDecisionType.DEFERRED, decision.type)
+            assertEquals("LOCAL_OWNER", decision.reviewer)
+
+            assertEquals(
+                pending.id,
+                service.pending().single().id,
+            )
+        }
+    }
+
     private class RecordingKnowledgeRepository : KnowledgeRepository {
         private val facts = mutableListOf<FactVersion>()
 

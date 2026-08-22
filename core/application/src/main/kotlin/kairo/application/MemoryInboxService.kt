@@ -24,11 +24,26 @@ data class PendingMemoryCandidate(
     val draft: MemoryCandidateDraft,
 )
 
+
+enum class MemoryDecisionType {
+    APPROVED,
+    REJECTED,
+    DEFERRED,
+}
+
+data class MemoryDecision(
+    val candidateId: MemoryCandidateId,
+    val type: MemoryDecisionType,
+    val reviewer: String,
+    val decidedAt: Instant,
+)
+
 class MemoryInboxService(
     private val repository: KnowledgeRepository,
     private val now: () -> Instant = Instant::now,
 ) {
     private val pendingCandidates = linkedMapOf<MemoryCandidateId, PendingMemoryCandidate>()
+    private val decisionHistory = mutableListOf<MemoryDecision>()
 
     fun receive(candidate: MemoryCandidateDraft): PendingMemoryCandidate {
         val pending = PendingMemoryCandidate(
@@ -42,6 +57,47 @@ class MemoryInboxService(
 
     fun pending(): List<PendingMemoryCandidate> =
         pendingCandidates.values.toList()
+
+    fun decisions(): List<MemoryDecision> =
+        decisionHistory.toList()
+
+    fun reject(
+        candidateId: MemoryCandidateId,
+        reviewer: String,
+    ) {
+        require(reviewer.isNotBlank()) { "Reviewer must not be blank" }
+
+        requireNotNull(pendingCandidates[candidateId]) {
+            "Unknown memory candidate: ${candidateId.value}"
+        }
+
+        decisionHistory += MemoryDecision(
+            candidateId = candidateId,
+            type = MemoryDecisionType.REJECTED,
+            reviewer = reviewer,
+            decidedAt = now(),
+        )
+
+        pendingCandidates.remove(candidateId)
+    }
+
+    fun defer(
+        candidateId: MemoryCandidateId,
+        reviewer: String,
+    ) {
+        require(reviewer.isNotBlank()) { "Reviewer must not be blank" }
+
+        requireNotNull(pendingCandidates[candidateId]) {
+            "Unknown memory candidate: ${candidateId.value}"
+        }
+
+        decisionHistory += MemoryDecision(
+            candidateId = candidateId,
+            type = MemoryDecisionType.DEFERRED,
+            reviewer = reviewer,
+            decidedAt = now(),
+        )
+    }
 
     suspend fun approve(
         candidateId: MemoryCandidateId,
@@ -96,6 +152,13 @@ class MemoryInboxService(
                 occurredAt = now(),
                 correlationId = candidate.draft.sessionId.value,
             ),
+        )
+
+        decisionHistory += MemoryDecision(
+            candidateId = candidateId,
+            type = MemoryDecisionType.APPROVED,
+            reviewer = reviewer,
+            decidedAt = now(),
         )
 
         pendingCandidates.remove(candidateId)
