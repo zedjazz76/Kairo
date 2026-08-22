@@ -4,19 +4,49 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import kairo.android.auth.AuthenticationState
+import kairo.android.auth.Authenticator
 import kairo.android.offline.ConnectivityCapability
+import kotlinx.coroutines.launch
 
 @Composable
 fun KairoShell(
     connectivity: ConnectivityCapability,
     authenticationState: AuthenticationState =
-        AuthenticationState.Unlocked,
+        AuthenticationState.Locked,
+    authenticator: Authenticator? = null,
 ) {
-    if (authenticationState == AuthenticationState.Locked) {
+    var state by remember(authenticationState) {
+        mutableStateOf(authenticationState)
+    }
+
+    val scope = rememberCoroutineScope()
+
+    if (state == AuthenticationState.Locked) {
         Column {
-            Text("Unlock Kairo")
+            Button(
+                onClick = {
+                    val auth = authenticator
+                        ?: return@Button
+
+                    scope.launch {
+                        if (auth.authenticate()) {
+                            state =
+                                AuthenticationState.Unlocked
+                        }
+                    }
+                },
+                enabled = authenticator != null,
+            ) {
+                Text("Unlock Kairo")
+            }
         }
+
         return
     }
 
@@ -30,14 +60,12 @@ fun KairoShell(
 
         Button(
             onClick = {},
-            enabled = true,
         ) {
             Text("Systems")
         }
 
         Button(
             onClick = {},
-            enabled = true,
         ) {
             Text("Workflows")
         }

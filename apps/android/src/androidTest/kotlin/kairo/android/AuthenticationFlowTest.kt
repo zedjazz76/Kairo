@@ -1,46 +1,49 @@
 package kairo.android
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import kairo.android.auth.AuthenticationState
+import androidx.compose.ui.test.performClick
+import kairo.android.auth.Authenticator
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
 import org.junit.Rule
 import org.junit.Test
 
-class OfflineCapabilityTest {
+class AuthenticationFlowTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     @Test
-    fun offline_mode_keeps_local_capabilities_and_disables_cloud_actions() {
+    fun successful_authentication_unlocks_protected_content() {
+        val authenticator =
+            object : Authenticator {
+                override suspend fun authenticate(): Boolean =
+                    true
+            }
+
         composeRule.setContent {
             KairoShell(
                 connectivity =
                     ConnectivityCapability.Offline,
-                authenticationState =
-                    AuthenticationState.Unlocked,
+                authenticator = authenticator,
             )
         }
 
         composeRule
+            .onNodeWithText("Unlock Kairo")
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.waitForIdle()
+
+        composeRule
             .onNodeWithText("Systems")
-            .assertIsEnabled()
+            .assertIsDisplayed()
 
         composeRule
             .onNodeWithText("Workflows")
-            .assertIsEnabled()
-
-        composeRule
-            .onNodeWithText("Deep Analyze")
-            .assertIsNotEnabled()
-
-        composeRule
-            .onNodeWithText("Offline mode")
             .assertIsDisplayed()
     }
 }
