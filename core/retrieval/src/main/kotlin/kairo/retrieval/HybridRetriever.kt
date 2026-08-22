@@ -3,6 +3,7 @@ package kairo.retrieval
 import kairo.domain.EvidenceState
 import kairo.domain.FactObject
 import kairo.domain.FactVersion
+import kairo.domain.IncidentPattern
 import kairo.domain.KnowledgeScope
 
 data class RetrievalQuery(
@@ -21,10 +22,14 @@ data class RankedFact(
 
 data class RetrievalResult(
     val rankedClaims: List<RankedFact>,
+    val incidents: List<IncidentPattern> = emptyList(),
 )
 
 class HybridRetriever(
     private val facts: List<FactVersion>,
+    private val incidents: List<IncidentPattern> = emptyList(),
+    private val incidentSemanticIndex: SemanticIndex<IncidentPattern> =
+        DefaultIncidentSemanticIndex(),
 ) {
     fun retrieve(query: RetrievalQuery): RetrievalResult {
         val ranked = facts
@@ -41,6 +46,10 @@ class HybridRetriever(
 
         return RetrievalResult(
             rankedClaims = ranked,
+            incidents = incidentSemanticIndex.search(
+                query = query.text,
+                candidates = incidents,
+            ),
         )
     }
 
@@ -77,11 +86,7 @@ class HybridRetriever(
             }
         }.lowercase()
 
-        val queryTokens = query.text
-            .lowercase()
-            .split(Regex("[^a-z0-9]+"))
-            .filter { it.length > 1 }
-            .toSet()
+        val queryTokens = tokenize(query.text)
 
         score += queryTokens.count { token ->
             searchableText.contains(token)
@@ -90,3 +95,100 @@ class HybridRetriever(
         return score
     }
 }
+
+private class DefaultIncidentSemanticIndex :
+    SemanticIndex<IncidentPattern> {
+
+    override fun search(
+        query: String,
+        candidates: List<IncidentPattern>,
+    ): List<IncidentPattern> {
+        val queryConcepts = concepts(query)
+
+        return candidates
+            .map { incident ->
+                val incidentText = buildString {
+                    append(incident.symptom)
+                    append(' ')
+                    append(incident.rootCause)
+                    append(' ')
+                    append(incident.resolution)
+                    append(' ')
+                    append(incident.prevention)
+                }
+
+                incident to conceptScore(
+                    queryConcepts,
+                    concepts(incidentText),
+                )
+            }
+            .filter { (_, score) -> score > 0 }
+            .sortedWith(
+                compareByDescending<Pair<IncidentPattern, Int>> {
+                    it.second
+                }.thenBy {
+                    it.first.id.value
+                },
+            )
+            .map { it.first }
+    }
+}
+
+private fun conceptScore(
+    query: Set<String>,
+    candidate: Set<String>,
+): Int =
+    query.count { it in candidate }
+
+private fun concepts(text: String): Set<String> {
+    val tokens = tokenize(text).toMutableSet()
+
+    if (
+        tokens.any {
+            it in setOf(
+                "fail",
+                "failing",
+                "failed",
+                "missing",
+                "not",
+            )
+        }
+    ) {
+        tokens += "delivery-failure"
+    }
+
+    if (
+        tokens.any {
+            it in setOf(
+                "reach",
+                "arrive",
+                "arriving",
+                "routing",
+                "destination",
+            )
+        }
+    ) {
+        tokens += "delivery-failure"
+    }
+
+    if (
+        tokens.any {
+            it in setOf(
+                "interpret",
+                "interpretation",
+                "reading",
+            )
+        }
+    ) {
+        tokens += "interpretation"
+    }
+
+    return tokens
+}
+
+private fun tokenize(text: String): Set<String> =
+    text
+        .lowercase()
+        .split(Regex("[^a-z0-9]+"))
+        .filter { it.length > 1 }
+        .toSet()
