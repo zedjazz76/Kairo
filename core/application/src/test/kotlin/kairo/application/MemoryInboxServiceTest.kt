@@ -14,6 +14,7 @@ import kairo.domain.CaptureSession
 import kairo.domain.CaptureSessionId
 import kairo.domain.EntityId
 import kairo.domain.FactLineageId
+import kairo.domain.FactObject
 import kairo.domain.FactVersion
 import kairo.domain.Source
 import kairo.domain.SourceAnchor
@@ -156,6 +157,67 @@ class MemoryInboxServiceTest {
                 pending.id,
                 service.pending().single().id,
             )
+        }
+    }
+
+
+    @Test
+    fun `edit and approve preserves original candidate and promotes edited text`() {
+        runSuspend {
+            val repository = RecordingKnowledgeRepository()
+            val service = MemoryInboxService(repository)
+
+            val pending = service.receive(
+                MemoryCandidateDraft(
+                    sessionId = CaptureSessionId("session-edit"),
+                    subjectLabel = "Merge PACS",
+                    text = "Merge PACS hosts modality worklist.",
+                    evidenceAnchors = setOf(
+                        SourceAnchor(
+                            sourceId = SourceId("source-edit"),
+                            variantId = SourceVariantId("variant-edit"),
+                            locator = AnchorLocator.TextSpan(0, 34),
+                        ),
+                    ),
+                ),
+            )
+
+            service.editAndApprove(
+                candidateId = pending.id,
+                reviewer = "LOCAL_OWNER",
+                editedText = "Merge PACS hosts DMWL.",
+            )
+
+            val fact = repository.currentUnderstanding(
+                FactQuery(
+                    subject = EntityId("merge-pacs"),
+                    predicate = "hosts",
+                ),
+            ).single()
+
+            assertEquals(
+                FactObject.Literal("Merge PACS hosts DMWL."),
+                fact.objectValue,
+            )
+
+            val decision = service.decisions().single()
+
+            assertEquals(
+                MemoryDecisionType.EDITED_AND_APPROVED,
+                decision.type,
+            )
+
+            assertEquals(
+                "Merge PACS hosts modality worklist.",
+                decision.originalText,
+            )
+
+            assertEquals(
+                "Merge PACS hosts DMWL.",
+                decision.approvedText,
+            )
+
+            assertTrue(service.pending().isEmpty())
         }
     }
 

@@ -27,6 +27,7 @@ data class PendingMemoryCandidate(
 
 enum class MemoryDecisionType {
     APPROVED,
+    EDITED_AND_APPROVED,
     REJECTED,
     DEFERRED,
 }
@@ -36,6 +37,8 @@ data class MemoryDecision(
     val type: MemoryDecisionType,
     val reviewer: String,
     val decidedAt: Instant,
+    val originalText: String? = null,
+    val approvedText: String? = null,
 )
 
 class MemoryInboxService(
@@ -99,6 +102,29 @@ class MemoryInboxService(
         )
     }
 
+    suspend fun editAndApprove(
+        candidateId: MemoryCandidateId,
+        reviewer: String,
+        editedText: String,
+    ) {
+        require(reviewer.isNotBlank()) { "Reviewer must not be blank" }
+        require(editedText.isNotBlank()) { "Edited text must not be blank" }
+
+        val candidate = requireNotNull(
+            pendingCandidates[candidateId],
+        ) {
+            "Unknown memory candidate: ${candidateId.value}"
+        }
+
+        promote(
+            candidate = candidate,
+            reviewer = reviewer,
+            approvedText = editedText.trim(),
+            decisionType = MemoryDecisionType.EDITED_AND_APPROVED,
+            originalText = candidate.draft.text,
+        )
+    }
+
     suspend fun approve(
         candidateId: MemoryCandidateId,
         reviewer: String,
@@ -111,6 +137,22 @@ class MemoryInboxService(
             "Unknown memory candidate: ${candidateId.value}"
         }
 
+        promote(
+            candidate = candidate,
+            reviewer = reviewer,
+            approvedText = candidate.draft.text.trim(),
+            decisionType = MemoryDecisionType.APPROVED,
+            originalText = null,
+        )
+    }
+
+    private suspend fun promote(
+        candidate: PendingMemoryCandidate,
+        reviewer: String,
+        approvedText: String,
+        decisionType: MemoryDecisionType,
+        originalText: String?,
+    ) {
         val subjectId = EntityId(
             candidate.draft.subjectLabel
                 .trim()
@@ -119,7 +161,7 @@ class MemoryInboxService(
                 .trim('-'),
         )
 
-        val text = candidate.draft.text.trim()
+        val text = approvedText
 
         val factId = FactId("memory-${candidate.id.value}")
 
@@ -155,13 +197,15 @@ class MemoryInboxService(
         )
 
         decisionHistory += MemoryDecision(
-            candidateId = candidateId,
-            type = MemoryDecisionType.APPROVED,
+            candidateId = candidate.id,
+            type = decisionType,
             reviewer = reviewer,
             decidedAt = now(),
+            originalText = originalText,
+            approvedText = approvedText,
         )
 
-        pendingCandidates.remove(candidateId)
+        pendingCandidates.remove(candidate.id)
     }
 
     private fun inferPredicate(text: String): String =
