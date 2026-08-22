@@ -21,9 +21,39 @@ data class RankedFact(
     val score: Int,
 )
 
-data class RetrievalResult(
+data class RetrievedEntity(
+    val id: String,
+    val label: String,
+)
+
+data class SourceExcerpt(
+    val sourceId: String,
+    val text: String,
+)
+
+data class RetrievedWorkflow(
+    val id: String,
+    val label: String,
+)
+
+data class RetrievedProject(
+    val id: String,
+    val label: String,
+)
+
+data class ConflictExplanation(
+    val description: String,
+)
+
+data class EvidenceBundle(
+    val entities: List<RetrievedEntity> = emptyList(),
     val rankedClaims: List<RankedFact>,
+    val sources: List<SourceExcerpt> = emptyList(),
+    val workflows: List<RetrievedWorkflow> = emptyList(),
+    val projects: List<RetrievedProject> = emptyList(),
     val incidents: List<IncidentPattern> = emptyList(),
+    val conflicts: List<ConflictExplanation> = emptyList(),
+    val unknowns: List<String> = emptyList(),
 )
 
 class HybridRetriever(
@@ -32,7 +62,7 @@ class HybridRetriever(
     private val incidentSemanticIndex: SemanticIndex<IncidentPattern> =
         DefaultIncidentSemanticIndex(),
 ) {
-    fun retrieve(query: RetrievalQuery): RetrievalResult {
+    fun retrieve(query: RetrievalQuery): EvidenceBundle {
         val ranked = facts
             .map { fact ->
                 RankedFact(
@@ -45,7 +75,7 @@ class HybridRetriever(
                     .thenBy { it.fact.id.value },
             )
 
-        return RetrievalResult(
+        return EvidenceBundle(
             rankedClaims = ranked,
             incidents = incidentSemanticIndex.search(
                 query = query.text,

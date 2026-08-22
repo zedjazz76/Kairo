@@ -17,6 +17,7 @@ import kairo.domain.SourceVariantId
 import kairo.domain.WorkflowId
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class HybridRetrieverTest {
 
@@ -254,6 +255,29 @@ class HybridRetrieverTest {
             corroborated.id,
             result.rankedClaims.first().fact.id,
         )
+    }
+
+
+    @Test
+    fun `retrieval result exposes complete evidence bundle categories`() {
+        val retriever = HybridRetriever(
+            facts = emptyList(),
+        )
+
+        val bundle = retriever.retrieve(
+            RetrievalQuery(
+                text = "What do we know?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+            ),
+        )
+
+        assertTrue(bundle.entities.isEmpty())
+        assertTrue(bundle.sources.isEmpty())
+        assertTrue(bundle.workflows.isEmpty())
+        assertTrue(bundle.projects.isEmpty())
+        assertTrue(bundle.incidents.isEmpty())
+        assertTrue(bundle.conflicts.isEmpty())
+        assertTrue(bundle.unknowns.isEmpty())
     }
 
     private fun fact(
