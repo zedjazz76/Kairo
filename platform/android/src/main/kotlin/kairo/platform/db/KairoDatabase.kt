@@ -22,13 +22,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AuditEventEntity::class,
         IngestionCheckpointEntity::class,
         IngestionCheckpointArtifactEntity::class,
+        MemoryCandidateEntity::class,
+        MemoryDecisionEntity::class,
+        MemoryCandidateAnchorEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class KairoDatabase : RoomDatabase() {
     abstract fun knowledgeDao(): KnowledgeDao
     abstract fun ingestionCheckpointDao(): IngestionCheckpointDao
+    abstract fun memoryInboxDao(): MemoryInboxDao
 
     companion object {
         @JvmField
@@ -146,6 +150,64 @@ abstract class KairoDatabase : RoomDatabase() {
                 db.execSQL("CREATE TABLE IF NOT EXISTS ingestion_checkpoint_artifacts (session_id TEXT NOT NULL, source_id TEXT NOT NULL, variant_id TEXT NOT NULL, file_name TEXT NOT NULL, media_type TEXT, payload_ref TEXT NOT NULL, extraction_ref TEXT, PRIMARY KEY(session_id, variant_id))")
             }
         }
+
+        @JvmField val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS memory_candidates (
+                        candidate_id TEXT NOT NULL PRIMARY KEY,
+                        session_id TEXT NOT NULL,
+                        subject_label TEXT NOT NULL,
+                        text TEXT NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS memory_decisions (
+                        decision_id TEXT NOT NULL PRIMARY KEY,
+                        candidate_id TEXT NOT NULL,
+                        decision_type TEXT NOT NULL,
+                        reviewer TEXT NOT NULL,
+                        decided_at TEXT NOT NULL,
+                        original_text TEXT,
+                        approved_text TEXT
+                    )
+                    """.trimIndent(),
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS memory_candidate_anchors (
+                        candidate_id TEXT NOT NULL,
+                        ordinal INTEGER NOT NULL,
+                        source_id TEXT NOT NULL,
+                        variant_id TEXT NOT NULL,
+                        locator_type TEXT NOT NULL,
+                        page INTEGER,
+                        left REAL,
+                        top REAL,
+                        right REAL,
+                        bottom REAL,
+                        width INTEGER,
+                        height INTEGER,
+                        sheet TEXT,
+                        first_row INTEGER,
+                        first_column INTEGER,
+                        last_row INTEGER,
+                        last_column INTEGER,
+                        start_offset INTEGER,
+                        end_offset INTEGER,
+                        conversation_id TEXT,
+                        turn_number INTEGER,
+                        PRIMARY KEY(candidate_id, ordinal)
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
     }
 }
 
@@ -213,4 +275,36 @@ interface IngestionCheckpointDao {
     @Query("DELETE FROM ingestion_checkpoint_artifacts WHERE session_id = :sessionId") fun deleteArtifacts(sessionId: String)
     @Query("SELECT * FROM ingestion_checkpoints WHERE session_id = :sessionId") fun checkpoint(sessionId: String): IngestionCheckpointEntity?
     @Query("SELECT * FROM ingestion_checkpoint_artifacts WHERE session_id = :sessionId ORDER BY variant_id") fun artifacts(sessionId: String): List<IngestionCheckpointArtifactEntity>
+}
+
+
+@Dao
+interface MemoryInboxDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun saveCandidate(row: MemoryCandidateEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun saveCandidateAnchors(rows: List<MemoryCandidateAnchorEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun saveDecision(row: MemoryDecisionEntity)
+
+    @Query("DELETE FROM memory_candidates WHERE candidate_id = :candidateId")
+    fun deleteCandidate(candidateId: String)
+
+    @Query("DELETE FROM memory_candidate_anchors WHERE candidate_id = :candidateId")
+    fun deleteCandidateAnchors(candidateId: String)
+
+    @Query("SELECT * FROM memory_candidates ORDER BY candidate_id")
+    fun candidates(): List<MemoryCandidateEntity>
+
+    @Query(
+        "SELECT * FROM memory_candidate_anchors " +
+            "WHERE candidate_id = :candidateId ORDER BY ordinal"
+    )
+    fun anchors(candidateId: String): List<MemoryCandidateAnchorEntity>
+
+    @Query("SELECT * FROM memory_decisions ORDER BY decided_at, decision_id")
+    fun decisions(): List<MemoryDecisionEntity>
 }

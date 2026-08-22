@@ -335,3 +335,95 @@ data class IngestionCheckpointArtifactEntity(
     @ColumnInfo(name = "payload_ref") val payloadRef: String,
     @ColumnInfo(name = "extraction_ref") val extractionRef: String?,
 )
+
+@Entity(tableName = "memory_candidates")
+data class MemoryCandidateEntity(
+    @PrimaryKey
+    @ColumnInfo(name = "candidate_id")
+    val candidateId: String,
+
+    @ColumnInfo(name = "session_id")
+    val sessionId: String,
+
+    @ColumnInfo(name = "subject_label")
+    val subjectLabel: String,
+
+    val text: String,
+)
+
+@Entity(tableName = "memory_decisions")
+data class MemoryDecisionEntity(
+    @PrimaryKey
+    @ColumnInfo(name = "decision_id")
+    val decisionId: String,
+
+    @ColumnInfo(name = "candidate_id")
+    val candidateId: String,
+
+    @ColumnInfo(name = "decision_type")
+    val decisionType: String,
+
+    val reviewer: String,
+
+    @ColumnInfo(name = "decided_at")
+    val decidedAt: String,
+
+    @ColumnInfo(name = "original_text")
+    val originalText: String?,
+
+    @ColumnInfo(name = "approved_text")
+    val approvedText: String?,
+)
+
+@Entity(
+    tableName = "memory_candidate_anchors",
+    primaryKeys = ["candidate_id", "ordinal"],
+)
+data class MemoryCandidateAnchorEntity(
+    @ColumnInfo(name = "candidate_id")
+    val candidateId: String,
+
+    val ordinal: Int,
+
+    @ColumnInfo(name = "source_id")
+    val sourceId: String,
+
+    @ColumnInfo(name = "variant_id")
+    val variantId: String,
+
+    @ColumnInfo(name = "locator_type")
+    val locatorType: String,
+
+    val page: Int? = null,
+    val left: Double? = null,
+    val top: Double? = null,
+    val right: Double? = null,
+    val bottom: Double? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    val sheet: String? = null,
+
+    @ColumnInfo(name = "first_row")
+    val firstRow: Int? = null,
+
+    @ColumnInfo(name = "first_column")
+    val firstColumn: Int? = null,
+
+    @ColumnInfo(name = "last_row")
+    val lastRow: Int? = null,
+
+    @ColumnInfo(name = "last_column")
+    val lastColumn: Int? = null,
+
+    @ColumnInfo(name = "start_offset")
+    val startOffset: Int? = null,
+
+    @ColumnInfo(name = "end_offset")
+    val endOffset: Int? = null,
+
+    @ColumnInfo(name = "conversation_id")
+    val conversationId: String? = null,
+
+    @ColumnInfo(name = "turn_number")
+    val turnNumber: Int? = null,
+)

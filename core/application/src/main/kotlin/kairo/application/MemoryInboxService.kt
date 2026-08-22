@@ -41,12 +41,46 @@ data class MemoryDecision(
     val approvedText: String? = null,
 )
 
+
+interface MemoryInboxStore {
+    fun pending(): List<PendingMemoryCandidate>
+    fun decisions(): List<MemoryDecision>
+    fun savePending(candidate: PendingMemoryCandidate)
+    fun removePending(candidateId: MemoryCandidateId)
+    fun saveDecision(decision: MemoryDecision)
+}
+
+class InMemoryMemoryInboxStore : MemoryInboxStore {
+    private val pendingCandidates =
+        linkedMapOf<MemoryCandidateId, PendingMemoryCandidate>()
+
+    private val decisionHistory =
+        mutableListOf<MemoryDecision>()
+
+    override fun pending(): List<PendingMemoryCandidate> =
+        pendingCandidates.values.toList()
+
+    override fun decisions(): List<MemoryDecision> =
+        decisionHistory.toList()
+
+    override fun savePending(candidate: PendingMemoryCandidate) {
+        pendingCandidates[candidate.id] = candidate
+    }
+
+    override fun removePending(candidateId: MemoryCandidateId) {
+        pendingCandidates.remove(candidateId)
+    }
+
+    override fun saveDecision(decision: MemoryDecision) {
+        decisionHistory += decision
+    }
+}
+
 class MemoryInboxService(
     private val repository: KnowledgeRepository,
     private val now: () -> Instant = Instant::now,
+    private val store: MemoryInboxStore = InMemoryMemoryInboxStore(),
 ) {
-    private val pendingCandidates = linkedMapOf<MemoryCandidateId, PendingMemoryCandidate>()
-    private val decisionHistory = mutableListOf<MemoryDecision>()
 
     fun receive(candidate: MemoryCandidateDraft): PendingMemoryCandidate {
         val pending = PendingMemoryCandidate(
@@ -54,15 +88,15 @@ class MemoryInboxService(
             draft = candidate,
         )
 
-        pendingCandidates[pending.id] = pending
+        store.savePending(pending)
         return pending
     }
 
     fun pending(): List<PendingMemoryCandidate> =
-        pendingCandidates.values.toList()
+        store.pending()
 
     fun decisions(): List<MemoryDecision> =
-        decisionHistory.toList()
+        store.decisions()
 
     fun reject(
         candidateId: MemoryCandidateId,
@@ -70,18 +104,18 @@ class MemoryInboxService(
     ) {
         require(reviewer.isNotBlank()) { "Reviewer must not be blank" }
 
-        requireNotNull(pendingCandidates[candidateId]) {
+        requireNotNull(store.pending().firstOrNull { it.id == candidateId }) {
             "Unknown memory candidate: ${candidateId.value}"
         }
 
-        decisionHistory += MemoryDecision(
+        store.saveDecision(MemoryDecision(
             candidateId = candidateId,
             type = MemoryDecisionType.REJECTED,
             reviewer = reviewer,
             decidedAt = now(),
-        )
+        ))
 
-        pendingCandidates.remove(candidateId)
+        store.removePending(candidateId)
     }
 
     fun defer(
@@ -90,16 +124,16 @@ class MemoryInboxService(
     ) {
         require(reviewer.isNotBlank()) { "Reviewer must not be blank" }
 
-        requireNotNull(pendingCandidates[candidateId]) {
+        requireNotNull(store.pending().firstOrNull { it.id == candidateId }) {
             "Unknown memory candidate: ${candidateId.value}"
         }
 
-        decisionHistory += MemoryDecision(
+        store.saveDecision(MemoryDecision(
             candidateId = candidateId,
             type = MemoryDecisionType.DEFERRED,
             reviewer = reviewer,
             decidedAt = now(),
-        )
+        ))
     }
 
     suspend fun editAndApprove(
@@ -111,7 +145,7 @@ class MemoryInboxService(
         require(editedText.isNotBlank()) { "Edited text must not be blank" }
 
         val candidate = requireNotNull(
-            pendingCandidates[candidateId],
+            store.pending().firstOrNull { it.id == candidateId },
         ) {
             "Unknown memory candidate: ${candidateId.value}"
         }
@@ -132,7 +166,7 @@ class MemoryInboxService(
         require(reviewer.isNotBlank()) { "Reviewer must not be blank" }
 
         val candidate = requireNotNull(
-            pendingCandidates[candidateId],
+            store.pending().firstOrNull { it.id == candidateId },
         ) {
             "Unknown memory candidate: ${candidateId.value}"
         }
@@ -196,16 +230,16 @@ class MemoryInboxService(
             ),
         )
 
-        decisionHistory += MemoryDecision(
+        store.saveDecision(MemoryDecision(
             candidateId = candidate.id,
             type = decisionType,
             reviewer = reviewer,
             decidedAt = now(),
             originalText = originalText,
             approvedText = approvedText,
-        )
+        ))
 
-        pendingCandidates.remove(candidate.id)
+        store.removePending(candidate.id)
     }
 
     private fun inferPredicate(text: String): String =
