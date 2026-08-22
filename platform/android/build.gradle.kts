@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:ingestion"))
     implementation(project(":core:security"))
+    implementation(project(":core:retrieval"))
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("androidx.room:room-runtime:2.8.4")
