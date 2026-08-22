@@ -3,6 +3,9 @@ package kairo.platform.ingestion
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import androidx.work.ListenableWorker
+import androidx.work.workDataOf
+import androidx.work.testing.TestListenableWorkerBuilder
 import java.time.Instant
 import javax.crypto.spec.SecretKeySpec
 import kairo.domain.AnchorLocator
@@ -90,6 +93,60 @@ class RoomIngestionCheckpointStoreTest {
         assertEquals(IngestionStage.COMPLETE, resumed.stage)
         assertEquals(1, extractions)
         assertCheckpointMetadataExcludesPayloads(restartedDatabase, "PACS ONLINE")
+    }
+
+    @Test
+    fun `worker factory reconstructs runtime and resumes extracted checkpoint without re-extraction`() {
+        var extractions = 0
+        val firstDatabase = openDatabase()
+        val firstCheckpoints = RoomIngestionCheckpointStore(firstDatabase)
+        val firstPayloads = TemporarySessionIngestionPayloadStore(
+            CacheBackedTemporarySessionStore(temporaryRoot, FixedMasterKeyProvider(testKey)),
+        )
+        assertFailsWith<SimulatedProcessDeath> {
+            IngestionPipeline(
+                extractors = listOf(CountingTextExtractor { extractions += 1 }),
+                scanner = { SensitiveContentScan(emptyList()) },
+                checkpoints = ProcessDeathAfterExtraction(firstCheckpoints),
+                payloads = firstPayloads,
+            ).run(
+                IngestionRequest(
+                    sessionId = sessionId,
+                    artifacts = listOf(artifact("PACS ONLINE")),
+                    capturedAt = Instant.parse("2026-08-21T12:00:00Z"),
+                ),
+            )
+        }
+        assertEquals(IngestionStage.EXTRACTED, firstCheckpoints.load(sessionId)?.stage)
+        firstDatabase.close()
+        database = null
+
+        var runtimeCreations = 0
+        val runtimeFactory = object : IngestionRuntimeFactory {
+            override fun create(): IngestionPipeline {
+                runtimeCreations += 1
+                val restartedDatabase = openDatabase()
+                return IngestionPipeline(
+                    extractors = listOf(CountingTextExtractor { extractions += 1 }),
+                    scanner = { SensitiveContentScan(emptyList()) },
+                    checkpoints = RoomIngestionCheckpointStore(restartedDatabase),
+                    payloads = TemporarySessionIngestionPayloadStore(
+                        CacheBackedTemporarySessionStore(temporaryRoot, FixedMasterKeyProvider(testKey)),
+                    ),
+                )
+            }
+        }
+        val worker = TestListenableWorkerBuilder<KairoIngestionWorker>(context)
+            .setWorkerFactory(KairoWorkerFactory(runtimeFactory))
+            .setInputData(workDataOf(IngestionWorkScheduler.SESSION_ID to sessionId.value))
+            .build()
+
+        val result = worker.doWork()
+
+        assertEquals(ListenableWorker.Result.success(), result)
+        assertEquals(1, runtimeCreations)
+        assertEquals(1, extractions)
+        assertEquals(IngestionStage.COMPLETE, RoomIngestionCheckpointStore(requireNotNull(database)).load(sessionId)?.stage)
     }
 
     private fun openDatabase(): KairoDatabase = Room.databaseBuilder(context, KairoDatabase::class.java, databaseName)
