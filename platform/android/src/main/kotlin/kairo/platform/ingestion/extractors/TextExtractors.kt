@@ -86,8 +86,88 @@ class PdfExtractor : ArtifactExtractor {
     }
 }
 
-class DocxExtractor : LocalTextExtractor(ArtifactFormat.DOCX) {
-    override fun extractText(bytes: ByteArray): String = printableRuns(bytes)
+class DocxExtractor : ArtifactExtractor {
+
+    override fun supports(format: ArtifactFormat): Boolean =
+        format == ArtifactFormat.DOCX
+
+    override fun extract(
+        artifact: IngestionArtifact,
+        format: ArtifactFormat,
+    ): ExtractedArtifact {
+        require(format == ArtifactFormat.DOCX) {
+            "DocxExtractor only supports DOCX artifacts"
+        }
+
+        val documentXml = java.util.zip.ZipInputStream(
+            artifact.bytes.inputStream(),
+        ).use { zip ->
+            var xml: ByteArray? = null
+
+            while (true) {
+                val entry = zip.nextEntry ?: break
+
+                if (entry.name == "word/document.xml") {
+                    xml = zip.readBytes()
+                    break
+                }
+            }
+
+            requireNotNull(xml) {
+                "DOCX artifact does not contain word/document.xml"
+            }
+        }
+
+        val factory = javax.xml.parsers.DocumentBuilderFactory.newInstance().apply {
+            isNamespaceAware = true
+        }
+
+        val document = factory.newDocumentBuilder()
+            .parse(documentXml.inputStream())
+
+        val wordNamespace =
+            "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+        val paragraphs = document
+            .getElementsByTagNameNS(wordNamespace, "p")
+
+        val extractedParagraphs = buildList {
+            for (index in 0 until paragraphs.length) {
+                val paragraph = paragraphs.item(index)
+                val textNodes = (paragraph as org.w3c.dom.Element)
+                    .getElementsByTagNameNS(wordNamespace, "t")
+
+                val paragraphText = buildString {
+                    for (textIndex in 0 until textNodes.length) {
+                        append(textNodes.item(textIndex).textContent)
+                    }
+                }.trim()
+
+                if (paragraphText.isNotBlank()) {
+                    add(paragraphText)
+                }
+            }
+        }
+
+        val text = extractedParagraphs
+            .joinToString("\n")
+            .ifBlank {
+                "[No extractable text in ${artifact.fileName}]"
+            }
+
+        return ExtractedArtifact(
+            artifact = artifact,
+            format = format,
+            text = text,
+            anchors = setOf(
+                SourceAnchor(
+                    artifact.sourceId,
+                    artifact.variantId,
+                    AnchorLocator.TextSpan(0, text.length),
+                ),
+            ),
+        )
+    }
 }
 
 class XlsxExtractor : LocalTextExtractor(ArtifactFormat.XLSX) {
