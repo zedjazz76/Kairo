@@ -46,6 +46,4 @@ class SemanticIndexMetadataTest {
             actual = metadata,
         )
     }
-
-
 }
