@@ -435,4 +435,75 @@ class DeepAnalyzeServiceTest {
     }
 
 
+    @Test
+    fun `deep analysis uses unverified identifier reconciliation as identity evidence`() {
+        val workflow = Workflow(
+            id = WorkflowId("baxter-reconciliation-analysis"),
+            name = "Baxter Reconciliation Analysis",
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = WorkflowState.CURRENT,
+            evidenceState = EvidenceState.PLANNED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt =
+                Instant.parse("2026-08-22T10:00:00Z"),
+            steps = listOf(
+                WorkflowStep(
+                    id = WorkflowStepId("send"),
+                    name = "Send result",
+                    system = "MANA",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+                WorkflowStep(
+                    id = WorkflowStepId("receive"),
+                    name = "Receive result",
+                    system = "Baxter",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+            ),
+            evidenceAnchors = emptySet(),
+        )
+
+        val traceService = TraceWorkflowService(
+            productionWorkflows = listOf(workflow),
+            projects = emptyList(),
+            identifierMappings = listOf(
+                IdentifierMapping(
+                    workflowId = workflow.id,
+                    sourceSystem = "MANA",
+                    sourceIdentifier = "MANA_MRN",
+                    targetSystem = "Baxter",
+                    targetIdentifier = "BAXTER_MRN",
+                    evidenceState = EvidenceState.PLANNED,
+                    reconciliationStatus =
+                        IdentifierReconciliationStatus.UNVERIFIED,
+                ),
+            ),
+        )
+
+        val service = DeepAnalyzeService(
+            retriever = HybridRetriever(
+                facts = emptyList(),
+            ),
+            traceWorkflowService = traceService,
+            workflowId = workflow.id,
+        )
+
+        val result = service.deepAnalyze(
+            "The Baxter result arrived but the patient did not reconcile. What should I check?",
+        )
+
+        assertTrue(
+            result.failureDomains.first().name ==
+                "IDENTITY_OR_DEMOGRAPHICS",
+        )
+
+        assertTrue(
+            result.nextBestAction
+                ?.contains("identifier", ignoreCase = true)
+                == true,
+        )
+    }
+
+
 }

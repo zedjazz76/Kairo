@@ -310,6 +310,147 @@ class TraceWorkflowServiceTest {
         )
     }
 
+
+    @Test
+    fun `trace preserves dual identifier mapping across Baxter result flow`() {
+        val workflow = Workflow(
+            id = WorkflowId("baxter-dual-identifier"),
+            name = "Baxter Dual Identifier Flow",
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = WorkflowState.CURRENT,
+            evidenceState = EvidenceState.PLANNED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt =
+                Instant.parse("2026-08-22T10:00:00Z"),
+            steps = listOf(
+                WorkflowStep(
+                    id = WorkflowStepId("mana-result"),
+                    name = "Generate result",
+                    system = "MANA",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+                WorkflowStep(
+                    id = WorkflowStepId("interface"),
+                    name = "HL7 result interface",
+                    system = "Interface Engine",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+                WorkflowStep(
+                    id = WorkflowStepId("baxter"),
+                    name = "Receive result",
+                    system = "Baxter",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+            ),
+            evidenceAnchors = emptySet(),
+        )
+
+        val service = TraceWorkflowService(
+            productionWorkflows = listOf(workflow),
+            projects = emptyList(),
+            identifierMappings = listOf(
+                IdentifierMapping(
+                    workflowId = workflow.id,
+                    sourceSystem = "MANA",
+                    sourceIdentifier = "MANA_MRN",
+                    targetSystem = "Baxter",
+                    targetIdentifier = "BAXTER_MRN",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+            ),
+        )
+
+        val trace = service.trace(
+            workflowId = workflow.id,
+            atTime =
+                Instant.parse("2026-08-22T12:00:00Z"),
+            knowledgeAsOf =
+                Instant.parse("2026-08-22T12:00:00Z"),
+        )
+
+        assertTrue(
+            trace.identifierMappings.any {
+                it.sourceIdentifier == "MANA_MRN" &&
+                    it.targetIdentifier == "BAXTER_MRN"
+            },
+        )
+
+        assertTrue(
+            trace.identifierMappings.all {
+                it.evidenceState == EvidenceState.PLANNED
+            },
+        )
+    }
+
+
+    @Test
+    fun `trace distinguishes delivered result from unresolved identifier reconciliation`() {
+        val workflow = Workflow(
+            id = WorkflowId("baxter-reconciliation"),
+            name = "Baxter Reconciliation",
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = WorkflowState.CURRENT,
+            evidenceState = EvidenceState.PLANNED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt =
+                Instant.parse("2026-08-22T10:00:00Z"),
+            steps = listOf(
+                WorkflowStep(
+                    id = WorkflowStepId("result-send"),
+                    name = "Send result",
+                    system = "MANA",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+                WorkflowStep(
+                    id = WorkflowStepId("result-receive"),
+                    name = "Receive result",
+                    system = "Baxter",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+            ),
+            evidenceAnchors = emptySet(),
+        )
+
+        val service = TraceWorkflowService(
+            productionWorkflows = listOf(workflow),
+            projects = emptyList(),
+            identifierMappings = listOf(
+                IdentifierMapping(
+                    workflowId = workflow.id,
+                    sourceSystem = "MANA",
+                    sourceIdentifier = "MANA_MRN",
+                    targetSystem = "Baxter",
+                    targetIdentifier = "BAXTER_MRN",
+                    evidenceState = EvidenceState.PLANNED,
+                    reconciliationStatus =
+                        IdentifierReconciliationStatus.UNVERIFIED,
+                ),
+            ),
+        )
+
+        val trace = service.trace(
+            workflowId = workflow.id,
+            atTime =
+                Instant.parse("2026-08-22T12:00:00Z"),
+            knowledgeAsOf =
+                Instant.parse("2026-08-22T12:00:00Z"),
+        )
+
+        assertTrue(
+            trace.identifierMappings.single()
+                .reconciliationStatus ==
+                IdentifierReconciliationStatus.UNVERIFIED,
+        )
+
+        assertTrue(
+            trace.annotations.contains(
+                "Result transport may succeed while identifier reconciliation remains unverified.",
+            ),
+        )
+    }
+
     private fun workflow(
         id: String,
         name: String,

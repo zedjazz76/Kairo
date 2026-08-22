@@ -22,14 +22,49 @@ data class TraceSlice(
     val annotations: List<String> = emptyList(),
 )
 
+enum class IdentifierReconciliationStatus {
+    VERIFIED,
+    UNVERIFIED,
+    MISSING,
+}
+
+data class IdentifierMapping(
+    val workflowId: WorkflowId,
+    val sourceSystem: String,
+    val sourceIdentifier: String,
+    val targetSystem: String,
+    val targetIdentifier: String,
+    val evidenceState: EvidenceState,
+    val reconciliationStatus: IdentifierReconciliationStatus =
+        IdentifierReconciliationStatus.UNVERIFIED,
+) {
+    init {
+        require(sourceSystem.isNotBlank()) {
+            "Source system must not be blank"
+        }
+        require(sourceIdentifier.isNotBlank()) {
+            "Source identifier must not be blank"
+        }
+        require(targetSystem.isNotBlank()) {
+            "Target system must not be blank"
+        }
+        require(targetIdentifier.isNotBlank()) {
+            "Target identifier must not be blank"
+        }
+    }
+}
+
 data class WorkflowTrace(
     val current: TraceSlice,
     val future: TraceSlice,
+    val identifierMappings: List<IdentifierMapping>,
+    val annotations: List<String>,
 )
 
 class TraceWorkflowService(
     private val productionWorkflows: List<Workflow>,
     private val projects: List<Project>,
+    private val identifierMappings: List<IdentifierMapping> = emptyList(),
 ) {
 
     fun trace(
@@ -95,6 +130,14 @@ class TraceWorkflowService(
                         ),
                     )
                 },
+            identifierMappings =
+                identifierMappings.filter { mapping ->
+                    mapping.workflowId == workflowId
+                },
+            annotations =
+                traceAnnotations(
+                    workflowId = workflowId,
+                ),
         )
     }
 
@@ -127,6 +170,40 @@ class TraceWorkflowService(
             },
             annotations = annotations,
         )
+    }
+
+    private fun traceAnnotations(
+        workflowId: WorkflowId,
+    ): List<String> {
+        val mappings =
+            identifierMappings.filter { mapping ->
+                mapping.workflowId == workflowId
+            }
+
+        val annotations =
+            mutableListOf<String>()
+
+        if (
+            mappings.any { mapping ->
+                mapping.reconciliationStatus ==
+                    IdentifierReconciliationStatus.UNVERIFIED
+            }
+        ) {
+            annotations +=
+                "Result transport may succeed while identifier reconciliation remains unverified."
+        }
+
+        if (
+            mappings.any { mapping ->
+                mapping.reconciliationStatus ==
+                    IdentifierReconciliationStatus.MISSING
+            }
+        ) {
+            annotations +=
+                "Required identifier mapping is missing."
+        }
+
+        return annotations
     }
 
     private fun failureDomainsFor(

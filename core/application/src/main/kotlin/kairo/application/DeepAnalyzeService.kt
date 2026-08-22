@@ -74,7 +74,7 @@ class DeepAnalyzeService(
         val traceDomains =
             traceFailureDomains(
                 question = question,
-            )
+            ) + traceIdentifierFailureDomains()
 
         val reinforcedDomains =
             reinforceFailureDomains(
@@ -148,6 +148,7 @@ class DeepAnalyzeService(
             when (topFailureDomain) {
                 "IDENTITY_OR_DEMOGRAPHICS" ->
                     incidentAction
+                        ?: traceIdentifierNextBestAction()
                         ?: traceNextBestAction(
                             question = question,
                         )
@@ -168,6 +169,77 @@ class DeepAnalyzeService(
             nextBestAction = nextBestAction,
             claims = claims,
         )
+    }
+
+    private fun traceIdentifierFailureDomains():
+        List<RankedFailureDomain> {
+        val service =
+            traceWorkflowService
+                ?: return emptyList()
+
+        val id =
+            workflowId
+                ?: return emptyList()
+
+        val at = now()
+
+        val trace = service.trace(
+            workflowId = id,
+            atTime = at,
+            knowledgeAsOf = at,
+        )
+
+        val unresolved =
+            trace.identifierMappings.filter { mapping ->
+                mapping.reconciliationStatus ==
+                    IdentifierReconciliationStatus.UNVERIFIED ||
+                    mapping.reconciliationStatus ==
+                    IdentifierReconciliationStatus.MISSING
+            }
+
+        if (unresolved.isEmpty()) {
+            return emptyList()
+        }
+
+        return listOf(
+            RankedFailureDomain(
+                name = "IDENTITY_OR_DEMOGRAPHICS",
+                score = 160,
+                rationale =
+                    "Trace contains unresolved identifier reconciliation.",
+            ),
+        )
+    }
+
+    private fun traceIdentifierNextBestAction(): String? {
+        val service =
+            traceWorkflowService
+                ?: return null
+
+        val id =
+            workflowId
+                ?: return null
+
+        val at = now()
+
+        val trace = service.trace(
+            workflowId = id,
+            atTime = at,
+            knowledgeAsOf = at,
+        )
+
+        val unresolved =
+            trace.identifierMappings.firstOrNull { mapping ->
+                mapping.reconciliationStatus ==
+                    IdentifierReconciliationStatus.UNVERIFIED ||
+                    mapping.reconciliationStatus ==
+                    IdentifierReconciliationStatus.MISSING
+            }
+                ?: return null
+
+        return "Validate identifier reconciliation from " +
+            "${unresolved.sourceSystem} ${unresolved.sourceIdentifier} " +
+            "to ${unresolved.targetSystem} ${unresolved.targetIdentifier}."
     }
 
     private fun traceFailureDomains(
