@@ -23,12 +23,16 @@ data class DeepAnalysisResult(
     val failureDomains: List<RankedFailureDomain>,
     val nextBestAction: String?,
     val claims: List<DiagnosticClaim>,
+    val modelEnrichment: ValidatedAnswer? = null,
 )
 
 class DeepAnalyzeService(
     private val retriever: HybridRetriever,
     private val traceWorkflowService: TraceWorkflowService? = null,
     private val workflowId: WorkflowId? = null,
+    private val reasoningProvider: ReasoningProvider? = null,
+    private val answerValidator: AnswerValidator = AnswerValidator(),
+    private val now: () -> java.time.Instant = java.time.Instant::now,
 ) {
 
     fun deepAnalyze(
@@ -47,12 +51,22 @@ class DeepAnalyzeService(
 
         val incidentDomains =
             bundle.incidents.mapIndexed { index, incident ->
-                RankedFailureDomain(
-                    name = failureDomainFor(
+                val domain =
+                    failureDomainFor(
                         rootCause = incident.rootCause,
                         symptom = incident.symptom,
-                    ),
-                    score = 100 - index,
+                    )
+
+                val evidenceBoost =
+                    when (domain) {
+                        "IDENTITY_OR_DEMOGRAPHICS" -> 40
+                        "ROUTING" -> 20
+                        else -> 0
+                    }
+
+                RankedFailureDomain(
+                    name = domain,
+                    score = 100 + evidenceBoost - index,
                     rationale = incident.rootCause,
                 )
             }
@@ -120,13 +134,30 @@ class DeepAnalyzeService(
                 )
             }
 
+        val topFailureDomain =
+            failureDomains
+                .maxByOrNull { it.score }
+                ?.name
+
+        val incidentAction =
+            bundle.incidents
+                .firstOrNull()
+                ?.resolution
+
         val nextBestAction =
-            traceNextBestAction(
-                question = question,
-            )
-                ?: bundle.incidents
-                    .firstOrNull()
-                    ?.resolution
+            when (topFailureDomain) {
+                "IDENTITY_OR_DEMOGRAPHICS" ->
+                    incidentAction
+                        ?: traceNextBestAction(
+                            question = question,
+                        )
+
+                else ->
+                    traceNextBestAction(
+                        question = question,
+                    )
+                        ?: incidentAction
+            }
                 ?: "Validate the first unresolved workflow hop."
 
         return DeepAnalysisResult(
@@ -246,6 +277,11 @@ class DeepAnalyzeService(
             "WORKLIST_OR_ROUTING" ->
                 "ROUTING"
 
+            "IDENTITY",
+            "DEMOGRAPHICS",
+            "IDENTITY_OR_DEMOGRAPHICS" ->
+                "IDENTITY_OR_DEMOGRAPHICS"
+
             else ->
                 domain
         }
@@ -322,6 +358,80 @@ class DeepAnalyzeService(
         return matchedHop?.let { hop ->
             "Verify ${hop.system} at the ${hop.name} hop."
         }
+    }
+
+    suspend fun deepAnalyzeWithReasoning(
+        question: String,
+    ): DeepAnalysisResult {
+        val deterministic =
+            deepAnalyze(question)
+
+        val provider =
+            reasoningProvider
+                ?: return deterministic
+
+        val at = now()
+
+        val bundle = retriever.retrieve(
+            RetrievalQuery(
+                text = question,
+                scope = KnowledgeScope.MANA_PRODUCTION,
+                at = at,
+            ),
+        )
+
+        val answer =
+            provider.analyze(
+                ReasoningPacket(
+                    question = question,
+                    evidence = bundle,
+                    confirmed = bundle.rankedClaims.filter {
+                        it.fact.state == EvidenceState.CONFIRMED
+                    },
+                    observed = bundle.rankedClaims.filter {
+                        it.fact.state == EvidenceState.OBSERVED
+                    },
+                    planned = bundle.rankedClaims.filter {
+                        it.fact.state == EvidenceState.PLANNED
+                    },
+                    hypotheses = bundle.rankedClaims.filter {
+                        it.fact.state == EvidenceState.HYPOTHESIS ||
+                            it.fact.state == EvidenceState.VERIFY ||
+                            it.fact.state == EvidenceState.PROPOSED
+                    },
+                    unknowns = bundle.unknowns,
+                    prohibitedActions = listOf(
+                        "Do not perform production clinical-system writes.",
+                        "Do not present unsupported MANA claims as facts.",
+                        "Do not convert planned or project state into current production truth.",
+                    ),
+                ),
+            )
+
+        val enrichment =
+            when (
+                val validation =
+                    answerValidator.validate(
+                        answer = answer,
+                        bundle = bundle,
+                        at = at,
+                    )
+            ) {
+                ValidationResult.Accepted ->
+                    ValidatedAnswer.Accepted(
+                        answer = answer,
+                    )
+
+                is ValidationResult.Rejected ->
+                    ValidatedAnswer.Rejected(
+                        answer = answer,
+                        reasons = validation.reasons,
+                    )
+            }
+
+        return deterministic.copy(
+            modelEnrichment = enrichment,
+        )
     }
 
     private fun failureDomainFor(
