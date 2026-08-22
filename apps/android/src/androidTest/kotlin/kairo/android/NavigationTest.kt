@@ -63,4 +63,37 @@ class NavigationTest {
     }
 
 
+    @Test
+    fun workflows_destination_opens_and_returns_home() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Offline,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Workflows")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Workflows overview")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Back")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Systems")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Workflows")
+            .assertIsDisplayed()
+    }
+
+
 }

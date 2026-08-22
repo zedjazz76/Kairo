@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 private enum class KairoDestination {
     Home,
     Systems,
+    Workflows,
 }
 
 @Composable
@@ -68,10 +69,22 @@ fun KairoShell(
                     destination =
                         KairoDestination.Systems
                 },
+                onWorkflows = {
+                    destination =
+                        KairoDestination.Workflows
+                },
             )
 
         KairoDestination.Systems ->
             SystemsDestination(
+                onBack = {
+                    destination =
+                        KairoDestination.Home
+                },
+            )
+
+        KairoDestination.Workflows ->
+            WorkflowsDestination(
                 onBack = {
                     destination =
                         KairoDestination.Home
@@ -84,6 +97,7 @@ fun KairoShell(
 private fun HomeDestination(
     connectivity: ConnectivityCapability,
     onSystems: () -> Unit,
+    onWorkflows: () -> Unit,
 ) {
     val offline =
         connectivity == ConnectivityCapability.Offline
@@ -100,7 +114,7 @@ private fun HomeDestination(
         }
 
         Button(
-            onClick = {},
+            onClick = onWorkflows,
         ) {
             Text("Workflows")
         }
@@ -111,6 +125,21 @@ private fun HomeDestination(
         ) {
             Text("Deep Analyze")
         }
+    }
+}
+
+@Composable
+private fun WorkflowsDestination(
+    onBack: () -> Unit,
+) {
+    Column {
+        Button(
+            onClick = onBack,
+        ) {
+            Text("Back")
+        }
+
+        Text("Workflows overview")
     }
 }
 
