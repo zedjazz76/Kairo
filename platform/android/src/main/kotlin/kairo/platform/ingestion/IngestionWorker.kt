@@ -14,6 +14,12 @@ import androidx.work.ListenableWorker
 import androidx.work.Worker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
+import androidx.room.Room
+import kairo.platform.db.KairoDatabase
+import kairo.platform.ingestion.extractors.defaultAndroidExtractors
+import kairo.platform.security.LocalSensitiveContentScanner
+import kairo.platform.vault.AndroidKeystoreMasterKeyProvider
+import kairo.platform.vault.CacheBackedTemporarySessionStore
 
 /** Android host adapter; WorkManager scheduling is supplied by the app host. */
 class IngestionWorker(private val pipeline: IngestionPipeline) {
@@ -39,6 +45,38 @@ class IngestionWorkScheduler(private val workManager: WorkManager) {
 
 interface IngestionRuntimeFactory {
     fun create(): IngestionPipeline
+}
+
+class AndroidIngestionRuntimeFactory(
+    context: Context,
+) : IngestionRuntimeFactory {
+    private val applicationContext = context.applicationContext
+    private val database by lazy {
+        Room.databaseBuilder(applicationContext, KairoDatabase::class.java, DATABASE_NAME)
+            .addMigrations(KairoDatabase.MIGRATION_1_2, KairoDatabase.MIGRATION_2_3)
+            .build()
+    }
+
+    override fun create(): IngestionPipeline {
+        val scanner = LocalSensitiveContentScanner()
+        return IngestionPipeline(
+            extractors = defaultAndroidExtractors(applicationContext),
+            scanner = scanner::scan,
+            checkpoints = RoomIngestionCheckpointStore(database),
+            payloads = TemporarySessionIngestionPayloadStore(
+                CacheBackedTemporarySessionStore(
+                    applicationContext.noBackupFilesDir.toPath().resolve(TEMPORARY_PAYLOAD_DIRECTORY),
+                    AndroidKeystoreMasterKeyProvider(TEMPORARY_PAYLOAD_KEY_ALIAS),
+                ),
+            ),
+        )
+    }
+
+    private companion object {
+        const val DATABASE_NAME = "kairo.db"
+        const val TEMPORARY_PAYLOAD_DIRECTORY = "ingestion-temporary"
+        const val TEMPORARY_PAYLOAD_KEY_ALIAS = "kairo.ingestion-temporary.master-key"
+    }
 }
 
 class KairoIngestionWorker(

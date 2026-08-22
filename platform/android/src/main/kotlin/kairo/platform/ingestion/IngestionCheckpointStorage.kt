@@ -64,11 +64,25 @@ private fun decodeArtifact(bytes: ByteArray) = DataInputStream(ByteArrayInputStr
     val source = SourceId(input.readUTF()); val variant = SourceVariantId(input.readUTF()); val name = input.readUTF(); val media = if (input.readBoolean()) input.readUTF() else null; val body = ByteArray(input.readInt()).also(input::readFully); IngestionArtifact(source, variant, name, body, media)
 }
 private fun encodeExtraction(extracted: ExtractedArtifact) = ByteArrayOutputStream().use { bytes -> DataOutputStream(bytes).use { out ->
-    val artifact = encodeArtifact(extracted.artifact); out.writeInt(artifact.size); out.write(artifact); out.writeUTF(extracted.format.name); out.writeUTF(extracted.text); out.writeInt(extracted.anchors.size); extracted.anchors.forEach { anchor -> out.writeUTF(anchor.sourceId.value); out.writeUTF(anchor.variantId.value); when (val l = anchor.locator) {
-        is AnchorLocator.TextSpan -> { out.writeByte(1); out.writeInt(l.startOffset); out.writeInt(l.endOffset) }
-        else -> error("Temporary extraction checkpoint requires supported anchor encoding")
-    } }
+    val artifact = encodeArtifact(extracted.artifact); out.writeInt(artifact.size); out.write(artifact); out.writeUTF(extracted.format.name); out.writeUTF(extracted.text); out.writeInt(extracted.anchors.size); extracted.anchors.forEach { anchor -> out.writeUTF(anchor.sourceId.value); out.writeUTF(anchor.variantId.value); out.writeLocator(anchor.locator) }
 }; bytes.toByteArray() }
 private fun decodeExtraction(bytes: ByteArray) = DataInputStream(ByteArrayInputStream(bytes)).use { input ->
-    val artifact = decodeArtifact(ByteArray(input.readInt()).also(input::readFully)); val format = ArtifactFormat.valueOf(input.readUTF()); val text = input.readUTF(); val anchors = buildSet { repeat(input.readInt()) { val source = SourceId(input.readUTF()); val variant = SourceVariantId(input.readUTF()); add(SourceAnchor(source, variant, when (input.readByte().toInt()) { 1 -> AnchorLocator.TextSpan(input.readInt(), input.readInt()); else -> error("Unknown anchor") })) } }; ExtractedArtifact(artifact, format, text, anchors)
+    val artifact = decodeArtifact(ByteArray(input.readInt()).also(input::readFully)); val format = ArtifactFormat.valueOf(input.readUTF()); val text = input.readUTF(); val anchors = buildSet { repeat(input.readInt()) { val source = SourceId(input.readUTF()); val variant = SourceVariantId(input.readUTF()); add(SourceAnchor(source, variant, input.readLocator())) } }; ExtractedArtifact(artifact, format, text, anchors)
+}
+
+private fun DataOutputStream.writeLocator(locator: AnchorLocator) = when (locator) {
+    is AnchorLocator.TextSpan -> { writeByte(1); writeInt(locator.startOffset); writeInt(locator.endOffset) }
+    is AnchorLocator.PdfPageBox -> { writeByte(2); writeInt(locator.page); writeDouble(locator.left); writeDouble(locator.top); writeDouble(locator.right); writeDouble(locator.bottom) }
+    is AnchorLocator.ImageRegion -> { writeByte(3); writeInt(locator.left); writeInt(locator.top); writeInt(locator.width); writeInt(locator.height) }
+    is AnchorLocator.SheetRange -> { writeByte(4); writeUTF(locator.sheet); writeInt(locator.firstRow); writeInt(locator.firstColumn); writeInt(locator.lastRow); writeInt(locator.lastColumn) }
+    is AnchorLocator.ChatTurn -> { writeByte(5); writeUTF(locator.conversationId); writeInt(locator.turnNumber); writeBoolean(locator.startOffset != null); locator.startOffset?.let(::writeInt); locator.endOffset?.let(::writeInt) }
+}
+
+private fun DataInputStream.readLocator(): AnchorLocator = when (readByte().toInt()) {
+    1 -> AnchorLocator.TextSpan(readInt(), readInt())
+    2 -> AnchorLocator.PdfPageBox(readInt(), readDouble(), readDouble(), readDouble(), readDouble())
+    3 -> AnchorLocator.ImageRegion(readInt(), readInt(), readInt(), readInt())
+    4 -> AnchorLocator.SheetRange(readUTF(), readInt(), readInt(), readInt(), readInt())
+    5 -> { val conversationId = readUTF(); val turn = readInt(); if (readBoolean()) AnchorLocator.ChatTurn(conversationId, turn, readInt(), readInt()) else AnchorLocator.ChatTurn(conversationId, turn) }
+    else -> error("Unknown temporary extraction anchor type")
 }

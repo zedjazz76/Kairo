@@ -1,5 +1,6 @@
 package kairo.platform.ingestion.extractors
 
+import android.content.Context
 import kairo.domain.AnchorLocator
 import kairo.domain.SourceAnchor
 import kairo.ingestion.ArtifactExtractor
@@ -392,7 +393,44 @@ class XlsxExtractor : ArtifactExtractor {
     }
 }
 
-class CsvExtractor : LocalTextExtractor(ArtifactFormat.CSV)
+class CsvExtractor : ArtifactExtractor {
+    override fun supports(format: ArtifactFormat) = format == ArtifactFormat.CSV
+
+    override fun extract(artifact: IngestionArtifact, format: ArtifactFormat): ExtractedArtifact {
+        require(format == ArtifactFormat.CSV) { "CsvExtractor only supports CSV artifacts" }
+        val decoded = artifact.bytes.decodeToString()
+        val text = decoded.ifBlank { "[No extractable text in ${artifact.fileName}]" }
+        val rows = decoded.lines()
+        val lastUsedRow = rows.indexOfLast { it.isNotBlank() } + 1
+        val lastUsedColumn = rows.maxOfOrNull(::csvColumnCount) ?: 0
+        val locator = if (lastUsedRow > 0 && lastUsedColumn > 0) {
+            AnchorLocator.SheetRange(artifact.fileName, 1, 1, lastUsedRow, lastUsedColumn)
+        } else {
+            AnchorLocator.TextSpan(0, text.length)
+        }
+        return ExtractedArtifact(
+            artifact,
+            format,
+            text,
+            setOf(SourceAnchor(artifact.sourceId, artifact.variantId, locator)),
+        )
+    }
+}
+
+private fun csvColumnCount(row: String): Int {
+    if (row.isEmpty()) return 0
+    var columns = 1
+    var quoted = false
+    var index = 0
+    while (index < row.length) {
+        when (row[index]) {
+            '"' -> if (quoted && index + 1 < row.length && row[index + 1] == '"') index++ else quoted = !quoted
+            ',' -> if (!quoted) columns++
+        }
+        index++
+    }
+    return columns
+}
 class TextExtractor : LocalTextExtractor(ArtifactFormat.TEXT, ArtifactFormat.MARKDOWN, ArtifactFormat.PASTED_TEXT)
 class ImageExtractor(
     private val ocrEngine: ImageOcrEngine = MlKitImageOcrEngine(),
@@ -456,6 +494,18 @@ class ImageExtractor(
 fun defaultAndroidExtractors(): List<ArtifactExtractor> = listOf(
     PdfExtractor(), DocxExtractor(), XlsxExtractor(), CsvExtractor(), TextExtractor(), ImageExtractor(),
 )
+
+fun defaultAndroidExtractors(context: Context): List<ArtifactExtractor> {
+    val imageOcr = MlKitImageOcrEngine()
+    return listOf(
+        PdfExtractor(AndroidPdfPageOcrEngine(context.applicationContext, imageOcr)),
+        DocxExtractor(),
+        XlsxExtractor(),
+        CsvExtractor(),
+        TextExtractor(),
+        ImageExtractor(imageOcr),
+    )
+}
 
 private fun printableRuns(bytes: ByteArray): String = bytes
     .decodeToString()

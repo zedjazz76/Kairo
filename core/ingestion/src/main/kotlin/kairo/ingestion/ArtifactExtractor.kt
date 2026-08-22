@@ -8,7 +8,10 @@ enum class ArtifactFormat {
     PDF, DOCX, XLSX, CSV, TEXT, MARKDOWN, PNG, JPEG, PASTED_TEXT, UNSUPPORTED;
 
     companion object {
+        const val PASTED_TEXT_MEDIA_TYPE = "application/vnd.kairo.pasted-text"
+
         fun detect(fileName: String, mediaType: String? = null): ArtifactFormat = when {
+            mediaType.equals(PASTED_TEXT_MEDIA_TYPE, ignoreCase = true) -> PASTED_TEXT
             mediaType.equals("text/plain", ignoreCase = true) -> TEXT
             mediaType.equals("text/markdown", ignoreCase = true) -> MARKDOWN
             fileName.endsWith(".pdf", ignoreCase = true) -> PDF
