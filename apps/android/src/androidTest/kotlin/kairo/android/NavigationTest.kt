@@ -241,4 +241,33 @@ class NavigationTest {
     }
 
 
+    @Test
+    fun copilot_destination_opens_and_returns_home() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Offline,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Copilot")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Kairo Copilot")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Back")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Copilot")
+            .assertIsDisplayed()
+    }
+
+
 }

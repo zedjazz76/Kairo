@@ -9,6 +9,7 @@ enum class KairoDestination {
     Capture,
     Sources,
     MemoryInbox,
+    Copilot,
 }
 
 class KairoNavigator(

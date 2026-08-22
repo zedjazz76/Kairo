@@ -114,6 +114,11 @@ fun KairoShell(
                         KairoDestination.MemoryInbox,
                     )
                 },
+                onCopilot = {
+                    navigateTo(
+                        KairoDestination.Copilot,
+                    )
+                },
             )
 
         KairoDestination.Systems ->
@@ -164,6 +169,13 @@ fun KairoShell(
                     backHome()
                 },
             )
+
+        KairoDestination.Copilot ->
+            CopilotDestination(
+                onBack = {
+                    backHome()
+                },
+            )
     }
 }
 
@@ -177,6 +189,7 @@ private fun HomeDestination(
     onCapture: () -> Unit,
     onSources: () -> Unit,
     onMemoryInbox: () -> Unit,
+    onCopilot: () -> Unit,
 ) {
     val offline =
         connectivity == ConnectivityCapability.Offline
@@ -229,11 +242,32 @@ private fun HomeDestination(
         }
 
         Button(
+            onClick = onCopilot,
+        ) {
+            Text("Copilot")
+        }
+
+        Button(
             onClick = {},
             enabled = !offline,
         ) {
             Text("Deep Analyze")
         }
+    }
+}
+
+@Composable
+private fun CopilotDestination(
+    onBack: () -> Unit,
+) {
+    Column {
+        Button(
+            onClick = onBack,
+        ) {
+            Text("Back")
+        }
+
+        Text("Kairo Copilot")
     }
 }
 
