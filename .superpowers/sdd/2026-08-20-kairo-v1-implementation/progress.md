@@ -133,3 +133,18 @@ Task 6 WorkManager Slice 3: focused PHI-review worker test recreated the runtime
 Task 6 launch-format/restart completion slice: added explicit CSV/TXT/Markdown/pasted-text/JPEG coverage, a restart-safe pasted-text media type, CSV used-range provenance, encrypted round-trip support for every `AnchorLocator` type, and `AndroidIngestionRuntimeFactory` composition using Room, no-backup encrypted temporary storage, Android Keystore, local scanning, and default Android extractors including scanned-PDF OCR. Focused WorkManager/checkpoint/payload/launch-format regression group passed.
 Task 6 Sol milestone review: fixed terminal `COMPLETE` re-entry to remain idempotent after payload cleanup and to retry stale temporary cleanup; narrowed WorkManager retry to explicit transient failures; added unique-work cancellation; removed the modified-UTF size ceiling for extracted text; made specific extensions override generic text MIME; hardened DOCX/XLSX XML parsing against DOCTYPE/external entities; and updated the JVM migration gate through schema v3. Focused RED/GREEN regressions passed.
 Task 6 COMPLETE: fresh `:core:ingestion:test :platform:android:testDebugUnitTest --rerun-tasks` executed all 43 tasks successfully. Previously passing connected-device ML Kit image OCR and Android `PdfRenderer` scanned-PDF OCR were not rerun because milestone changes did not affect those paths. Task 7 must not begin until explicitly requested.
+
+### Task 7 - Memory Inbox core/persistence milestone
+
+- Implemented controlled Memory Inbox promotion.
+- AI candidates remain inactive until explicit human approval.
+- Added approve, edit-and-approve, reject, and defer decision semantics.
+- Edit-and-approve preserves original candidate text and promotes only reviewed text.
+- Reject/defer preserve decision history without creating authoritative facts.
+- Added restart-durable MemoryInboxStore abstraction.
+- Added Room-backed Memory Inbox persistence with schema v4 and migration 3 -> 4.
+- Persisted pending candidates, decisions, and source-anchor evidence.
+- Verified pending/deferred/rejected state survives service/store recreation.
+- Task 7 Android review UI is deferred to Task 11 because no Android app/composition module exists yet.
+- Focused Task 7 gate passed:
+  `./gradlew :core:application:test :platform:android:testDebugUnitTest --tests '*MemoryInbox*'`
