@@ -76,3 +76,7 @@ class MlKitImageOcrEngine : ImageOcrEngine {
         }
     }
 }
+
+fun interface PdfPageOcrEngine {
+    fun recognize(pdfBytes: ByteArray, page: Int): OcrResult
+}

@@ -29,7 +29,9 @@ abstract class LocalTextExtractor(private vararg val formats: ArtifactFormat) : 
     protected open fun extractText(bytes: ByteArray): String = bytes.decodeToString()
 }
 
-class PdfExtractor : ArtifactExtractor {
+class PdfExtractor(
+    private val pageOcr: PdfPageOcrEngine? = null,
+) : ArtifactExtractor {
 
     override fun supports(format: ArtifactFormat): Boolean =
         format == ArtifactFormat.PDF
@@ -53,7 +55,18 @@ class PdfExtractor : ArtifactExtractor {
                     endPage = pageNumber
                 }
 
-                val pageText = stripper.getText(document).trim()
+                val embeddedText = stripper.getText(document).trim()
+
+                val pageText = if (embeddedText.isNotBlank()) {
+                    embeddedText
+                } else {
+                    pageOcr
+                        ?.recognize(artifact.bytes, pageNumber)
+                        ?.text
+                        ?.trim()
+                        .orEmpty()
+                }
+
                 if (pageText.isNotBlank()) {
                     textParts += pageText
                 }
