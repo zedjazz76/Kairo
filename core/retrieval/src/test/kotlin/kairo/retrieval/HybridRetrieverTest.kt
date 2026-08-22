@@ -15,6 +15,22 @@ import kairo.domain.SourceAnchor
 import kairo.domain.SourceId
 import kairo.domain.SourceVariantId
 import kairo.domain.WorkflowId
+import kairo.domain.ExtractionStatus
+import kairo.domain.OpenQuestion
+import kairo.domain.OpenQuestionId
+import kairo.domain.Project
+import kairo.domain.ProjectId
+import kairo.domain.ProjectStatus
+import kairo.domain.ProjectTimeline
+import kairo.domain.Source
+import kairo.domain.SourceClassification
+import kairo.domain.SourceOrigin
+import kairo.domain.SourceType
+import kairo.domain.SourceVariant
+import kairo.domain.Workflow
+import kairo.domain.WorkflowState
+import kairo.domain.WorkflowStep
+import kairo.domain.WorkflowStepId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -278,6 +294,133 @@ class HybridRetrieverTest {
         assertTrue(bundle.incidents.isEmpty())
         assertTrue(bundle.conflicts.isEmpty())
         assertTrue(bundle.unknowns.isEmpty())
+    }
+
+
+    @Test
+    fun `evidence bundle includes real source workflow project and unknown context`() {
+        val anchor = SourceAnchor(
+            sourceId = SourceId("source-context"),
+            variantId = SourceVariantId("variant-context"),
+            locator = AnchorLocator.TextSpan(0, 20),
+        )
+
+        val source = Source(
+            id = SourceId("source-context"),
+            origin = SourceOrigin.USER_CAPTURE,
+            type = SourceType.TEXT,
+            contentHash = "hash-context",
+            importedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            classification = SourceClassification.INTERNAL,
+            variants = listOf(
+                SourceVariant(
+                    id = SourceVariantId("variant-context"),
+                    sourceId = SourceId("source-context"),
+                    version = 1,
+                    contentHash = "hash-context",
+                    importedAt = Instant.parse("2026-08-22T12:00:00Z"),
+                    parentVariantId = null,
+                    extractionStatus = ExtractionStatus.EXTRACTED,
+                    anchors = setOf(anchor),
+                ),
+            ),
+            anchors = setOf(anchor),
+        )
+
+        val workflow = Workflow(
+            id = WorkflowId("workflow-dmwl"),
+            name = "Current DMWL Workflow",
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = WorkflowState.CURRENT,
+            evidenceState = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            steps = listOf(
+                WorkflowStep(
+                    id = WorkflowStepId("step-pacs"),
+                    name = "Provide DMWL",
+                    system = "Merge PACS",
+                    evidenceState = EvidenceState.OBSERVED,
+                    anchors = setOf(anchor),
+                ),
+            ),
+            evidenceAnchors = setOf(anchor),
+        )
+
+        val projectWorkflow = Workflow(
+            id = WorkflowId("workflow-project"),
+            name = "Future Project Workflow",
+            scope = KnowledgeScope.PROJECT,
+            state = WorkflowState.FUTURE,
+            evidenceState = EvidenceState.PLANNED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            steps = listOf(
+                WorkflowStep(
+                    id = WorkflowStepId("step-project"),
+                    name = "Future RIS",
+                    system = "AbbaDox",
+                    evidenceState = EvidenceState.PLANNED,
+                ),
+            ),
+            evidenceAnchors = emptySet(),
+        )
+
+        val project = Project(
+            id = ProjectId("project-ris"),
+            name = "RIS Transition",
+            objective = "Move non-breast imaging to the future RIS.",
+            status = ProjectStatus.IMPLEMENTATION,
+            timeline = ProjectTimeline(
+                startsAt = null,
+                endsAt = null,
+            ),
+            futureArchitecture = listOf(projectWorkflow),
+            openQuestions = listOf(
+                OpenQuestion(
+                    id = OpenQuestionId("question-1"),
+                    question = "Has production cutover been validated?",
+                    anchors = setOf(anchor),
+                ),
+            ),
+        )
+
+        val retriever = HybridRetriever(
+            facts = emptyList(),
+            sources = listOf(source),
+            workflows = listOf(workflow),
+            projects = listOf(project),
+        )
+
+        val bundle = retriever.retrieve(
+            RetrievalQuery(
+                text = "DMWL RIS production",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+            ),
+        )
+
+        assertEquals(
+            source.id.value,
+            bundle.sources.single().sourceId,
+        )
+
+        assertEquals(
+            workflow.id.value,
+            bundle.workflows.single().id,
+        )
+
+        assertEquals(
+            project.id.value,
+            bundle.projects.single().id,
+        )
+
+        assertTrue(
+            bundle.unknowns.contains(
+                "Has production cutover been validated?",
+            ),
+        )
     }
 
     private fun fact(

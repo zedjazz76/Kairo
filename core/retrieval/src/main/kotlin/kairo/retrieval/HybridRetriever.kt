@@ -5,6 +5,9 @@ import kairo.domain.FactObject
 import kairo.domain.FactVersion
 import kairo.domain.IncidentPattern
 import kairo.domain.KnowledgeScope
+import kairo.domain.Project
+import kairo.domain.Source
+import kairo.domain.Workflow
 
 data class RetrievalQuery(
     val text: String,
@@ -58,6 +61,9 @@ data class EvidenceBundle(
 
 class HybridRetriever(
     private val facts: List<FactVersion>,
+    private val sources: List<Source> = emptyList(),
+    private val workflows: List<Workflow> = emptyList(),
+    private val projects: List<Project> = emptyList(),
     private val incidents: List<IncidentPattern> = emptyList(),
     private val incidentSemanticIndex: SemanticIndex<IncidentPattern> =
         DefaultIncidentSemanticIndex(),
@@ -77,10 +83,21 @@ class HybridRetriever(
 
         return EvidenceBundle(
             rankedClaims = ranked,
+            sources = sources.map(::sourceExcerpt),
+            workflows = workflows.map(::retrievedWorkflow),
+            projects = projects.map(::retrievedProject),
             incidents = incidentSemanticIndex.search(
                 query = query.text,
                 candidates = incidents,
             ),
+            unknowns = projects
+                .flatMap { project ->
+                    project.openQuestions
+                }
+                .map { question ->
+                    question.question
+                }
+                .distinct(),
         )
     }
 
@@ -133,6 +150,31 @@ class HybridRetriever(
         return score
     }
 }
+
+
+private fun sourceExcerpt(
+    source: Source,
+): SourceExcerpt =
+    SourceExcerpt(
+        sourceId = source.id.value,
+        text = "Source ${source.id.value}",
+    )
+
+private fun retrievedWorkflow(
+    workflow: Workflow,
+): RetrievedWorkflow =
+    RetrievedWorkflow(
+        id = workflow.id.value,
+        label = workflow.name,
+    )
+
+private fun retrievedProject(
+    project: Project,
+): RetrievedProject =
+    RetrievedProject(
+        id = project.id.value,
+        label = project.name,
+    )
 
 private class DefaultIncidentSemanticIndex :
     SemanticIndex<IncidentPattern> {
