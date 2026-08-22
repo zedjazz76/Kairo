@@ -2,6 +2,7 @@ package kairo.android.shell
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -11,6 +12,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kairo.android.auth.AuthenticationState
 import kairo.android.auth.Authenticator
+import kairo.android.copilot.Copilot
 import kairo.android.navigation.KairoDestination
 import kairo.android.navigation.KairoNavigator
 import kairo.android.offline.ConnectivityCapability
@@ -23,6 +25,7 @@ fun KairoShell(
     authenticationState: AuthenticationState =
         AuthenticationState.Locked,
     authenticator: Authenticator? = null,
+    copilot: Copilot? = null,
 ) {
     var state by remember(authenticationState) {
         mutableStateOf(authenticationState)
@@ -172,6 +175,7 @@ fun KairoShell(
 
         KairoDestination.Copilot ->
             CopilotDestination(
+                copilot = copilot,
                 onBack = {
                     backHome()
                 },
@@ -258,8 +262,19 @@ private fun HomeDestination(
 
 @Composable
 private fun CopilotDestination(
+    copilot: Copilot?,
     onBack: () -> Unit,
 ) {
+    var question by remember {
+        mutableStateOf("")
+    }
+
+    var answer by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    val scope = rememberCoroutineScope()
+
     Column {
         Button(
             onClick = onBack,
@@ -268,6 +283,44 @@ private fun CopilotDestination(
         }
 
         Text("Kairo Copilot")
+
+        OutlinedTextField(
+            value = question,
+            onValueChange = {
+                question = it
+            },
+            label = {
+                Text("Ask Kairo")
+            },
+        )
+
+        Button(
+            onClick = {
+                val activeCopilot =
+                    copilot ?: return@Button
+
+                val submittedQuestion =
+                    question.trim()
+
+                if (submittedQuestion.isEmpty()) {
+                    return@Button
+                }
+
+                scope.launch {
+                    answer =
+                        activeCopilot.ask(
+                            submittedQuestion,
+                        )
+                }
+            },
+            enabled = copilot != null,
+        ) {
+            Text("Send")
+        }
+
+        answer?.let {
+            Text(it)
+        }
     }
 }
 
