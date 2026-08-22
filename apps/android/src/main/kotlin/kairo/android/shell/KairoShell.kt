@@ -11,16 +11,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kairo.android.auth.AuthenticationState
 import kairo.android.auth.Authenticator
+import kairo.android.navigation.KairoDestination
+import kairo.android.navigation.KairoNavigator
 import kairo.android.offline.ConnectivityCapability
 import kotlinx.coroutines.launch
 
-private enum class KairoDestination {
-    Home,
-    Systems,
-    Workflows,
-    Projects,
-    Knowledge,
-}
 
 @Composable
 fun KairoShell(
@@ -33,8 +28,25 @@ fun KairoShell(
         mutableStateOf(authenticationState)
     }
 
+    val navigator =
+        remember {
+            KairoNavigator()
+        }
+
     var destination by remember {
-        mutableStateOf(KairoDestination.Home)
+        mutableStateOf(navigator.destination)
+    }
+
+    fun navigateTo(
+        target: KairoDestination,
+    ) {
+        navigator.navigateTo(target)
+        destination = navigator.destination
+    }
+
+    fun backHome() {
+        navigator.backHome()
+        destination = navigator.destination
     }
 
     val scope = rememberCoroutineScope()
@@ -68,52 +80,52 @@ fun KairoShell(
             HomeDestination(
                 connectivity = connectivity,
                 onSystems = {
-                    destination =
-                        KairoDestination.Systems
+                    navigateTo(
+                        KairoDestination.Systems,
+                    )
                 },
                 onWorkflows = {
-                    destination =
-                        KairoDestination.Workflows
+                    navigateTo(
+                        KairoDestination.Workflows,
+                    )
                 },
                 onProjects = {
-                    destination =
-                        KairoDestination.Projects
+                    navigateTo(
+                        KairoDestination.Projects,
+                    )
                 },
                 onKnowledge = {
-                    destination =
-                        KairoDestination.Knowledge
+                    navigateTo(
+                        KairoDestination.Knowledge,
+                    )
                 },
             )
 
         KairoDestination.Systems ->
             SystemsDestination(
                 onBack = {
-                    destination =
-                        KairoDestination.Home
+                    backHome()
                 },
             )
 
         KairoDestination.Workflows ->
             WorkflowsDestination(
                 onBack = {
-                    destination =
-                        KairoDestination.Home
+                    backHome()
                 },
             )
 
         KairoDestination.Projects ->
             ProjectsDestination(
                 onBack = {
-                    destination =
-                        KairoDestination.Home
+                    backHome()
                 },
             )
 
         KairoDestination.Knowledge ->
             KnowledgeDestination(
                 onBack = {
-                    destination =
-                        KairoDestination.Home
+                    backHome()
                 },
             )
     }
