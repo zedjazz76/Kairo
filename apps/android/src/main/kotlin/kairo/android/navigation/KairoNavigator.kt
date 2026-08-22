@@ -7,6 +7,7 @@ enum class KairoDestination {
     Projects,
     Knowledge,
     Capture,
+    Sources,
 }
 
 class KairoNavigator(

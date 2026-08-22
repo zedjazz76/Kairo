@@ -183,4 +183,33 @@ class NavigationTest {
     }
 
 
+    @Test
+    fun sources_destination_opens_and_returns_home() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Offline,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Sources")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Sources overview")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Back")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Sources")
+            .assertIsDisplayed()
+    }
+
+
 }

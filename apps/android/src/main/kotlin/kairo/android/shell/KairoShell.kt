@@ -104,6 +104,11 @@ fun KairoShell(
                         KairoDestination.Capture,
                     )
                 },
+                onSources = {
+                    navigateTo(
+                        KairoDestination.Sources,
+                    )
+                },
             )
 
         KairoDestination.Systems ->
@@ -140,6 +145,13 @@ fun KairoShell(
                     backHome()
                 },
             )
+
+        KairoDestination.Sources ->
+            SourcesDestination(
+                onBack = {
+                    backHome()
+                },
+            )
     }
 }
 
@@ -151,6 +163,7 @@ private fun HomeDestination(
     onProjects: () -> Unit,
     onKnowledge: () -> Unit,
     onCapture: () -> Unit,
+    onSources: () -> Unit,
 ) {
     val offline =
         connectivity == ConnectivityCapability.Offline
@@ -191,11 +204,32 @@ private fun HomeDestination(
         }
 
         Button(
+            onClick = onSources,
+        ) {
+            Text("Sources")
+        }
+
+        Button(
             onClick = {},
             enabled = !offline,
         ) {
             Text("Deep Analyze")
         }
+    }
+}
+
+@Composable
+private fun SourcesDestination(
+    onBack: () -> Unit,
+) {
+    Column {
+        Button(
+            onClick = onBack,
+        ) {
+            Text("Back")
+        }
+
+        Text("Sources overview")
     }
 }
 
