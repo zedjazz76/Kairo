@@ -1,5 +1,6 @@
 package kairo.android
 
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kairo.android.auth.AndroidAuthenticator
 import kairo.android.auth.AuthenticationAvailability
@@ -11,9 +12,14 @@ import org.junit.runner.RunWith
 class AndroidAuthenticatorTest {
 
     @Test
-    fun device_authenticator_reports_supported_or_unavailable_explicitly() {
+    fun device_authenticator_reports_real_device_capability() {
+        val context =
+            ApplicationProvider.getApplicationContext<android.content.Context>()
+
         val authenticator =
-            AndroidAuthenticator.forTestEnvironment()
+            AndroidAuthenticator(
+                context = context,
+            )
 
         val availability =
             authenticator.availability()

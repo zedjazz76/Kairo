@@ -1,21 +1,34 @@
 package kairo.android.auth
 
+import android.content.Context
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
 enum class AuthenticationAvailability {
     Available,
     Unavailable,
 }
 
-class AndroidAuthenticator private constructor(
-    private val availabilityProvider: () -> AuthenticationAvailability,
+class AndroidAuthenticator(
+    context: Context,
 ) {
 
-    fun availability(): AuthenticationAvailability =
-        availabilityProvider()
+    private val biometricManager =
+        BiometricManager.from(context)
 
-    companion object {
-        fun forTestEnvironment(): AndroidAuthenticator =
-            AndroidAuthenticator {
+    fun availability(): AuthenticationAvailability {
+        val result =
+            biometricManager.canAuthenticate(
+                BIOMETRIC_STRONG or DEVICE_CREDENTIAL,
+            )
+
+        return when (result) {
+            BiometricManager.BIOMETRIC_SUCCESS ->
                 AuthenticationAvailability.Available
-            }
+
+            else ->
+                AuthenticationAvailability.Unavailable
+        }
     }
 }
