@@ -128,6 +128,7 @@ class IngestionPipeline(
 
     fun run(request: IngestionRequest): IngestionResult {
         val checkpoint = checkpoints.load(request.sessionId) ?: checkpointFor(request).also(checkpoints::save)
+        if (checkpoint.stage == IngestionStage.COMPLETE) return completedResult(checkpoint.sessionId)
         val extracted = extractedFor(checkpoint)
         val persisted = requireNotNull(checkpoints.load(request.sessionId))
         return finish(persisted, extracted, request.sensitiveChoice ?: persisted.sensitiveChoice)
@@ -135,6 +136,7 @@ class IngestionPipeline(
 
     fun resume(sessionId: CaptureSessionId, choice: SensitiveChoice? = null): IngestionResult {
         val checkpoint = requireNotNull(checkpoints.load(sessionId)) { "Unknown ingestion session: ${sessionId.value}" }
+        if (checkpoint.stage == IngestionStage.COMPLETE) return completedResult(sessionId)
         val extracted = extractedFor(checkpoint)
         val persisted = requireNotNull(checkpoints.load(sessionId))
         return finish(persisted, extracted, choice ?: persisted.sensitiveChoice)
@@ -145,6 +147,11 @@ class IngestionPipeline(
         val extractor = extractors.firstOrNull { it.supports(format) }
             ?: error("No extractor registered for ${format.name}")
         return extractor.extract(artifact, format)
+    }
+
+    private fun completedResult(sessionId: CaptureSessionId): IngestionResult {
+        payloads.deleteTemporary(sessionId)
+        return IngestionResult(sessionId, IngestionStage.COMPLETE, emptyList(), emptyList())
     }
 
     private fun checkpointFor(request: IngestionRequest): IngestionCheckpoint = IngestionCheckpoint(

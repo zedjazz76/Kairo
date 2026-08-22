@@ -1,6 +1,7 @@
 package kairo.platform.ingestion.extractors
 
 import android.content.Context
+import javax.xml.XMLConstants
 import kairo.domain.AnchorLocator
 import kairo.domain.SourceAnchor
 import kairo.ingestion.ArtifactExtractor
@@ -132,9 +133,7 @@ class DocxExtractor : ArtifactExtractor {
             }
         }
 
-        val factory = javax.xml.parsers.DocumentBuilderFactory.newInstance().apply {
-            isNamespaceAware = true
-        }
+        val factory = secureDocumentBuilderFactory()
 
         val document = factory.newDocumentBuilder()
             .parse(documentXml.inputStream())
@@ -220,9 +219,7 @@ class XlsxExtractor : ArtifactExtractor {
             }
 
         fun parseXml(bytes: ByteArray): org.w3c.dom.Document {
-            val factory = javax.xml.parsers.DocumentBuilderFactory
-                .newInstance()
-                .apply { isNamespaceAware = true }
+            val factory = secureDocumentBuilderFactory()
 
             return factory.newDocumentBuilder()
                 .parse(bytes.inputStream())
@@ -431,6 +428,17 @@ private fun csvColumnCount(row: String): Int {
     }
     return columns
 }
+
+private fun secureDocumentBuilderFactory() =
+    javax.xml.parsers.DocumentBuilderFactory.newInstance().apply {
+        isNamespaceAware = true
+        isXIncludeAware = false
+        isExpandEntityReferences = false
+        setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+        setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+        setFeature("http://xml.org/sax/features/external-general-entities", false)
+        setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+    }
 class TextExtractor : LocalTextExtractor(ArtifactFormat.TEXT, ArtifactFormat.MARKDOWN, ArtifactFormat.PASTED_TEXT)
 class ImageExtractor(
     private val ocrEngine: ImageOcrEngine = MlKitImageOcrEngine(),

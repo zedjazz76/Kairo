@@ -57,4 +57,28 @@ class IngestionPayloadStoreTest {
         assertEquals(artifact.fileName, restored.artifact.fileName)
         assertContentEquals(artifact.bytes, restored.artifact.bytes)
     }
+
+    @Test
+    fun `encrypted extraction payload supports text larger than modified UTF limit`() {
+        val sourceId = SourceId("large-source")
+        val variantId = SourceVariantId("large-variant")
+        val text = "A".repeat(70_000)
+        val artifact = IngestionArtifact(sourceId, variantId, "large.txt", byteArrayOf(1))
+        val extracted = ExtractedArtifact(
+            artifact,
+            ArtifactFormat.TEXT,
+            text,
+            setOf(SourceAnchor(sourceId, variantId, AnchorLocator.TextSpan(0, text.length))),
+        )
+        val store = TemporarySessionIngestionPayloadStore(
+            CacheBackedTemporarySessionStore(
+                temporaryFolder.newFolder("large-payload").toPath(),
+                FixedMasterKeyProvider(SecretKeySpec(ByteArray(32) { (it + 1).toByte() }, "AES")),
+            ),
+        )
+
+        val reference = store.storeExtraction(CaptureSessionId("large-session"), extracted)
+
+        assertEquals(text, assertNotNull(store.loadExtraction(reference)).text)
+    }
 }

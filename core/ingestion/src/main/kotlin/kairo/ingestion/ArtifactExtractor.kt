@@ -12,8 +12,6 @@ enum class ArtifactFormat {
 
         fun detect(fileName: String, mediaType: String? = null): ArtifactFormat = when {
             mediaType.equals(PASTED_TEXT_MEDIA_TYPE, ignoreCase = true) -> PASTED_TEXT
-            mediaType.equals("text/plain", ignoreCase = true) -> TEXT
-            mediaType.equals("text/markdown", ignoreCase = true) -> MARKDOWN
             fileName.endsWith(".pdf", ignoreCase = true) -> PDF
             fileName.endsWith(".docx", ignoreCase = true) -> DOCX
             fileName.endsWith(".xlsx", ignoreCase = true) -> XLSX
@@ -22,6 +20,14 @@ enum class ArtifactFormat {
             fileName.endsWith(".txt", ignoreCase = true) -> TEXT
             fileName.endsWith(".png", ignoreCase = true) -> PNG
             fileName.endsWith(".jpg", ignoreCase = true) || fileName.endsWith(".jpeg", ignoreCase = true) -> JPEG
+            mediaType.equals("application/pdf", ignoreCase = true) -> PDF
+            mediaType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ignoreCase = true) -> DOCX
+            mediaType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ignoreCase = true) -> XLSX
+            mediaType.equals("text/csv", ignoreCase = true) -> CSV
+            mediaType.equals("text/markdown", ignoreCase = true) -> MARKDOWN
+            mediaType.equals("image/png", ignoreCase = true) -> PNG
+            mediaType.equals("image/jpeg", ignoreCase = true) -> JPEG
+            mediaType.equals("text/plain", ignoreCase = true) -> TEXT
             else -> UNSUPPORTED
         }
     }

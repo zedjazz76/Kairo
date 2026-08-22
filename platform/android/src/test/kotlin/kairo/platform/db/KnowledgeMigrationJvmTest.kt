@@ -28,11 +28,11 @@ class KnowledgeMigrationJvmTest {
     }
 
     @Test
-    fun `migrates v1 to v2`() = runTest {
+    fun `migrates v1 to current schema`() = runTest {
         createVersionOneFixture()
 
         val database = Room.databaseBuilder(context, KairoDatabase::class.java, databaseName)
-            .addMigrations(KairoDatabase.MIGRATION_1_2)
+            .addMigrations(KairoDatabase.MIGRATION_1_2, KairoDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         val repository = RoomKnowledgeRepository(database)
@@ -45,6 +45,8 @@ class KnowledgeMigrationJvmTest {
         assertEquals("hash-migration", assertNotNull(repository.source(SourceId("source-migration"))).contentHash)
         assertEquals(1, count(database, "audit_events", "audit_id = 'audit-migration'"))
         assertEquals(1, count(database, "fact_evidence", "fact_id = 'fact-migration'"))
+        assertEquals(0, count(database, "ingestion_checkpoints", "1 = 1"))
+        assertEquals(0, count(database, "ingestion_checkpoint_artifacts", "1 = 1"))
         database.close()
     }
 

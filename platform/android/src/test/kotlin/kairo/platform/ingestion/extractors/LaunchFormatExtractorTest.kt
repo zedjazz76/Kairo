@@ -14,9 +14,9 @@ class LaunchFormatExtractorTest {
     @Test
     fun `csv text markdown and pasted text retain local text and provenance`() {
         val cases = listOf(
-            Triple("systems.csv", null, ArtifactFormat.CSV),
+            Triple("systems.csv", "text/plain", ArtifactFormat.CSV),
             Triple("notes.txt", null, ArtifactFormat.TEXT),
-            Triple("runbook.md", null, ArtifactFormat.MARKDOWN),
+            Triple("runbook.md", "text/plain", ArtifactFormat.MARKDOWN),
             Triple("pasted-text", ArtifactFormat.PASTED_TEXT_MEDIA_TYPE, ArtifactFormat.PASTED_TEXT),
         )
 

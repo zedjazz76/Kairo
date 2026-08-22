@@ -66,12 +66,51 @@ class IngestionPipelineTest {
         assertTrue(resumed.artifacts.single().temporaryOnly)
     }
 
+    @Test
+    fun `completed checkpoint resumes idempotently after temporary payload cleanup`() {
+        var extractions = 0
+        val payloads = RecordingPayloadStore()
+        val pipeline = IngestionPipeline(
+            extractors = listOf(PlainTextArtifactExtractor { extractions += 1 }),
+            scanner = { SensitiveContentScan(emptyList()) },
+            payloads = payloads,
+        )
+        val request = IngestionRequest(
+            sessionId = sessionId,
+            artifacts = listOf(artifact("status.txt", "PACS ONLINE")),
+            capturedAt = Instant.parse("2026-08-20T10:00:00Z"),
+        )
+
+        assertEquals(IngestionStage.COMPLETE, pipeline.run(request).stage)
+
+        assertEquals(IngestionStage.COMPLETE, pipeline.resume(sessionId).stage)
+        assertEquals(1, extractions)
+        assertEquals(2, payloads.deleteCalls)
+    }
+
     private fun artifact(name: String, text: String) = IngestionArtifact(
         sourceId = SourceId(name),
         variantId = SourceVariantId("$name-v1"),
         fileName = name,
         bytes = text.encodeToByteArray(),
     )
+}
+
+private class RecordingPayloadStore : IngestionPayloadStore {
+    private val delegate = InMemoryIngestionPayloadStore()
+    var deleteCalls = 0
+        private set
+
+    override fun storeArtifact(sessionId: CaptureSessionId, artifact: IngestionArtifact) =
+        delegate.storeArtifact(sessionId, artifact)
+    override fun loadArtifact(reference: IngestionPayloadReference) = delegate.loadArtifact(reference)
+    override fun storeExtraction(sessionId: CaptureSessionId, extracted: ExtractedArtifact) =
+        delegate.storeExtraction(sessionId, extracted)
+    override fun loadExtraction(reference: IngestionPayloadReference) = delegate.loadExtraction(reference)
+    override fun deleteTemporary(sessionId: CaptureSessionId) {
+        deleteCalls += 1
+        delegate.deleteTemporary(sessionId)
+    }
 }
 
 private class PlainTextArtifactExtractor(

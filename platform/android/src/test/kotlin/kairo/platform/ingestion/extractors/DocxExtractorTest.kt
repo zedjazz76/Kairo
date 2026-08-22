@@ -12,6 +12,7 @@ import java.util.zip.ZipOutputStream
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.test.assertFailsWith
 
 class DocxExtractorTest {
 
@@ -42,6 +43,28 @@ class DocxExtractorTest {
 
         assertEquals(0, anchor.startOffset)
         assertEquals(extracted.text.length, anchor.endOffset)
+    }
+
+    @Test
+    fun `rejects DOCX document XML with a doctype`() {
+        val artifact = IngestionArtifact(
+            sourceId = SourceId("source-docx-doctype"),
+            variantId = SourceVariantId("variant-docx-doctype"),
+            fileName = "untrusted.docx",
+            bytes = docxWithDocumentXml(
+                """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <!DOCTYPE w:document [<!ENTITY secret "LEAKED">]>
+                <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:body><w:p><w:r><w:t>&secret;</w:t></w:r></w:p></w:body>
+                </w:document>
+                """.trimIndent(),
+            ),
+        )
+
+        assertFailsWith<Exception> {
+            DocxExtractor().extract(artifact, ArtifactFormat.DOCX)
+        }
     }
 
     private fun simpleDocx(): ByteArray {
@@ -98,4 +121,14 @@ class DocxExtractorTest {
 
         return output.toByteArray()
     }
+
+    private fun docxWithDocumentXml(documentXml: String): ByteArray =
+        ByteArrayOutputStream().use { output ->
+            ZipOutputStream(output).use { zip ->
+                zip.putNextEntry(ZipEntry("word/document.xml"))
+                zip.write(documentXml.toByteArray())
+                zip.closeEntry()
+            }
+            output.toByteArray()
+        }
 }

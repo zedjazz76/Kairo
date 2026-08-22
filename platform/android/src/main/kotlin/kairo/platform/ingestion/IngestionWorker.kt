@@ -37,6 +37,8 @@ class IngestionWorkScheduler(private val workManager: WorkManager) {
         workManager.enqueueUniqueWork(uniqueName(sessionId), ExistingWorkPolicy.KEEP, request)
     }
 
+    fun cancel(sessionId: CaptureSessionId) = workManager.cancelUniqueWork(uniqueName(sessionId))
+
     companion object {
         const val SESSION_ID = "sessionId"
         fun uniqueName(sessionId: CaptureSessionId) = "kairo-ingestion-${sessionId.value}"
@@ -46,6 +48,9 @@ class IngestionWorkScheduler(private val workManager: WorkManager) {
 interface IngestionRuntimeFactory {
     fun create(): IngestionPipeline
 }
+
+class TransientIngestionException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)
 
 class AndroidIngestionRuntimeFactory(
     context: Context,
@@ -93,8 +98,8 @@ class KairoIngestionWorker(
                 kairo.ingestion.IngestionStage.PHI_REVIEW_REQUIRED -> Result.success()
                 else -> Result.retry()
             }
-        } catch (_: IllegalArgumentException) { Result.failure() }
-        catch (_: IllegalStateException) { Result.retry() }
+        } catch (_: TransientIngestionException) { Result.retry() }
+        catch (_: Exception) { Result.failure() }
     }
 }
 

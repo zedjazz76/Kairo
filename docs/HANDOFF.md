@@ -49,7 +49,7 @@ In brief:
 | 3 — sources, anchors, workflows, projects | Complete | `4114ef3` | Domain tests and contract tests passed; provenance and MANA/project scope rules added. |
 | 4 — Room persistence | Complete | `fff8488`, `26a7fe1` | JVM Room/repository tests and instrumentation-test compilation passed earlier. Connected-device tests remain for laptop. |
 | 5 — encrypted Source Vault / PHI boundary | Complete | `0e66c30` | Focused Android JVM vault/security verification passed. |
-| 6 — universal ingestion | In progress | `452a3d0` through `bd5509d` | Structured PDF/DOCX/XLSX extraction and real image/scanned-PDF OCR are verified; durable checkpoints, WorkManager scheduling, and launch-format coverage remain. |
+| 6 — universal ingestion | Complete | `452a3d0` through current Task 6 milestone | Launch formats, real image/scanned-PDF OCR, durable encrypted resume, WorkManager scheduling, and focused milestone verification passed. |
 
 ## Exact current code state
 
@@ -80,6 +80,9 @@ Implemented:
 - Structured PDF extraction with page anchors, DOCX ZIP/XML paragraph extraction, and XLSX ZIP/XML sheet/range extraction.
 - Android image OCR plus scanned-PDF fallback orchestration.
 - Real ML Kit image OCR and Android `PdfRenderer` + ML Kit scanned-PDF OCR passed on a connected device.
+- Room-backed checkpoint metadata with encrypted temporary artifact/extraction payloads and restart-safe evidence anchors.
+- Unique WorkManager scheduling, custom `KairoWorkerFactory`, and Android runtime reconstruction from durable stores.
+- Launch coverage for PDF/scanned PDF, DOCX, XLSX, CSV, TXT, Markdown, PNG, JPEG/screenshots, and pasted text.
 
 Verified locally:
 
@@ -87,14 +90,7 @@ Verified locally:
 ./gradlew :core:ingestion:test
 ```
 
-**Do not call Task 6 complete yet.** Rich PDF/DOCX/XLSX extraction and real image/scanned-PDF OCR are complete and focused tests passed. Checkpoints are still in-memory, and `IngestionWorker` is still a host adapter rather than real WorkManager scheduling.
-
-Required next Task 6 work:
-
-1. Persist ingestion checkpoints and stage states; ensure retries happen only at idempotent stages.
-2. Use real WorkManager scheduling from the Android app host.
-3. Add launch fixtures for each required format, including scanned PDF and image OCR.
-4. Run:
+Task 6 milestone verification passed:
 
 ```bash
 ./gradlew :core:ingestion:test :platform:android:testDebugUnitTest
@@ -106,7 +102,7 @@ Required next Task 6 work:
 - SQLite-level enforcement that a source variant parent belongs to the same source.
 - Stronger migration assertions for persisted evidence anchors/confidence and temporal fields.
 - Task 3 value-semantics review for context records in the final whole-branch review.
-- Task 6 real extraction/OCR, durable checkpoints, and WorkManager scheduling.
+- Task 11 app composition must install `KairoWorkerFactory(AndroidIngestionRuntimeFactory(...))` in WorkManager configuration; Task 6 provides and tests those components without creating a premature app bootstrap.
 - Tasks 7–15 remain unimplemented. Task 7 must use `MemoryCandidateDraft` from Task 6 and preserve the human approval gate.
 - The APK test milestone is after Task 11. Desktop Tasks 12–13 remain deferred; do not remove their Core-ready contracts.
 
