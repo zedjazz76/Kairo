@@ -320,6 +320,189 @@ class AskKairoServiceTest {
         )
     }
 
+
+    @Test
+    fun `analyze rejects unsupported model answer`() = runTest {
+        val retriever = HybridRetriever(
+            facts = emptyList(),
+        )
+
+        val provider = object : ReasoningProvider {
+            override suspend fun analyze(
+                packet: ReasoningPacket,
+            ): KairoAnswer =
+                KairoAnswer(
+                    text = "Merge PACS sends results directly to eClinicalWorks.",
+                    claims = listOf(
+                        AnswerClaim(
+                            text = "Merge PACS sends results directly to eClinicalWorks.",
+                            scope = KnowledgeScope.MANA_PRODUCTION,
+                            evidenceRefs = setOf(
+                                EvidenceRef("invented-evidence"),
+                            ),
+                        ),
+                    ),
+                )
+        }
+
+        val service = AskKairoService(
+            retriever = retriever,
+            reasoningProvider = provider,
+        )
+
+        val result = service.analyze(
+            "How do results reach eClinicalWorks?",
+        )
+
+        assertTrue(
+            result is ValidatedAnswer.Rejected,
+        )
+    }
+
+
+    @Test
+    fun `analyze accepts supported model answer`() = runTest {
+        val fact = FactVersion(
+            id = FactId("supported-analyze-fact"),
+            subject = EntityId("merge-pacs"),
+            predicate = "hosts",
+            objectValue = FactObject.Literal("DMWL"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.CONFIRMED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            evidence = setOf(
+                EvidenceRef("analyze-supported-evidence"),
+            ),
+        )
+
+        val retriever = HybridRetriever(
+            facts = listOf(fact),
+        )
+
+        val provider = object : ReasoningProvider {
+            override suspend fun analyze(
+                packet: ReasoningPacket,
+            ): KairoAnswer =
+                KairoAnswer(
+                    text = "Merge PACS hosts DMWL.",
+                    claims = listOf(
+                        AnswerClaim(
+                            text = "Merge PACS hosts DMWL.",
+                            scope = KnowledgeScope.MANA_PRODUCTION,
+                            evidenceRefs = setOf(
+                                EvidenceRef("analyze-supported-evidence"),
+                            ),
+                        ),
+                    ),
+                )
+        }
+
+        val service = AskKairoService(
+            retriever = retriever,
+            reasoningProvider = provider,
+            now = {
+                Instant.parse("2026-08-22T13:00:00Z")
+            },
+        )
+
+        val result = service.analyze(
+            "Who hosts DMWL?",
+        )
+
+        assertTrue(
+            result is ValidatedAnswer.Accepted,
+        )
+
+        val accepted =
+            result as ValidatedAnswer.Accepted
+
+        assertEquals(
+            "Merge PACS hosts DMWL.",
+            accepted.answer.text,
+        )
+    }
+
+
+    @Test
+    fun `analyze reasoning packet separates evidence states and unknowns`() = runTest {
+        val confirmed = FactVersion(
+            id = FactId("confirmed-fact"),
+            subject = EntityId("merge-pacs"),
+            predicate = "hosts",
+            objectValue = FactObject.Literal("DMWL"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.CONFIRMED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            evidence = setOf(EvidenceRef("confirmed-evidence")),
+        )
+
+        val planned = FactVersion(
+            id = FactId("planned-fact"),
+            subject = EntityId("abbadox"),
+            predicate = "future-ris",
+            objectValue = FactObject.Literal("AbbaDox CareFlow"),
+            scope = KnowledgeScope.PROJECT,
+            state = EvidenceState.PLANNED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T12:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("planned-evidence")),
+        )
+
+        var capturedPacket: ReasoningPacket? = null
+
+        val provider = object : ReasoningProvider {
+            override suspend fun analyze(
+                packet: ReasoningPacket,
+            ): KairoAnswer {
+                capturedPacket = packet
+
+                return KairoAnswer(
+                    text = "No asserted claims.",
+                )
+            }
+        }
+
+        val retriever = HybridRetriever(
+            facts = listOf(
+                confirmed,
+                planned,
+            ),
+        )
+
+        val service = AskKairoService(
+            retriever = retriever,
+            reasoningProvider = provider,
+        )
+
+        service.analyze(
+            "Explain the current and planned RIS state.",
+        )
+
+        val packet = requireNotNull(capturedPacket)
+
+        assertTrue(
+            packet.confirmed.any {
+                it.fact.id == confirmed.id
+            },
+        )
+
+        assertTrue(
+            packet.planned.any {
+                it.fact.id == planned.id
+            },
+        )
+
+        assertTrue(packet.prohibitedActions.isNotEmpty())
+    }
+
     private class CountingReasoningProvider : ReasoningProvider {
         var calls = 0
 
