@@ -5,6 +5,12 @@
         android:allowBackup="false"
         android:label="Kairo"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Kairo" />
+        android:theme="@style/Theme.Kairo">
+
+        <activity
+            android:name="kairo.android.test.TestFragmentActivity"
+            android:exported="false" />
+
+    </application>
 
 </manifest>
