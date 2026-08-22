@@ -154,4 +154,33 @@ class NavigationTest {
     }
 
 
+    @Test
+    fun capture_destination_opens_and_returns_home() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Offline,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Capture")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Capture intake")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("Back")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Capture")
+            .assertIsDisplayed()
+    }
+
+
 }
