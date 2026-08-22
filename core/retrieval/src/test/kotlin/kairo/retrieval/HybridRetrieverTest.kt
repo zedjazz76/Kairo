@@ -199,6 +199,63 @@ class HybridRetrieverTest {
         )
     }
 
+
+    @Test
+    fun `corroborated evidence outranks otherwise equal single source claim`() {
+        val singleSource = FactVersion(
+            id = FactId("a-single-source"),
+            subject = EntityId("merge-pacs"),
+            predicate = "hosts",
+            objectValue = FactObject.Literal("Merge PACS hosts DMWL."),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T01:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T01:00:00Z"),
+            evidence = setOf(
+                EvidenceRef("source-a"),
+            ),
+        )
+
+        val corroborated = FactVersion(
+            id = FactId("z-corroborated"),
+            subject = EntityId("merge-pacs"),
+            predicate = "hosts",
+            objectValue = FactObject.Literal("Merge PACS hosts DMWL."),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T01:00:00Z"),
+            lastValidatedAt = Instant.parse("2026-08-22T01:00:00Z"),
+            evidence = setOf(
+                EvidenceRef("source-b"),
+                EvidenceRef("source-c"),
+            ),
+        )
+
+        val retriever = HybridRetriever(
+            facts = listOf(
+                singleSource,
+                corroborated,
+            ),
+        )
+
+        val result = retriever.retrieve(
+            RetrievalQuery(
+                text = "Who hosts DMWL?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+                at = Instant.parse("2026-08-22T12:00:00Z"),
+            ),
+        )
+
+        assertEquals(
+            corroborated.id,
+            result.rankedClaims.first().fact.id,
+        )
+    }
+
     private fun fact(
         id: String,
         scope: KnowledgeScope,

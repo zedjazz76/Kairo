@@ -1,14 +1,21 @@
 package kairo.platform.retrieval
 
 import android.content.Context
+import kairo.retrieval.IncompatibleSemanticIndexException
 import kairo.retrieval.SearchDocument
+import kairo.retrieval.SemanticIndexMetadata
+import kairo.retrieval.requireCompatibleSemanticIndex
 import java.io.File
 
 class AndroidSearchIndex(
     context: Context,
+    private val metadata: SemanticIndexMetadata? = null,
 ) {
     private val indexFile =
         File(context.filesDir, "kairo-derived-search-index.txt")
+
+    private val metadataFile =
+        File(context.filesDir, "kairo-derived-search-index.meta")
 
     fun rebuild(
         documents: List<SearchDocument>,
@@ -20,11 +27,17 @@ class AndroidSearchIndex(
                 encode(document.id) + "\t" + encode(document.text)
             },
         )
+
+        metadata?.let(::writeMetadata)
     }
 
     fun clear() {
         if (indexFile.exists()) {
             indexFile.delete()
+        }
+
+        if (metadataFile.exists()) {
+            metadataFile.delete()
         }
     }
 
@@ -38,6 +51,8 @@ class AndroidSearchIndex(
         if (!indexFile.exists()) {
             return emptyList()
         }
+
+        validatePersistedMetadata()
 
         val queryTokens = tokenize(query)
 
@@ -65,6 +80,56 @@ class AndroidSearchIndex(
             .map {
                 it.first
             }
+    }
+
+
+    private fun writeMetadata(
+        value: SemanticIndexMetadata,
+    ) {
+        metadataFile.writeText(
+            listOf(
+                encode(value.model),
+                encode(value.modelVersion),
+                value.dimensions.toString(),
+                encode(value.quantization),
+                encode(value.contentHash),
+            ).joinToString("\t"),
+        )
+    }
+
+    private fun validatePersistedMetadata() {
+        val expected = metadata ?: return
+
+        if (!metadataFile.exists()) {
+            throw IncompatibleSemanticIndexException(
+                "Derived search index metadata is missing; rebuild required",
+            )
+        }
+
+        val parts = metadataFile.readText()
+            .split('\t')
+
+        if (parts.size != 5) {
+            throw IncompatibleSemanticIndexException(
+                "Derived search index metadata is malformed; rebuild required",
+            )
+        }
+
+        val actual = SemanticIndexMetadata(
+            model = decode(parts[0]),
+            modelVersion = decode(parts[1]),
+            dimensions = parts[2].toIntOrNull()
+                ?: throw IncompatibleSemanticIndexException(
+                    "Derived search index dimensions are invalid; rebuild required",
+                ),
+            quantization = decode(parts[3]),
+            contentHash = decode(parts[4]),
+        )
+
+        requireCompatibleSemanticIndex(
+            expected = expected,
+            actual = actual,
+        )
     }
 
     private fun decodeDocument(

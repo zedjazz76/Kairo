@@ -80,6 +80,8 @@ class HybridRetriever(
             EvidenceState.CONTRADICTED -> -40
         }
 
+        score += corroborationScore(fact)
+
         val searchableText = buildString {
             append(fact.subject.value)
             append(' ')
@@ -140,6 +142,15 @@ private class DefaultIncidentSemanticIndex :
     }
 }
 
+
+
+private fun corroborationScore(
+    fact: FactVersion,
+): Int =
+    when {
+        fact.evidence.size <= 1 -> 0
+        else -> (fact.evidence.size - 1) * 10
+    }
 
 private fun temporalScore(
     fact: FactVersion,
