@@ -75,7 +75,7 @@ export class PairingService {
     record.confirmedAt = this.now();
   }
 
-  consumeConfirmed(code: string): ConfirmedPairingSession | null {
+  confirmed(code: string): ConfirmedPairingSession | null {
     const record = this.offers.get(code);
     if (!record) {
       return null;
@@ -90,15 +90,25 @@ export class PairingService {
       return null;
     }
 
-    record.consumed = true;
-    this.offers.delete(code);
-
     return {
       pairingCode: record.code,
       coreDeviceId: record.coreDeviceId,
       confirmedAt: record.confirmedAt,
       expiresAt: record.expiresAt,
     };
+  }
+
+  consumeConfirmed(code: string): ConfirmedPairingSession | null {
+    const session = this.confirmed(code);
+    if (!session) {
+      return null;
+    }
+
+    const record = this.offers.get(code)!;
+    record.consumed = true;
+    this.offers.delete(code);
+
+    return session;
   }
 
   private isExpired(record: PairingRecord): boolean {
