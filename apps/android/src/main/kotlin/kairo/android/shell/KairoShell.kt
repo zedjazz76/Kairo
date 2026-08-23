@@ -18,6 +18,7 @@ import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.navigation.KairoDestination
 import kairo.android.navigation.KairoNavigator
 import kairo.android.offline.ConnectivityCapability
+import kairo.application.MemoryCandidateId
 import kairo.application.MemoryInboxService
 import kotlinx.coroutines.launch
 
@@ -31,6 +32,7 @@ fun KairoShell(
     copilot: Copilot? = null,
     knowledgeCapture: KnowledgeCapture? = null,
     memoryInbox: MemoryInboxService? = null,
+    onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)? = null,
 ) {
     var state by remember(authenticationState) {
         mutableStateOf(authenticationState)
@@ -175,6 +177,7 @@ fun KairoShell(
         KairoDestination.MemoryInbox ->
             MemoryInboxDestination(
                 memoryInbox = memoryInbox,
+                onApproveMemory = onApproveMemory,
                 onBack = {
                     backHome()
                 },
@@ -334,6 +337,7 @@ private fun CopilotDestination(
 @Composable
 private fun MemoryInboxDestination(
     memoryInbox: MemoryInboxService?,
+    onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)?,
     onBack: () -> Unit,
 ) {
     var refreshToken by remember {
@@ -361,10 +365,18 @@ private fun MemoryInboxDestination(
                 Button(
                     onClick = {
                         scope.launch {
-                            memoryInbox.approve(
-                                candidateId = candidate.id,
-                                reviewer = "LOCAL_OWNER",
-                            )
+                            val approve = onApproveMemory
+                            if (approve != null) {
+                                approve(
+                                    candidate.id,
+                                    "LOCAL_OWNER",
+                                )
+                            } else {
+                                memoryInbox.approve(
+                                    candidateId = candidate.id,
+                                    reviewer = "LOCAL_OWNER",
+                                )
+                            }
 
                             refreshToken += 1
                         }
