@@ -40,28 +40,32 @@ class KairoActivitySourcesTest {
                 repository = repository,
             )
 
-        runBlocking {
-            session.load()
-            session.knowledgeCapture.save(
-                KnowledgeCaptureRequest(
-                    subject = "modality-worklist",
-                    predicate = "hosted-by",
-                    value = "Merge PACS hosts the modality worklist.",
-                ),
-            )
-            val pending = session.memoryInbox.pending().single()
-            session.approveMemory(
-                candidateId = pending.id,
-                reviewer = "LOCAL_OWNER",
-            )
-        }
+        val sources =
+            runBlocking {
+                session.load()
+                session.knowledgeCapture.save(
+                    KnowledgeCaptureRequest(
+                        subject = "modality-worklist",
+                        predicate = "hosted-by",
+                        value = "Merge PACS hosts the modality worklist.",
+                    ),
+                )
+                val pending = session.memoryInbox.pending().single()
+                session.approveMemory(
+                    candidateId = pending.id,
+                    reviewer = "LOCAL_OWNER",
+                )
+                session.evidenceSources()
+            }
+
+        val expectedSourceId = sources.single().sourceId
 
         composeRule.activity.runOnUiThread {
             composeRule.activity.setContent {
                 KairoShell(
                     connectivity = ConnectivityCapability.Offline,
                     authenticationState = AuthenticationState.Unlocked,
-                    evidenceSources = runBlocking { session.evidenceSources() },
+                    evidenceSources = sources,
                 )
             }
         }
@@ -75,9 +79,7 @@ class KairoActivitySourcesTest {
             .assertIsDisplayed()
 
         composeRule
-            .onNodeWithText(
-                sessionSourcePrefix = "capture-source-",
-            )
+            .onNodeWithText(expectedSourceId)
             .assertIsDisplayed()
 
         database.close()
