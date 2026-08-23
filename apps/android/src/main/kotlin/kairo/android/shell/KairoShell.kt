@@ -41,6 +41,8 @@ import kairo.android.offline.ConnectivityCapability
 import kairo.application.MemoryCandidateId
 import kairo.application.MemoryInboxService
 import kairo.domain.EvidenceRef
+import kairo.domain.FactObject
+import kairo.domain.FactVersion
 import kotlinx.coroutines.launch
 
 @Composable
@@ -54,6 +56,7 @@ fun KairoShell(
     onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)? = null,
     deepAnalyze: (suspend (String) -> String)? = null,
     evidenceSources: List<EvidenceRef> = emptyList(),
+    knowledgeFacts: List<FactVersion> = emptyList(),
 ) {
     var state by remember(authenticationState) { mutableStateOf(authenticationState) }
     val navigator = remember { KairoNavigator() }
@@ -102,7 +105,11 @@ fun KairoShell(
             KairoDestination.Systems -> SystemsDestination(::backHome)
             KairoDestination.Workflows -> WorkflowsDestination(::backHome)
             KairoDestination.Projects -> ProjectsDestination(::backHome)
-            KairoDestination.Knowledge -> KnowledgeDestination(::backHome)
+            KairoDestination.Knowledge ->
+                KnowledgeDestination(
+                    knowledgeFacts = knowledgeFacts,
+                    onBack = ::backHome,
+                )
             KairoDestination.Capture ->
                 CaptureDestination(
                     knowledgeCapture = knowledgeCapture,
@@ -411,6 +418,44 @@ private fun DeepAnalyzeDestination(
 }
 
 @Composable
+private fun KnowledgeDestination(
+    knowledgeFacts: List<FactVersion>,
+    onBack: () -> Unit,
+) {
+    ScreenScaffold(
+        title = "Knowledge overview",
+        subtitle = "Inspect Kairo's current approved understanding.",
+        onBack = onBack,
+    ) {
+        if (knowledgeFacts.isEmpty()) {
+            StatusCard(
+                title = "No approved knowledge",
+                body = "Approved facts will appear here after Memory Inbox review.",
+            )
+        }
+
+        knowledgeFacts.forEach { fact ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val value = when (val objectValue = fact.objectValue) {
+                        is FactObject.Literal -> objectValue.value
+                        is FactObject.Entity -> objectValue.value.value
+                    }
+                    Text(value, fontWeight = FontWeight.SemiBold)
+                    Text(fact.state.name)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SourcesDestination(
     evidenceSources: List<EvidenceRef>,
     onBack: () -> Unit,
@@ -555,56 +600,39 @@ private fun CaptureDestination(
                 val capture = knowledgeCapture ?: return@Button
                 val request = KnowledgeCaptureRequest(subject.trim(), predicate.trim(), value.trim())
                 if (request.subject.isEmpty() || request.predicate.isEmpty() || request.value.isEmpty()) return@Button
-
                 scope.launch {
-                    saveStatus = "Saving..."
                     capture.save(request)
+                    saveStatus = "Saved to Memory Inbox"
                     subject = ""
                     predicate = ""
                     value = ""
-                    saveStatus = "Saved"
                 }
             },
-            enabled =
-                knowledgeCapture != null &&
-                    subject.isNotBlank() &&
-                    predicate.isNotBlank() &&
-                    value.isNotBlank(),
+            enabled = knowledgeCapture != null,
         ) {
             Text("Save")
         }
-        saveStatus?.let {
-            StatusCard(
-                title = it,
-                body = if (it == "Saved") "Capture is waiting for review in Memory Inbox." else "Persisting local capture.",
-            )
-        }
+        saveStatus?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
     }
 }
 
 @Composable
-private fun SystemsDestination(onBack: () -> Unit) = PlaceholderDestination("Systems overview", "Systems", onBack)
+private fun SystemsDestination(onBack: () -> Unit) {
+    ScreenScaffold("Systems overview", "Browse known systems and environments.", onBack) {
+        StatusCard("Systems", "Structured system browsing will consume the local evidence graph.")
+    }
+}
 
 @Composable
-private fun WorkflowsDestination(onBack: () -> Unit) = PlaceholderDestination("Workflows overview", "Workflows", onBack)
+private fun WorkflowsDestination(onBack: () -> Unit) {
+    ScreenScaffold("Workflows overview", "Trace clinical workflow paths and evidence.", onBack) {
+        StatusCard("Trace workflow", "Workflow tracing remains local-first and evidence-backed.")
+    }
+}
 
 @Composable
-private fun ProjectsDestination(onBack: () -> Unit) = PlaceholderDestination("Projects overview", "Projects", onBack)
-
-@Composable
-private fun KnowledgeDestination(onBack: () -> Unit) = PlaceholderDestination("Knowledge overview", "Knowledge", onBack)
-
-@Composable
-private fun PlaceholderDestination(
-    legacyTitle: String,
-    title: String,
-    onBack: () -> Unit,
-) {
-    ScreenScaffold(
-        title = legacyTitle,
-        subtitle = "$title workspace is reserved for the next implementation slice.",
-        onBack = onBack,
-    ) {
-        Spacer(Modifier.height(8.dp))
+private fun ProjectsDestination(onBack: () -> Unit) {
+    ScreenScaffold("Projects overview", "Track active implementation and migration context.", onBack) {
+        StatusCard("Projects", "Project context stays separate from system truth.")
     }
 }
