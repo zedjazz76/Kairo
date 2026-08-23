@@ -16,61 +16,29 @@ class RoomKnowledgeCaptureTest {
     @Test
     fun save_creates_pending_memory_candidate_without_active_fact() =
         runBlocking {
-            val context =
-                ApplicationProvider.getApplicationContext<
-                    android.content.Context
-                >()
-
-            val database =
-                KairoDatabaseFactory.open(
-                    context = context,
-                )
-
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val database = KairoDatabaseFactory.open(context)
             database.clearAllTables()
-
-            val repository =
-                RoomKnowledgeRepository(
-                    database = database,
-                )
-
-            val memoryInbox =
-                MemoryInboxService(
-                    repository = repository,
-                )
-
-            val capture =
-                RoomKnowledgeCapture(
-                    repository = repository,
-                    memoryInbox = memoryInbox,
-                )
+            val repository = RoomKnowledgeRepository(database)
+            val memoryInbox = MemoryInboxService(repository)
+            val capture = RoomKnowledgeCapture(repository, memoryInbox)
 
             capture.save(
                 KnowledgeCaptureRequest(
                     subject = "modality-worklist",
                     predicate = "hosted-by",
-                    value =
-                        "Merge PACS hosts the modality worklist.",
+                    value = "Merge PACS hosts the modality worklist.",
                 ),
             )
 
-            assertEquals(
-                1,
-                memoryInbox.pending().size,
-            )
+            assertEquals(1, memoryInbox.pending().size)
 
-            val root =
-                KairoCompositionRoot.fromRepository(
-                    repository = repository,
-                )
-
-            val answer =
-                root.copilot.ask(
-                    "Who hosts the modality worklist?",
-                )
+            val root = KairoCompositionRoot.fromRepository(repository = repository)
+            val answer = root.copilot.ask("Who hosts the modality worklist?")
 
             assertEquals(
                 "I don't know from the available MANA evidence.",
-                answer,
+                answer.text,
             )
 
             database.close()
