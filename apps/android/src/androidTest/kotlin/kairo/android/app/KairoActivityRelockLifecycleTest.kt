@@ -1,14 +1,12 @@
 package kairo.android.app
 
-import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.test.core.app.ActivityScenario
+import androidx.compose.ui.test.performClick
+import androidx.lifecycle.Lifecycle
 import kairo.android.auth.Authenticator
-import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -35,9 +33,9 @@ class KairoActivityRelockLifecycleTest {
         composeRule.onNodeWithText("Unlock Kairo").performClick()
         composeRule.onNodeWithText("Systems").assertIsDisplayed()
 
-        composeRule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
         Thread.sleep(5)
-        composeRule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
 
         composeRule.onNodeWithText("Unlock Kairo").assertIsDisplayed()
     }
