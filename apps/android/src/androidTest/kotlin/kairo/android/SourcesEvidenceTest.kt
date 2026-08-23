@@ -9,6 +9,7 @@ import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
 import kairo.android.test.TestFragmentActivity
+import kairo.domain.EvidenceRef
 import org.junit.Rule
 import org.junit.Test
 
@@ -26,8 +27,14 @@ class SourcesEvidenceTest {
                     connectivity = ConnectivityCapability.Offline,
                     authenticationState = AuthenticationState.Unlocked,
                     evidenceSources = listOf(
-                        "source-dmwl — Merge PACS admin manual",
-                        "source-workflow — MANA workflow observation",
+                        EvidenceRef(
+                            sourceId = "source-dmwl",
+                            anchor = "Merge PACS admin manual",
+                        ),
+                        EvidenceRef(
+                            sourceId = "source-workflow",
+                            anchor = "MANA workflow observation",
+                        ),
                     ),
                 )
             }
@@ -42,11 +49,19 @@ class SourcesEvidenceTest {
             .assertIsDisplayed()
 
         composeRule
-            .onNodeWithText("source-dmwl — Merge PACS admin manual")
+            .onNodeWithText("source-dmwl")
             .assertIsDisplayed()
 
         composeRule
-            .onNodeWithText("source-workflow — MANA workflow observation")
+            .onNodeWithText("Merge PACS admin manual")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("source-workflow")
+            .assertIsDisplayed()
+
+        composeRule
+            .onNodeWithText("MANA workflow observation")
             .assertIsDisplayed()
     }
 }
