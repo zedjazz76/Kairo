@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import kairo.android.auth.Authenticator
 import org.junit.Rule
 import org.junit.Test
 
@@ -16,6 +17,9 @@ class KairoActivityEndToEndMemoryFlowTest {
 
     @Test
     fun capture_approve_and_ask_returns_approved_fact() {
+        composeRule.activity.authenticatorOverride =
+            Authenticator { true }
+
         composeRule
             .onNodeWithText("Unlock Kairo")
             .performClick()
