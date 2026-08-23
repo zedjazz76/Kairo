@@ -2,14 +2,7 @@ package kairo.android.app
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import java.time.Instant
-import kairo.application.MemoryCandidateDraft
-import kairo.domain.EvidenceRef
-import kairo.domain.EvidenceState
-import kairo.domain.FactObject
-import kairo.domain.KnowledgeScope
-import kairo.platform.db.CoreCommandV1
-import kairo.platform.db.KairoDatabase
+import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.platform.db.RoomKnowledgeRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -22,35 +15,26 @@ class PersistedKnowledgeCopilotTest {
     @Test
     fun copilot_answers_from_fact_persisted_in_room() =
         runBlocking {
-            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-            val database: KairoDatabase = KairoDatabaseFactory.open(context)
+            val context =
+                ApplicationProvider.getApplicationContext<android.content.Context>()
+            val database = KairoDatabaseFactory.open(context)
             database.clearAllTables()
             val repository = RoomKnowledgeRepository(database)
+            val session = KairoKnowledgeSession(repository)
+            session.load()
 
-            repository.apply(
-                CoreCommandV1.RecordMemoryCandidate(
-                    candidate =
-                        MemoryCandidateDraft(
-                            subject = "modality-worklist",
-                            predicate = "hosted-by",
-                            objectValue = FactObject.Literal("Merge PACS hosts the modality worklist."),
-                            scope = KnowledgeScope.MANA_PRODUCTION,
-                            proposedState = EvidenceState.OBSERVED,
-                            evidence = setOf(EvidenceRef("persisted-source")),
-                        ),
-                    recordedAt = Instant.parse("2026-08-22T00:00:00Z"),
-                    correlationId = "test-persisted-knowledge-candidate",
+            session.knowledgeCapture.save(
+                KnowledgeCaptureRequest(
+                    subject = "modality-worklist",
+                    predicate = "hosted-by",
+                    value = "Merge PACS hosts the modality worklist.",
                 ),
             )
 
-            val pending = repository.pendingMemoryCandidates().single()
-            repository.apply(
-                CoreCommandV1.ApproveMemoryCandidate(
-                    candidateId = pending.id,
-                    reviewer = "LOCAL_OWNER",
-                    reviewedAt = Instant.parse("2026-08-22T00:00:01Z"),
-                    correlationId = "test-persisted-knowledge",
-                ),
+            val pending = session.memoryInbox.pending().single()
+            session.approveMemory(
+                candidateId = pending.id,
+                reviewer = "LOCAL_OWNER",
             )
 
             val root = KairoCompositionRoot.fromRepository(repository = repository)
