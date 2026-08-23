@@ -164,4 +164,54 @@ class MemoryInboxSessionRefreshTest {
 
             database.close()
         }
+
+    @Test
+    fun approved_capture_exposes_evidence_sources_for_sources_screen() =
+        runBlocking {
+            val context =
+                ApplicationProvider.getApplicationContext<
+                    android.content.Context
+                >()
+
+            val database =
+                KairoDatabaseFactory.open(
+                    context = context,
+                )
+
+            database.clearAllTables()
+
+            val repository =
+                RoomKnowledgeRepository(
+                    database = database,
+                )
+
+            val session =
+                KairoKnowledgeSession(
+                    repository = repository,
+                )
+
+            session.load()
+
+            session.knowledgeCapture.save(
+                KnowledgeCaptureRequest(
+                    subject = "modality-worklist",
+                    predicate = "hosted-by",
+                    value = "Merge PACS hosts the modality worklist.",
+                ),
+            )
+
+            val pending = session.memoryInbox.pending().single()
+
+            session.approveMemory(
+                candidateId = pending.id,
+                reviewer = "LOCAL_OWNER",
+            )
+
+            val sources = session.evidenceSources()
+
+            assertEquals(1, sources.size)
+            assertEquals("manual-capture", sources.single().sourceId)
+
+            database.close()
+        }
 }
