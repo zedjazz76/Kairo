@@ -9,12 +9,15 @@ private val KairoDarkColors =
     darkColorScheme(
         background = Color(0xFF0B0D10),
         surface = Color(0xFF11151A),
+        surfaceVariant = Color(0xFF1A2028),
         onBackground = Color(0xFFF2F4F7),
         onSurface = Color(0xFFF2F4F7),
-        primary = Color(0xFFB8C2CC),
-        onPrimary = Color(0xFF11151A),
-        secondary = Color(0xFF8FA3B8),
-        onSecondary = Color(0xFF11151A),
+        onSurfaceVariant = Color(0xFFD7DEE7),
+        primary = Color(0xFFDCE3EA),
+        onPrimary = Color(0xFF0B0D10),
+        secondary = Color(0xFFAFC0D2),
+        onSecondary = Color(0xFF0B0D10),
+        outline = Color(0xFF7E8B99),
     )
 
 @Composable
