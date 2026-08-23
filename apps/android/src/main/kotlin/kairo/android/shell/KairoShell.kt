@@ -40,6 +40,7 @@ import kairo.android.navigation.KairoNavigator
 import kairo.android.offline.ConnectivityCapability
 import kairo.application.MemoryCandidateId
 import kairo.application.MemoryInboxService
+import kairo.domain.EvidenceRef
 import kotlinx.coroutines.launch
 
 @Composable
@@ -52,6 +53,7 @@ fun KairoShell(
     memoryInbox: MemoryInboxService? = null,
     onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)? = null,
     deepAnalyze: (suspend (String) -> String)? = null,
+    evidenceSources: List<EvidenceRef> = emptyList(),
 ) {
     var state by remember(authenticationState) { mutableStateOf(authenticationState) }
     val navigator = remember { KairoNavigator() }
@@ -106,7 +108,11 @@ fun KairoShell(
                     knowledgeCapture = knowledgeCapture,
                     onBack = ::backHome,
                 )
-            KairoDestination.Sources -> SourcesDestination(::backHome)
+            KairoDestination.Sources ->
+                SourcesDestination(
+                    evidenceSources = evidenceSources,
+                    onBack = ::backHome,
+                )
             KairoDestination.MemoryInbox ->
                 MemoryInboxDestination(
                     memoryInbox = memoryInbox,
@@ -405,6 +411,43 @@ private fun DeepAnalyzeDestination(
 }
 
 @Composable
+private fun SourcesDestination(
+    evidenceSources: List<EvidenceRef>,
+    onBack: () -> Unit,
+) {
+    ScreenScaffold(
+        title = "Sources overview",
+        subtitle = "Inspect evidence provenance behind approved Kairo knowledge.",
+        onBack = onBack,
+    ) {
+        if (evidenceSources.isEmpty()) {
+            StatusCard(
+                title = "No evidence sources",
+                body = "Approved knowledge has no source references to display yet.",
+            )
+        }
+
+        evidenceSources.forEach { source ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(source.sourceId, fontWeight = FontWeight.SemiBold)
+                    source.anchor?.let { Text(it) }
+                    source.extractionConfidence?.let {
+                        Text("Confidence ${(it * 100).toInt()}%")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MemoryInboxDestination(
     memoryInbox: MemoryInboxService?,
     onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)?,
@@ -544,9 +587,6 @@ private fun ProjectsDestination(onBack: () -> Unit) = PlaceholderDestination("Pr
 
 @Composable
 private fun KnowledgeDestination(onBack: () -> Unit) = PlaceholderDestination("Knowledge overview", "Knowledge", onBack)
-
-@Composable
-private fun SourcesDestination(onBack: () -> Unit) = PlaceholderDestination("Sources overview", "Sources", onBack)
 
 @Composable
 private fun PlaceholderDestination(
