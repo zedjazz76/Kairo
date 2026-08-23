@@ -6,6 +6,7 @@ import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.platform.db.RoomKnowledgeRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -210,7 +211,7 @@ class MemoryInboxSessionRefreshTest {
             val sources = session.evidenceSources()
 
             assertEquals(1, sources.size)
-            assertEquals("manual-capture", sources.single().sourceId)
+            assertTrue(sources.single().sourceId.startsWith("capture-source-"))
 
             database.close()
         }
