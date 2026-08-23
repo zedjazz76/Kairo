@@ -93,6 +93,7 @@ fun KairoShell(
                     onSources = { navigateTo(KairoDestination.Sources) },
                     onMemoryInbox = { navigateTo(KairoDestination.MemoryInbox) },
                     onCopilot = { navigateTo(KairoDestination.Copilot) },
+                    onDeepAnalyze = { navigateTo(KairoDestination.DeepAnalyze) },
                 )
 
             KairoDestination.Systems -> SystemsDestination(::backHome)
@@ -116,6 +117,8 @@ fun KairoShell(
                     copilot = copilot,
                     onBack = ::backHome,
                 )
+            KairoDestination.DeepAnalyze ->
+                DeepAnalyzeDestination(::backHome)
         }
     }
 }
@@ -168,6 +171,7 @@ private fun HomeDestination(
     onSources: () -> Unit,
     onMemoryInbox: () -> Unit,
     onCopilot: () -> Unit,
+    onDeepAnalyze: () -> Unit,
 ) {
     val offline = connectivity == ConnectivityCapability.Offline
 
@@ -228,7 +232,7 @@ private fun HomeDestination(
 
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),
-            onClick = {},
+            onClick = onDeepAnalyze,
             enabled = !offline,
         ) {
             Text("Deep Analyze")
@@ -352,6 +356,22 @@ private fun CopilotDestination(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DeepAnalyzeDestination(
+    onBack: () -> Unit,
+) {
+    ScreenScaffold(
+        title = "Deep Analyze overview",
+        subtitle = "Expanded reasoning will be connected through the existing Core capability in the next slice.",
+        onBack = onBack,
+    ) {
+        StatusCard(
+            title = "Online reasoning workspace",
+            body = "Navigation is active. Analysis execution remains intentionally unconnected in this step.",
+        )
     }
 }
 
