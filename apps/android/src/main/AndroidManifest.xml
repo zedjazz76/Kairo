@@ -8,6 +8,15 @@
         android:theme="@style/Theme.Kairo">
 
         <activity
+            android:name="kairo.android.app.KairoActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name="kairo.android.test.TestFragmentActivity"
             android:exported="false" />
 
