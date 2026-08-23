@@ -1,5 +1,6 @@
 package kairo.android
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -18,20 +19,22 @@ class AppRelockTimeoutTest {
 
     @Test
     fun protected_content_relocks_after_background_timeout() {
-        var timedOut = false
+        val timedOut = mutableStateOf(false)
 
         composeRule.setContent {
             KairoShell(
                 connectivity = ConnectivityCapability.Offline,
                 authenticationState = AuthenticationState.Unlocked,
-                shouldRelock = { timedOut },
+                shouldRelock = { timedOut.value },
             )
         }
 
         composeRule.onNodeWithText("Systems").assertIsDisplayed()
 
-        timedOut = true
-        composeRule.runOnIdle { }
+        composeRule.runOnIdle {
+            timedOut.value = true
+        }
+        composeRule.waitForIdle()
 
         composeRule.onAllNodesWithText("Systems").assertCountEquals(0)
         composeRule.onNodeWithText("Unlock Kairo").assertIsDisplayed()
