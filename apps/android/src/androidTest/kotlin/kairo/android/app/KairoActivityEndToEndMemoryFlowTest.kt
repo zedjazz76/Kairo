@@ -78,6 +78,9 @@ class KairoActivityEndToEndMemoryFlowTest {
         composeRule.onNodeWithText("Approve").performClick()
         composeRule.onNodeWithText("Back").performClick()
         composeRule.onNodeWithText("Copilot").performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onAllNodes(hasSetTextAction())[0].performTextInput("Who hosts the modality worklist?")
         composeRule.onNodeWithText("Send").performClick()
 
