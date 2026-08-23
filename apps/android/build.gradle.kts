@@ -32,6 +32,7 @@ android {
 dependencies {
     implementation(project(":core:application"))
     implementation(project(":core:retrieval"))
+    implementation(project(":core:ingestion"))
     implementation(project(":platform:android"))
     implementation("androidx.room:room-runtime:2.7.2")
     implementation(platform("androidx.compose:compose-bom:2025.08.00"))
