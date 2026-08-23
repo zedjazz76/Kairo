@@ -1,7 +1,9 @@
 package kairo.android
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -9,6 +11,7 @@ import kairo.android.auth.AuthenticationState
 import kairo.android.copilot.Copilot
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
+import kairo.application.KairoAnswer
 import org.junit.Rule
 import org.junit.Test
 
@@ -23,8 +26,10 @@ class CopilotTest {
             object : Copilot {
                 override suspend fun ask(
                     question: String,
-                ): String =
-                    "Merge PACS hosts the modality worklist."
+                ): KairoAnswer =
+                    KairoAnswer(
+                        text = "Merge PACS hosts the modality worklist.",
+                    )
             }
 
         composeRule.setContent {
@@ -42,7 +47,7 @@ class CopilotTest {
             .performClick()
 
         composeRule
-            .onNodeWithText("Ask Kairo")
+            .onNode(hasSetTextAction())
             .performTextInput(
                 "Who hosts the modality worklist?",
             )
