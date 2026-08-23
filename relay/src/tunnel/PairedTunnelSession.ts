@@ -17,6 +17,7 @@ export class PairedTunnelSession {
   private readonly pairing: PairingService;
   private readonly broker: TunnelBroker;
   private readonly now: () => number;
+  private readonly consumedPairingCodes = new Set<string>();
 
   constructor(options: PairedTunnelSessionOptions) {
     this.pairing = options.pairing;
@@ -25,13 +26,12 @@ export class PairedTunnelSession {
   }
 
   open(input: { pairingCode: string; sessionId: string }): PairedTunnelSessionState {
-    const confirmed = this.pairing.confirmed(input.pairingCode);
+    if (this.consumedPairingCodes.has(input.pairingCode)) {
+      throw new Error("pairing_unavailable");
+    }
 
+    const confirmed = this.pairing.confirmed(input.pairingCode);
     if (!confirmed) {
-      const consumed = this.pairing.consumeConfirmed(input.pairingCode);
-      if (consumed) {
-        throw new Error("pairing_unavailable");
-      }
       throw new Error("pairing_not_confirmed");
     }
 
@@ -44,6 +44,7 @@ export class PairedTunnelSession {
       throw new Error("pairing_unavailable");
     }
 
+    this.consumedPairingCodes.add(input.pairingCode);
     this.broker.openSession({
       sessionId: input.sessionId,
       expiresAt: consumed.expiresAt,
