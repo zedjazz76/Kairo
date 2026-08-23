@@ -65,7 +65,7 @@ class KairoCompositionRootTest {
 
             assertEquals(
                 "Merge PACS hosts the modality worklist.",
-                answer,
+                answer.text,
             )
         }
 }
