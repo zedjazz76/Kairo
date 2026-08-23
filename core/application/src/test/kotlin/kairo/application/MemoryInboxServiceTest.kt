@@ -13,6 +13,7 @@ import kairo.domain.AnchorLocator
 import kairo.domain.CaptureSession
 import kairo.domain.CaptureSessionId
 import kairo.domain.EntityId
+import kairo.domain.EvidenceState
 import kairo.domain.FactLineageId
 import kairo.domain.FactObject
 import kairo.domain.FactVersion
@@ -61,18 +62,16 @@ class MemoryInboxServiceTest {
                 reviewer = "LOCAL_OWNER",
             )
 
-            assertEquals(
-                1,
-                repository.currentUnderstanding(
-                    FactQuery(
-                        subject = EntityId("merge-pacs"),
-                        predicate = "hosts",
-                    ),
-                ).size,
-            )
+            val fact = repository.currentUnderstanding(
+                FactQuery(
+                    subject = EntityId("merge-pacs"),
+                    predicate = "hosts",
+                ),
+            ).single()
+
+            assertEquals(EvidenceState.OBSERVED, fact.state)
         }
     }
-
 
     @Test
     fun `reject records decision without creating active fact`() {
@@ -159,7 +158,6 @@ class MemoryInboxServiceTest {
             )
         }
     }
-
 
     @Test
     fun `edit and approve preserves original candidate and promotes edited text`() {
@@ -263,8 +261,8 @@ class MemoryInboxServiceTest {
             object : Continuation<T> {
                 override val context = EmptyCoroutineContext
 
-                override fun resumeWith(value: Result<T>) {
-                    result.set(value)
+                override fun resumeWith(resultValue: Result<T>) {
+                    result.set(resultValue)
                     latch.countDown()
                 }
             },
