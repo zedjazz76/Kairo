@@ -16,6 +16,8 @@ export type EncryptedTunnelFrame = TunnelFrameMetadata & {
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const P256_UNCOMPRESSED_PUBLIC_KEY_BYTES = 65;
+const P256_UNCOMPRESSED_PREFIX = 0x04;
 
 export async function createEphemeralKeyPair(): Promise<EphemeralKeyPair> {
   const keyPair = await crypto.subtle.generateKey(
@@ -31,6 +33,43 @@ export async function createEphemeralKeyPair(): Promise<EphemeralKeyPair> {
     privateKey: keyPair.privateKey,
     publicKey: keyPair.publicKey,
   };
+}
+
+export async function exportPublicKey(publicKey: CryptoKey): Promise<Uint8Array> {
+  const raw = new Uint8Array(await crypto.subtle.exportKey("raw", publicKey));
+
+  if (
+    raw.byteLength !== P256_UNCOMPRESSED_PUBLIC_KEY_BYTES ||
+    raw[0] !== P256_UNCOMPRESSED_PREFIX
+  ) {
+    throw new Error("invalid_public_key");
+  }
+
+  return raw;
+}
+
+export async function importPublicKey(encoded: Uint8Array): Promise<CryptoKey> {
+  if (
+    encoded.byteLength !== P256_UNCOMPRESSED_PUBLIC_KEY_BYTES ||
+    encoded[0] !== P256_UNCOMPRESSED_PREFIX
+  ) {
+    throw new Error("invalid_public_key");
+  }
+
+  try {
+    return await crypto.subtle.importKey(
+      "raw",
+      encoded,
+      {
+        name: "ECDH",
+        namedCurve: "P-256",
+      },
+      true,
+      [],
+    );
+  } catch {
+    throw new Error("invalid_public_key");
+  }
 }
 
 export async function deriveSessionKey(
