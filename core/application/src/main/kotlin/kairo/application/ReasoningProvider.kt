@@ -22,6 +22,13 @@ enum class AnswerAction {
     PRODUCTION_WRITE,
 }
 
+enum class AnswerConfidence {
+    HIGH,
+    MEDIUM,
+    LOW,
+    UNKNOWN,
+}
+
 data class AnswerClaim(
     val text: String,
     val scope: KnowledgeScope,
@@ -32,6 +39,10 @@ data class AnswerClaim(
 data class KairoAnswer(
     val text: String,
     val claims: List<AnswerClaim> = emptyList(),
+    val assessment: String? = null,
+    val currentManaUnderstanding: String? = null,
+    val nextAction: String? = null,
+    val confidence: AnswerConfidence = AnswerConfidence.UNKNOWN,
 )
 
 interface ReasoningProvider {
