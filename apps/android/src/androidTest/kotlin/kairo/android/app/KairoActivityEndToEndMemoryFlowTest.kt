@@ -1,5 +1,8 @@
 package kairo.android.app
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -12,7 +15,6 @@ import kairo.android.copilot.Copilot
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
 import kairo.application.MemoryCandidateId
-import kairo.application.MemoryInboxService
 import kairo.platform.db.RoomKnowledgeRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -50,7 +52,7 @@ class KairoActivityEndToEndMemoryFlowTest {
             session.load()
         }
 
-        var copilot: Copilot = session.copilot
+        var copilot by mutableStateOf<Copilot>(session.copilot)
 
         val capture =
             object : KnowledgeCapture {
