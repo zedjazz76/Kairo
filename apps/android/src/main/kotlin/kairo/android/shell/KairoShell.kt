@@ -321,7 +321,6 @@ private fun CopilotDestination(
         subtitle = "Ask against approved local knowledge.",
         onBack = onBack,
     ) {
-        Text("Kairo Copilot")
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = question,
