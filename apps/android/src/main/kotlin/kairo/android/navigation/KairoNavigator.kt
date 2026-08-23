@@ -10,6 +10,7 @@ enum class KairoDestination {
     Sources,
     MemoryInbox,
     Copilot,
+    DeepAnalyze,
 }
 
 class KairoNavigator(
