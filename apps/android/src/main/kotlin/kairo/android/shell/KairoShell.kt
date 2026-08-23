@@ -21,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,10 +57,17 @@ fun KairoShell(
     deepAnalyze: (suspend (String) -> String)? = null,
     evidenceSources: List<EvidenceRef> = emptyList(),
     knowledgeFacts: List<FactVersion> = emptyList(),
+    shouldRelock: (() -> Boolean)? = null,
 ) {
     var state by remember(authenticationState) { mutableStateOf(authenticationState) }
     val navigator = remember { KairoNavigator() }
     var destination by remember { mutableStateOf(navigator.destination) }
+
+    LaunchedEffect(shouldRelock?.invoke()) {
+        if (state == AuthenticationState.Unlocked && shouldRelock?.invoke() == true) {
+            state = AuthenticationState.Locked
+        }
+    }
 
     fun navigateTo(target: KairoDestination) {
         navigator.navigateTo(target)
@@ -679,15 +687,8 @@ private fun CaptureDestination(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val capture = knowledgeCapture ?: return@Button
-                val request =
-                    KnowledgeCaptureRequest(
-                        subject = subject.trim(),
-                        predicate = predicate.trim(),
-                        value = value.trim(),
-                    )
-                if (request.subject.isEmpty() || request.predicate.isEmpty() || request.value.isEmpty()) {
-                    return@Button
-                }
+                val request = KnowledgeCaptureRequest(subject.trim(), predicate.trim(), value.trim())
+                if (request.subject.isEmpty() || request.predicate.isEmpty() || request.value.isEmpty()) return@Button
 
                 scope.launch {
                     saveStatus = "Saving..."
@@ -709,12 +710,7 @@ private fun CaptureDestination(
         saveStatus?.let {
             StatusCard(
                 title = it,
-                body =
-                    if (it == "Saved") {
-                        "Capture is waiting for review in Memory Inbox."
-                    } else {
-                        "Persisting local capture."
-                    },
+                body = if (it == "Saved") "Capture is waiting for review in Memory Inbox." else "Persisting local capture.",
             )
         }
     }
