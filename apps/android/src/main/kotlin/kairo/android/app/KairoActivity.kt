@@ -14,9 +14,13 @@ import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
 import kairo.android.theme.KairoTheme
+import kairo.application.MemoryInboxService
 import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoActivity : FragmentActivity() {
+
+    lateinit var memoryInbox: MemoryInboxService
+        private set
 
     override fun onCreate(
         savedInstanceState: Bundle?,
@@ -42,6 +46,8 @@ class KairoActivity : FragmentActivity() {
             KairoKnowledgeSession(
                 repository = repository,
             )
+
+        memoryInbox = session.memoryInbox
 
         setContent {
             var loaded by remember {
@@ -90,6 +96,7 @@ class KairoActivity : FragmentActivity() {
                     copilot = activeCopilot,
                     knowledgeCapture =
                         observableCapture,
+                    memoryInbox = memoryInbox,
                 )
             }
         }
