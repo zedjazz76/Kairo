@@ -9,6 +9,7 @@ import kairo.application.MemoryCandidateId
 import kairo.application.MemoryInboxService
 import kairo.application.FactQuery
 import kairo.domain.EvidenceRef
+import kairo.domain.FactVersion
 import kairo.retrieval.HybridRetriever
 import kairo.platform.db.RoomKnowledgeRepository
 
@@ -99,6 +100,11 @@ class KairoKnowledgeSession(
         )
             .flatMap { fact -> fact.evidence }
             .distinct()
+
+    suspend fun knowledgeFacts(): List<FactVersion> =
+        repository.currentUnderstanding(
+            FactQuery(),
+        )
 
     suspend fun load() {
         currentCopilot =
