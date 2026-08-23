@@ -3,7 +3,7 @@ package kairo.android.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,6 +14,7 @@ import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.copilot.Copilot
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
+import kairo.android.test.TestFragmentActivity
 import kairo.application.MemoryCandidateId
 import kairo.platform.db.RoomKnowledgeRepository
 import kotlinx.coroutines.runBlocking
@@ -23,17 +24,14 @@ import org.junit.Test
 class KairoActivityEndToEndMemoryFlowTest {
 
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule =
+        createAndroidComposeRule<TestFragmentActivity>()
 
     @Test
     fun capture_approve_and_ask_returns_approved_fact() {
-        val context =
-            androidx.test.core.app.ApplicationProvider
-                .getApplicationContext<android.content.Context>()
-
         val database =
             KairoDatabaseFactory.open(
-                context = context,
+                context = composeRule.activity,
             )
 
         database.clearAllTables()
