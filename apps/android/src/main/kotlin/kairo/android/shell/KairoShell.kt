@@ -42,6 +42,7 @@ import kairo.application.MemoryInboxService
 import kairo.domain.EvidenceRef
 import kairo.domain.FactObject
 import kairo.domain.FactVersion
+import kairo.security.UserSensitiveChoice
 import kotlinx.coroutines.launch
 
 @Composable
@@ -57,6 +58,8 @@ fun KairoShell(
     evidenceSources: List<EvidenceRef> = emptyList(),
     knowledgeFacts: List<FactVersion> = emptyList(),
     shouldRelock: (() -> Boolean)? = null,
+    captureContainsLikelyPhi: Boolean = false,
+    onSensitiveContentChoice: ((UserSensitiveChoice) -> Unit)? = null,
 ) {
     var state by remember(authenticationState) { mutableStateOf(authenticationState) }
     val navigator = remember { KairoNavigator() }
@@ -130,6 +133,8 @@ fun KairoShell(
             KairoDestination.Capture ->
                 CaptureDestination(
                     knowledgeCapture = knowledgeCapture,
+                    containsLikelyPhi = captureContainsLikelyPhi,
+                    onSensitiveContentChoice = onSensitiveContentChoice,
                     onBack = ::backHome,
                 )
             KairoDestination.Sources ->
@@ -647,6 +652,8 @@ private fun MemoryInboxDestination(
 @Composable
 private fun CaptureDestination(
     knowledgeCapture: KnowledgeCapture?,
+    containsLikelyPhi: Boolean,
+    onSensitiveContentChoice: ((UserSensitiveChoice) -> Unit)?,
     onBack: () -> Unit,
 ) {
     var subject by remember { mutableStateOf("") }
@@ -660,6 +667,31 @@ private fun CaptureDestination(
         subtitle = "Capture a structured fact for review in Memory Inbox.",
         onBack = onBack,
     ) {
+        if (containsLikelyPhi) {
+            StatusCard(
+                title = "Potential PHI detected",
+                body = "Choose how Kairo should handle this capture before it continues.",
+            )
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onSensitiveContentChoice?.invoke(UserSensitiveChoice.REDACT) },
+            ) {
+                Text("Redact and continue")
+            }
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onSensitiveContentChoice?.invoke(UserSensitiveChoice.TEMPORARY_USE) },
+            ) {
+                Text("Temporary use only")
+            }
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onSensitiveContentChoice?.invoke(UserSensitiveChoice.CANCEL) },
+            ) {
+                Text("Cancel capture")
+            }
+        }
+
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = subject,
@@ -701,7 +733,8 @@ private fun CaptureDestination(
                 knowledgeCapture != null &&
                     subject.isNotBlank() &&
                     predicate.isNotBlank() &&
-                    value.isNotBlank(),
+                    value.isNotBlank() &&
+                    !containsLikelyPhi,
         ) {
             Text("Save")
         }
