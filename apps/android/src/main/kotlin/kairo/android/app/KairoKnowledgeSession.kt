@@ -4,6 +4,7 @@ import kairo.android.capture.KnowledgeCapture
 import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.copilot.Copilot
 import kairo.application.KnowledgeRepository
+import kairo.application.MemoryInboxService
 import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoKnowledgeSession(
@@ -14,6 +15,11 @@ class KairoKnowledgeSession(
         KairoCompositionRoot
             .empty()
             .copilot
+
+    private val memoryInbox =
+        MemoryInboxService(
+            repository = repository,
+        )
 
     var revision: Int = 0
         private set
@@ -27,6 +33,7 @@ class KairoKnowledgeSession(
                 RoomKnowledgeCapture(
                     repository =
                         repository as RoomKnowledgeRepository,
+                    memoryInbox = memoryInbox,
                 )
 
             override suspend fun save(
