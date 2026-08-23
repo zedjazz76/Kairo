@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -79,7 +79,7 @@ class KairoActivityEndToEndMemoryFlowTest {
         composeRule.onNodeWithText("Approve").performClick()
         composeRule.onNodeWithText("Back").performClick()
         composeRule.onNodeWithText("Copilot").performClick()
-        composeRule.onNode(hasSetTextAction()).performTextInput("Who hosts the modality worklist?")
+        composeRule.onAllNodes(hasSetTextAction())[0].performTextInput("Who hosts the modality worklist?")
         composeRule.onNodeWithText("Send").performClick()
 
         composeRule.waitUntil(timeoutMillis = 5_000) {
