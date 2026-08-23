@@ -112,7 +112,11 @@ fun KairoShell(
                     knowledgeFacts = knowledgeFacts,
                     onBack = ::backHome,
                 )
-            KairoDestination.Projects -> ProjectsDestination(::backHome)
+            KairoDestination.Projects ->
+                ProjectsDestination(
+                    knowledgeFacts = knowledgeFacts,
+                    onBack = ::backHome,
+                )
             KairoDestination.Knowledge ->
                 KnowledgeDestination(
                     knowledgeFacts = knowledgeFacts,
@@ -472,6 +476,29 @@ private fun WorkflowsDestination(
 }
 
 @Composable
+private fun ProjectsDestination(
+    knowledgeFacts: List<FactVersion>,
+    onBack: () -> Unit,
+) {
+    ScreenScaffold(
+        title = "Projects overview",
+        subtitle = "Inspect approved project facts from Kairo's current knowledge model.",
+        onBack = onBack,
+    ) {
+        if (knowledgeFacts.isEmpty()) {
+            StatusCard(
+                title = "No approved project facts",
+                body = "Approved project knowledge will appear here after Memory Inbox review.",
+            )
+        }
+
+        knowledgeFacts.forEach { fact ->
+            FactCard(fact)
+        }
+    }
+}
+
+@Composable
 private fun KnowledgeDestination(
     knowledgeFacts: List<FactVersion>,
     onBack: () -> Unit,
@@ -567,8 +594,8 @@ private fun MemoryInboxDestination(
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
-        title = "Memory Inbox overview",
-        subtitle = "Review captured knowledge before it becomes active evidence.",
+        title = "Memory Inbox",
+        subtitle = "Review proposed memory before it becomes authoritative knowledge.",
         onBack = onBack,
     ) {
         refreshToken
@@ -588,22 +615,15 @@ private fun MemoryInboxDestination(
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(candidate.draft.text)
+                    Text(candidate.value, fontWeight = FontWeight.SemiBold)
+                    Text(candidate.state.name)
                     Button(
-                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
+                            val approve = onApproveMemory ?: return@Button
                             scope.launch {
-                                val approve = onApproveMemory
-                                if (approve != null) {
-                                    approve(candidate.id, "LOCAL_OWNER")
-                                } else {
-                                    memoryInbox?.approve(
-                                        candidateId = candidate.id,
-                                        reviewer = "LOCAL_OWNER",
-                                    )
-                                }
+                                approve(candidate.id, "LOCAL_OWNER")
                                 refreshToken += 1
                             }
                         },
@@ -624,12 +644,12 @@ private fun CaptureDestination(
     var subject by remember { mutableStateOf("") }
     var predicate by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf<String?>(null) }
+    var saved by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
         title = "Capture knowledge",
-        subtitle = "Capture a candidate fact for Memory Inbox review.",
+        subtitle = "Add an observation for Memory Inbox review.",
         onBack = onBack,
     ) {
         OutlinedTextField(
@@ -653,37 +673,25 @@ private fun CaptureDestination(
         )
         Button(
             modifier = Modifier.fillMaxWidth(),
+            enabled = knowledgeCapture != null,
             onClick = {
                 val capture = knowledgeCapture ?: return@Button
                 scope.launch {
                     capture.save(
                         KnowledgeCaptureRequest(
-                            subject = subject.trim(),
-                            predicate = predicate.trim(),
-                            value = value.trim(),
+                            subject = subject,
+                            predicate = predicate,
+                            value = value,
                         ),
                     )
-                    status = "Saved to Memory Inbox"
-                    subject = ""
-                    predicate = ""
-                    value = ""
+                    saved = true
                 }
             },
-            enabled =
-                knowledgeCapture != null &&
-                    subject.isNotBlank() &&
-                    predicate.isNotBlank() &&
-                    value.isNotBlank(),
         ) {
-            Text("Save")
+            Text("Save to Memory Inbox")
         }
-        status?.let { Text(it) }
-    }
-}
-
-@Composable
-private fun ProjectsDestination(onBack: () -> Unit) {
-    ScreenScaffold("Projects overview", "Track implementation and migration work.", onBack) {
-        StatusCard("Project workspace", "Project data will appear here as the workspace grows.")
+        if (saved) {
+            Text("Saved for review")
+        }
     }
 }
