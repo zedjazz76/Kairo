@@ -213,7 +213,9 @@ class MemoryInboxService(
             lastValidatedAt = null,
             evidence = candidate.draft.evidenceAnchors.map { anchor ->
                 EvidenceRef(
-                    "${anchor.sourceId.value}:${anchor.variantId.value}:${anchor.locator.hashCode()}",
+                    sourceId = anchor.sourceId.value,
+                    anchor = "${anchor.variantId.value}:${anchor.locator.hashCode()}",
+                    extractionConfidence = 1.0,
                 )
             }.toSet(),
         )
