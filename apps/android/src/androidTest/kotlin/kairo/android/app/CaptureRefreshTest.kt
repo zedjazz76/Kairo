@@ -37,6 +37,8 @@ class CaptureRefreshTest {
                     repository = repository,
                 )
 
+            session.load()
+
             val before =
                 session.copilot.ask(
                     "Who hosts the modality worklist?",
@@ -54,6 +56,12 @@ class CaptureRefreshTest {
                     value =
                         "Merge PACS hosts the modality worklist.",
                 ),
+            )
+
+            val pending = session.memoryInbox.pending().single()
+            session.approveMemory(
+                candidateId = pending.id,
+                reviewer = "LOCAL_OWNER",
             )
 
             val after =
