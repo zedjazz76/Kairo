@@ -20,10 +20,12 @@ import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoActivity : FragmentActivity() {
 
+    companion object {
+        var authenticatorOverride: Authenticator? = null
+    }
+
     lateinit var memoryInbox: MemoryInboxService
         private set
-
-    var authenticatorOverride: Authenticator? = null
 
     override fun onCreate(
         savedInstanceState: Bundle?,
