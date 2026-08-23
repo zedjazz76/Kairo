@@ -41,7 +41,11 @@ class AskKairoService(
             ),
         )
 
-        val best = bundle.rankedClaims.firstOrNull()
+        val best =
+            bundle.rankedClaims
+                .firstOrNull {
+                    it.lexicalMatches > 0
+                }
 
         if (best == null) {
             return KairoAnswer(

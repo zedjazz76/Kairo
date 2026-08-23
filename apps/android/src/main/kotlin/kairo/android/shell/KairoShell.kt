@@ -13,6 +13,8 @@ import androidx.compose.runtime.setValue
 import kairo.android.auth.AuthenticationState
 import kairo.android.auth.Authenticator
 import kairo.android.copilot.Copilot
+import kairo.android.capture.KnowledgeCapture
+import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.navigation.KairoDestination
 import kairo.android.navigation.KairoNavigator
 import kairo.android.offline.ConnectivityCapability
@@ -26,6 +28,7 @@ fun KairoShell(
         AuthenticationState.Locked,
     authenticator: Authenticator? = null,
     copilot: Copilot? = null,
+    knowledgeCapture: KnowledgeCapture? = null,
 ) {
     var state by remember(authenticationState) {
         mutableStateOf(authenticationState)
@@ -154,6 +157,7 @@ fun KairoShell(
 
         KairoDestination.Capture ->
             CaptureDestination(
+                knowledgeCapture = knowledgeCapture,
                 onBack = {
                     backHome()
                 },
@@ -356,8 +360,27 @@ private fun SourcesDestination(
 
 @Composable
 private fun CaptureDestination(
+    knowledgeCapture: KnowledgeCapture?,
     onBack: () -> Unit,
 ) {
+    var subject by remember {
+        mutableStateOf("")
+    }
+
+    var predicate by remember {
+        mutableStateOf("")
+    }
+
+    var value by remember {
+        mutableStateOf("")
+    }
+
+    var saveStatus by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    val scope = rememberCoroutineScope()
+
     Column {
         Button(
             onClick = onBack,
@@ -365,7 +388,81 @@ private fun CaptureDestination(
             Text("Back")
         }
 
-        Text("Capture intake")
+        Text("Capture overview")
+
+        OutlinedTextField(
+            value = subject,
+            onValueChange = {
+                subject = it
+            },
+            label = {
+                Text("Subject")
+            },
+        )
+
+        OutlinedTextField(
+            value = predicate,
+            onValueChange = {
+                predicate = it
+            },
+            label = {
+                Text("Predicate")
+            },
+        )
+
+        OutlinedTextField(
+            value = value,
+            onValueChange = {
+                value = it
+            },
+            label = {
+                Text("Fact")
+            },
+        )
+
+        Button(
+            onClick = {
+                val capture =
+                    knowledgeCapture ?: return@Button
+
+                val request =
+                    KnowledgeCaptureRequest(
+                        subject = subject.trim(),
+                        predicate = predicate.trim(),
+                        value = value.trim(),
+                    )
+
+                if (
+                    request.subject.isEmpty() ||
+                    request.predicate.isEmpty() ||
+                    request.value.isEmpty()
+                ) {
+                    return@Button
+                }
+
+                scope.launch {
+                    saveStatus = "Saving..."
+
+                    capture.save(request)
+
+                    subject = ""
+                    predicate = ""
+                    value = ""
+                    saveStatus = "Saved"
+                }
+            },
+            enabled =
+                knowledgeCapture != null &&
+                    subject.isNotBlank() &&
+                    predicate.isNotBlank() &&
+                    value.isNotBlank(),
+        ) {
+            Text("Save")
+        }
+
+        saveStatus?.let {
+            Text(it)
+        }
     }
 }
 

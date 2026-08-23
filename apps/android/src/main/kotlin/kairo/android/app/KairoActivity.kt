@@ -9,9 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kairo.android.auth.AndroidAuthenticator
-import kairo.android.copilot.Copilot
+import kairo.android.capture.KnowledgeCapture
+import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
+import kairo.android.theme.KairoTheme
 import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoActivity : FragmentActivity() {
@@ -36,26 +38,60 @@ class KairoActivity : FragmentActivity() {
                 database = database,
             )
 
-        setContent {
-            var copilot by remember {
-                mutableStateOf<Copilot?>(null)
-            }
-
-            LaunchedEffect(repository) {
-                copilot =
-                    KairoCompositionRoot
-                        .fromRepository(
-                            repository = repository,
-                        )
-                        .copilot
-            }
-
-            KairoShell(
-                connectivity =
-                    ConnectivityCapability.Offline,
-                authenticator = authenticator,
-                copilot = copilot,
+        val session =
+            KairoKnowledgeSession(
+                repository = repository,
             )
+
+        setContent {
+            var loaded by remember {
+                mutableStateOf(false)
+            }
+
+            var sessionRevision by remember {
+                mutableStateOf(0)
+            }
+
+            LaunchedEffect(session) {
+                session.load()
+                loaded = true
+                sessionRevision = session.revision
+            }
+
+            val observableCapture =
+                remember(session) {
+                    object : KnowledgeCapture {
+                        override suspend fun save(
+                            request: KnowledgeCaptureRequest,
+                        ) {
+                            session.knowledgeCapture.save(
+                                request,
+                            )
+
+                            sessionRevision =
+                                session.revision
+                        }
+                    }
+                }
+
+            KairoTheme {
+                val activeCopilot =
+                    if (loaded) {
+                        sessionRevision
+                        session.copilot
+                    } else {
+                        null
+                    }
+
+                KairoShell(
+                    connectivity =
+                        ConnectivityCapability.Offline,
+                    authenticator = authenticator,
+                    copilot = activeCopilot,
+                    knowledgeCapture =
+                        observableCapture,
+                )
+            }
         }
     }
 

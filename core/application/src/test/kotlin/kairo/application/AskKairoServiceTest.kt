@@ -3,6 +3,7 @@ package kairo.application
 import kairo.domain.EvidenceRef
 import kairo.domain.EvidenceState
 import kairo.domain.FactId
+import kairo.domain.FactLineageId
 import kairo.domain.FactObject
 import kairo.domain.FactVersion
 import kairo.domain.KnowledgeScope
@@ -645,4 +646,64 @@ class AskKairoServiceTest {
             error("Frontier reasoning should not be used for simple lookup")
         }
     }
+    @Test
+    fun quick_returns_unknown_when_best_fact_is_not_relevant() =
+        runTest {
+            val fact =
+                FactVersion(
+                    id = FactId("fact-dmwl-host"),
+                    lineageId =
+                        FactLineageId("lineage-dmwl-host"),
+                    subject =
+                        EntityId("modality-worklist"),
+                    predicate = "hosted-by",
+                    objectValue =
+                        FactObject.Literal(
+                            "Merge PACS hosts the modality worklist.",
+                        ),
+                    scope =
+                        KnowledgeScope.MANA_PRODUCTION,
+                    state =
+                        EvidenceState.CONFIRMED,
+                    effectiveFrom = null,
+                    effectiveTo = null,
+                    recordedAt =
+                        Instant.parse("2026-08-22T00:00:00Z"),
+                    lastValidatedAt = null,
+                    evidence =
+                        setOf(
+                            EvidenceRef(
+                                sourceId = "source-dmwl",
+                                anchor = "test",
+                                extractionConfidence = 1.0,
+                            ),
+                        ),
+                )
+
+            val service =
+                AskKairoService(
+                    retriever =
+                        HybridRetriever(
+                            facts = listOf(fact),
+                        ),
+                    reasoningProvider =
+                        object : ReasoningProvider {
+                            override suspend fun analyze(
+                                packet: ReasoningPacket,
+                            ): KairoAnswer =
+                                error("not used")
+                        },
+                )
+
+            val answer =
+                service.quick(
+                    "What color is the sky?",
+                )
+
+            assertEquals(
+                "I don't know from the available MANA evidence.",
+                answer.text,
+            )
+        }
+
 }

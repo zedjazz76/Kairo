@@ -22,6 +22,7 @@ data class RetrievalQuery(
 data class RankedFact(
     val fact: FactVersion,
     val score: Int,
+    val lexicalMatches: Int = 0,
 )
 
 data class RetrievedEntity(
@@ -71,9 +72,23 @@ class HybridRetriever(
     fun retrieve(query: RetrievalQuery): EvidenceBundle {
         val ranked = facts
             .map { fact ->
+                val lexicalMatches =
+                    lexicalMatches(
+                        fact = fact,
+                        query = query,
+                    )
+
                 RankedFact(
                     fact = fact,
-                    score = score(fact, query),
+                    score =
+                        score(
+                            fact = fact,
+                            query = query,
+                            lexicalMatches =
+                                lexicalMatches,
+                        ),
+                    lexicalMatches =
+                        lexicalMatches,
                 )
             }
             .sortedWith(
@@ -104,6 +119,7 @@ class HybridRetriever(
     private fun score(
         fact: FactVersion,
         query: RetrievalQuery,
+        lexicalMatches: Int,
     ): Int {
         var score = 0
 
@@ -129,25 +145,33 @@ class HybridRetriever(
 
         score += corroborationScore(fact)
 
-        val searchableText = buildString {
-            append(fact.subject.value)
-            append(' ')
-            append(fact.predicate)
-            append(' ')
-
-            when (val value = fact.objectValue) {
-                is FactObject.Entity -> append(value.value.value)
-                is FactObject.Literal -> append(value.value)
-            }
-        }.lowercase()
-
-        val queryTokens = tokenize(query.text)
-
-        score += queryTokens.count { token ->
-            searchableText.contains(token)
-        } * 5
+        score += lexicalMatches * 5
 
         return score
+    }
+}
+
+private fun lexicalMatches(
+    fact: FactVersion,
+    query: RetrievalQuery,
+): Int {
+    val searchableText = buildString {
+        append(fact.subject.value)
+        append(' ')
+        append(fact.predicate)
+        append(' ')
+
+        when (val value = fact.objectValue) {
+            is FactObject.Entity ->
+                append(value.value.value)
+
+            is FactObject.Literal ->
+                append(value.value)
+        }
+    }.lowercase()
+
+    return tokenize(query.text).count { token ->
+        searchableText.contains(token)
     }
 }
 
@@ -293,9 +317,46 @@ private fun concepts(text: String): Set<String> {
     return tokens
 }
 
+private val stopWords =
+    setOf(
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "do",
+        "does",
+        "for",
+        "from",
+        "how",
+        "i",
+        "in",
+        "is",
+        "it",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "we",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "why",
+        "with",
+    )
+
 private fun tokenize(text: String): Set<String> =
     text
         .lowercase()
         .split(Regex("[^a-z0-9]+"))
-        .filter { it.length > 1 }
+        .filter { token ->
+            token.length > 1 &&
+                token !in stopWords
+        }
         .toSet()
