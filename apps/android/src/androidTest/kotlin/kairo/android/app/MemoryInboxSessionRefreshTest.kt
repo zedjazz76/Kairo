@@ -215,4 +215,57 @@ class MemoryInboxSessionRefreshTest {
 
             database.close()
         }
+
+    @Test
+    fun approved_capture_exposes_current_knowledge_facts() =
+        runBlocking {
+            val context =
+                ApplicationProvider.getApplicationContext<
+                    android.content.Context
+                >()
+
+            val database =
+                KairoDatabaseFactory.open(
+                    context = context,
+                )
+
+            database.clearAllTables()
+
+            val repository =
+                RoomKnowledgeRepository(
+                    database = database,
+                )
+
+            val session =
+                KairoKnowledgeSession(
+                    repository = repository,
+                )
+
+            session.load()
+
+            session.knowledgeCapture.save(
+                KnowledgeCaptureRequest(
+                    subject = "modality-worklist",
+                    predicate = "hosted-by",
+                    value = "Merge PACS hosts the modality worklist.",
+                ),
+            )
+
+            val pending = session.memoryInbox.pending().single()
+            session.approveMemory(
+                candidateId = pending.id,
+                reviewer = "LOCAL_OWNER",
+            )
+
+            val facts = session.knowledgeFacts()
+
+            assertEquals(1, facts.size)
+            assertEquals(
+                "Merge PACS hosts the modality worklist.",
+                facts.single().objectValue.toString().substringAfter("value=").removeSuffix(")"),
+            )
+            assertEquals("OBSERVED", facts.single().state.name)
+
+            database.close()
+        }
 }
