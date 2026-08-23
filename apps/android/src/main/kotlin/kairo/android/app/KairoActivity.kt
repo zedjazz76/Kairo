@@ -2,13 +2,13 @@ package kairo.android.app
 
 import android.os.Bundle
 import android.os.SystemClock
-import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.fragment.app.FragmentActivity
 import kairo.android.auth.AndroidAuthenticator
 import kairo.android.auth.Authenticator
 import kairo.android.capture.KnowledgeCapture
@@ -144,9 +144,9 @@ class KairoActivity : FragmentActivity() {
         }
     }
 
-    override fun onStop() {
+    override fun onPause() {
         backgroundedAtElapsedRealtime = SystemClock.elapsedRealtime()
-        super.onStop()
+        super.onPause()
     }
 
     override fun onResume() {
