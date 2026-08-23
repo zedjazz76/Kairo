@@ -18,6 +18,7 @@ import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.navigation.KairoDestination
 import kairo.android.navigation.KairoNavigator
 import kairo.android.offline.ConnectivityCapability
+import kairo.application.MemoryInboxService
 import kotlinx.coroutines.launch
 
 
@@ -29,6 +30,7 @@ fun KairoShell(
     authenticator: Authenticator? = null,
     copilot: Copilot? = null,
     knowledgeCapture: KnowledgeCapture? = null,
+    memoryInbox: MemoryInboxService? = null,
 ) {
     var state by remember(authenticationState) {
         mutableStateOf(authenticationState)
@@ -172,6 +174,7 @@ fun KairoShell(
 
         KairoDestination.MemoryInbox ->
             MemoryInboxDestination(
+                memoryInbox = memoryInbox,
                 onBack = {
                     backHome()
                 },
@@ -330,8 +333,15 @@ private fun CopilotDestination(
 
 @Composable
 private fun MemoryInboxDestination(
+    memoryInbox: MemoryInboxService?,
     onBack: () -> Unit,
 ) {
+    var refreshToken by remember {
+        mutableStateOf(0)
+    }
+
+    val scope = rememberCoroutineScope()
+
     Column {
         Button(
             onClick = onBack,
@@ -340,6 +350,29 @@ private fun MemoryInboxDestination(
         }
 
         Text("Memory Inbox overview")
+
+        refreshToken
+
+        memoryInbox
+            ?.pending()
+            ?.forEach { candidate ->
+                Text(candidate.draft.text)
+
+                Button(
+                    onClick = {
+                        scope.launch {
+                            memoryInbox.approve(
+                                candidateId = candidate.id,
+                                reviewer = "LOCAL_OWNER",
+                            )
+
+                            refreshToken += 1
+                        }
+                    },
+                ) {
+                    Text("Approve")
+                }
+            }
     }
 }
 
