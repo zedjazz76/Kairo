@@ -1,8 +1,8 @@
 package kairo.android
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
@@ -32,7 +32,7 @@ class AppRelockTimeoutTest {
         timedOut = true
         composeRule.runOnIdle { }
 
-        composeRule.onNodeWithText("Systems").assertDoesNotExist()
+        composeRule.onAllNodesWithText("Systems").assertCountEquals(0)
         composeRule.onNodeWithText("Unlock Kairo").assertIsDisplayed()
     }
 }
