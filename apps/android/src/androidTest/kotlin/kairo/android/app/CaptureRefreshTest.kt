@@ -44,7 +44,7 @@ class CaptureRefreshTest {
 
             assertEquals(
                 "I don't know from the available MANA evidence.",
-                before,
+                before.text,
             )
 
             session.knowledgeCapture.save(
@@ -63,7 +63,7 @@ class CaptureRefreshTest {
 
             assertEquals(
                 "Merge PACS hosts the modality worklist.",
-                after,
+                after.text,
             )
 
             database.close()
