@@ -1,7 +1,6 @@
 package kairo.android.tunnel
 
 import java.nio.charset.StandardCharsets
-import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.PrivateKey
 import java.security.PublicKey
@@ -20,6 +19,11 @@ data class TunnelFrameMetadata(
     val expiresAt: Long,
 )
 
+data class EphemeralKeyPair(
+    val privateKey: PrivateKey,
+    val publicKey: PublicKey,
+)
+
 object AndroidTunnelCrypto {
     private const val CURVE = "secp256r1"
     private const val HKDF_INFO = "kairo-v1-paired-tunnel"
@@ -29,10 +33,15 @@ object AndroidTunnelCrypto {
 
     private val secureRandom = SecureRandom()
 
-    fun createEphemeralKeyPair(): KeyPair {
-        return KeyPairGenerator.getInstance("EC").apply {
+    fun createEphemeralKeyPair(): EphemeralKeyPair {
+        val keyPair = KeyPairGenerator.getInstance("EC").apply {
             initialize(ECGenParameterSpec(CURVE), secureRandom)
         }.generateKeyPair()
+
+        return EphemeralKeyPair(
+            privateKey = keyPair.private,
+            publicKey = keyPair.public,
+        )
     }
 
     fun deriveSessionKey(
