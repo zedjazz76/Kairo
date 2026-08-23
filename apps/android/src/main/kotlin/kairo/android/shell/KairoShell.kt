@@ -64,6 +64,7 @@ fun KairoShell(
     var state by remember(authenticationState) { mutableStateOf(authenticationState) }
     val navigator = remember { KairoNavigator() }
     var destination by remember { mutableStateOf(navigator.destination) }
+    var selectedEvidenceSourceId by remember { mutableStateOf<String?>(null) }
 
     val relockRequested = shouldRelock?.invoke() == true
     if (state == AuthenticationState.Unlocked && relockRequested) {
@@ -78,6 +79,12 @@ fun KairoShell(
     fun backHome() {
         navigator.backHome()
         destination = navigator.destination
+        selectedEvidenceSourceId = null
+    }
+
+    fun openEvidence(sourceId: String) {
+        selectedEvidenceSourceId = sourceId
+        navigateTo(KairoDestination.Sources)
     }
 
     val scope = rememberCoroutineScope()
@@ -104,7 +111,10 @@ fun KairoShell(
                     onProjects = { navigateTo(KairoDestination.Projects) },
                     onKnowledge = { navigateTo(KairoDestination.Knowledge) },
                     onCapture = { navigateTo(KairoDestination.Capture) },
-                    onSources = { navigateTo(KairoDestination.Sources) },
+                    onSources = {
+                        selectedEvidenceSourceId = null
+                        navigateTo(KairoDestination.Sources)
+                    },
                     onMemoryInbox = { navigateTo(KairoDestination.MemoryInbox) },
                     onCopilot = { navigateTo(KairoDestination.Copilot) },
                     onDeepAnalyze = { navigateTo(KairoDestination.DeepAnalyze) },
@@ -113,21 +123,25 @@ fun KairoShell(
             KairoDestination.Systems ->
                 SystemsDestination(
                     knowledgeFacts = knowledgeFacts,
+                    onOpenEvidence = ::openEvidence,
                     onBack = ::backHome,
                 )
             KairoDestination.Workflows ->
                 WorkflowsDestination(
                     knowledgeFacts = knowledgeFacts,
+                    onOpenEvidence = ::openEvidence,
                     onBack = ::backHome,
                 )
             KairoDestination.Projects ->
                 ProjectsDestination(
                     knowledgeFacts = knowledgeFacts,
+                    onOpenEvidence = ::openEvidence,
                     onBack = ::backHome,
                 )
             KairoDestination.Knowledge ->
                 KnowledgeDestination(
                     knowledgeFacts = knowledgeFacts,
+                    onOpenEvidence = ::openEvidence,
                     onBack = ::backHome,
                 )
             KairoDestination.Capture ->
@@ -140,6 +154,7 @@ fun KairoShell(
             KairoDestination.Sources ->
                 SourcesDestination(
                     evidenceSources = evidenceSources,
+                    selectedSourceId = selectedEvidenceSourceId,
                     onBack = ::backHome,
                 )
             KairoDestination.MemoryInbox ->
@@ -446,6 +461,7 @@ private fun DeepAnalyzeDestination(
 @Composable
 private fun SystemsDestination(
     knowledgeFacts: List<FactVersion>,
+    onOpenEvidence: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     FactsDestination(
@@ -454,6 +470,7 @@ private fun SystemsDestination(
         emptyTitle = "No approved system facts",
         emptyBody = "Approved system knowledge will appear here after Memory Inbox review.",
         facts = knowledgeFacts,
+        onOpenEvidence = onOpenEvidence,
         onBack = onBack,
     )
 }
@@ -461,6 +478,7 @@ private fun SystemsDestination(
 @Composable
 private fun WorkflowsDestination(
     knowledgeFacts: List<FactVersion>,
+    onOpenEvidence: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     FactsDestination(
@@ -469,6 +487,7 @@ private fun WorkflowsDestination(
         emptyTitle = "No approved workflow facts",
         emptyBody = "Approved workflow knowledge will appear here after Memory Inbox review.",
         facts = knowledgeFacts,
+        onOpenEvidence = onOpenEvidence,
         onBack = onBack,
     )
 }
@@ -476,6 +495,7 @@ private fun WorkflowsDestination(
 @Composable
 private fun ProjectsDestination(
     knowledgeFacts: List<FactVersion>,
+    onOpenEvidence: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     FactsDestination(
@@ -484,6 +504,7 @@ private fun ProjectsDestination(
         emptyTitle = "No approved project facts",
         emptyBody = "Approved project knowledge will appear here after Memory Inbox review.",
         facts = knowledgeFacts,
+        onOpenEvidence = onOpenEvidence,
         onBack = onBack,
     )
 }
@@ -491,6 +512,7 @@ private fun ProjectsDestination(
 @Composable
 private fun KnowledgeDestination(
     knowledgeFacts: List<FactVersion>,
+    onOpenEvidence: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     FactsDestination(
@@ -499,6 +521,7 @@ private fun KnowledgeDestination(
         emptyTitle = "No approved knowledge",
         emptyBody = "Approved facts will appear here after Memory Inbox review.",
         facts = knowledgeFacts,
+        onOpenEvidence = onOpenEvidence,
         onBack = onBack,
     )
 }
@@ -510,6 +533,7 @@ private fun FactsDestination(
     emptyTitle: String,
     emptyBody: String,
     facts: List<FactVersion>,
+    onOpenEvidence: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     ScreenScaffold(
@@ -523,12 +547,20 @@ private fun FactsDestination(
                 body = emptyBody,
             )
         }
-        facts.forEach { fact -> FactCard(fact) }
+        facts.forEach { fact ->
+            FactCard(
+                fact = fact,
+                onOpenEvidence = onOpenEvidence,
+            )
+        }
     }
 }
 
 @Composable
-private fun FactCard(fact: FactVersion) {
+private fun FactCard(
+    fact: FactVersion,
+    onOpenEvidence: (String) -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -543,6 +575,15 @@ private fun FactCard(fact: FactVersion) {
             }
             Text(value, fontWeight = FontWeight.SemiBold)
             Text(fact.state.name)
+
+            val evidence = fact.evidence.firstOrNull()
+            if (evidence != null) {
+                TextButton(
+                    onClick = { onOpenEvidence(evidence.sourceId) },
+                ) {
+                    Text("Open evidence")
+                }
+            }
         }
     }
 }
@@ -550,6 +591,7 @@ private fun FactCard(fact: FactVersion) {
 @Composable
 private fun SourcesDestination(
     evidenceSources: List<EvidenceRef>,
+    selectedSourceId: String?,
     onBack: () -> Unit,
 ) {
     ScreenScaffold(
@@ -563,14 +605,21 @@ private fun SourcesDestination(
             fontWeight = FontWeight.SemiBold,
         )
 
-        if (evidenceSources.isEmpty()) {
+        val visibleSources =
+            if (selectedSourceId == null) {
+                evidenceSources
+            } else {
+                evidenceSources.filter { it.sourceId == selectedSourceId }
+            }
+
+        if (visibleSources.isEmpty()) {
             StatusCard(
                 title = "No evidence sources",
                 body = "Approved knowledge has no source references to display yet.",
             )
         }
 
-        evidenceSources.forEach { source ->
+        visibleSources.forEach { source ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -660,6 +709,7 @@ private fun CaptureDestination(
     var predicate by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
     var saveStatus by remember { mutableStateOf<String?>(null) }
+    var sensitiveChoiceMade by remember(containsLikelyPhi) { mutableStateOf(!containsLikelyPhi) }
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
@@ -667,29 +717,39 @@ private fun CaptureDestination(
         subtitle = "Capture a structured fact for review in Memory Inbox.",
         onBack = onBack,
     ) {
-        if (containsLikelyPhi) {
+        if (containsLikelyPhi && !sensitiveChoiceMade) {
             StatusCard(
                 title = "Potential PHI detected",
-                body = "Choose how Kairo should handle this capture before it continues.",
+                body = "Choose how Kairo should handle sensitive content before continuing.",
             )
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onSensitiveContentChoice?.invoke(UserSensitiveChoice.REDACT) },
+                onClick = {
+                    onSensitiveContentChoice?.invoke(UserSensitiveChoice.REDACT)
+                    sensitiveChoiceMade = true
+                },
             ) {
                 Text("Redact and continue")
             }
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onSensitiveContentChoice?.invoke(UserSensitiveChoice.TEMPORARY_USE) },
+                onClick = {
+                    onSensitiveContentChoice?.invoke(UserSensitiveChoice.TEMPORARY_USE)
+                    sensitiveChoiceMade = true
+                },
             ) {
                 Text("Temporary use only")
             }
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onSensitiveContentChoice?.invoke(UserSensitiveChoice.CANCEL) },
+                onClick = {
+                    onSensitiveContentChoice?.invoke(UserSensitiveChoice.CANCEL)
+                    onBack()
+                },
             ) {
                 Text("Cancel capture")
             }
+            return@ScreenScaffold
         }
 
         OutlinedTextField(
@@ -731,10 +791,10 @@ private fun CaptureDestination(
             },
             enabled =
                 knowledgeCapture != null &&
+                    sensitiveChoiceMade &&
                     subject.isNotBlank() &&
                     predicate.isNotBlank() &&
-                    value.isNotBlank() &&
-                    !containsLikelyPhi,
+                    value.isNotBlank(),
         ) {
             Text("Save")
         }
