@@ -3,9 +3,12 @@ package kairo.android.app
 import kairo.android.capture.KnowledgeCapture
 import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.copilot.Copilot
+import kairo.application.DeepAnalyzeService
 import kairo.application.KnowledgeRepository
 import kairo.application.MemoryCandidateId
 import kairo.application.MemoryInboxService
+import kairo.application.FactQuery
+import kairo.retrieval.HybridRetriever
 import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoKnowledgeSession(
@@ -56,6 +59,37 @@ class KairoKnowledgeSession(
         )
 
         refreshCopilot()
+    }
+
+    suspend fun deepAnalyze(
+        question: String,
+    ): String {
+        val facts =
+            repository.currentUnderstanding(
+                FactQuery(),
+            )
+
+        val result =
+            DeepAnalyzeService(
+                retriever =
+                    HybridRetriever(
+                        facts = facts,
+                    ),
+            ).deepAnalyze(question)
+
+        val topDomain =
+            result.failureDomains
+                .firstOrNull()
+                ?.name
+                ?: "UNKNOWN_WORKFLOW_FAILURE"
+
+        return buildString {
+            append(topDomain)
+            result.nextBestAction?.let {
+                append("\n")
+                append(it)
+            }
+        }
     }
 
     suspend fun load() {
