@@ -3,6 +3,7 @@ package kairo.android.app
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kairo.android.capture.KnowledgeCaptureRequest
+import kairo.application.MemoryInboxService
 import kairo.platform.db.RoomKnowledgeRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -13,7 +14,7 @@ import org.junit.runner.RunWith
 class RoomKnowledgeCaptureTest {
 
     @Test
-    fun save_persists_retrievable_confirmed_fact() =
+    fun save_creates_pending_memory_candidate_without_active_fact() =
         runBlocking {
             val context =
                 ApplicationProvider.getApplicationContext<
@@ -32,9 +33,15 @@ class RoomKnowledgeCaptureTest {
                     database = database,
                 )
 
+            val memoryInbox =
+                MemoryInboxService(
+                    repository = repository,
+                )
+
             val capture =
                 RoomKnowledgeCapture(
                     repository = repository,
+                    memoryInbox = memoryInbox,
                 )
 
             capture.save(
@@ -44,6 +51,11 @@ class RoomKnowledgeCaptureTest {
                     value =
                         "Merge PACS hosts the modality worklist.",
                 ),
+            )
+
+            assertEquals(
+                1,
+                memoryInbox.pending().size,
             )
 
             val root =
@@ -57,7 +69,7 @@ class RoomKnowledgeCaptureTest {
                 )
 
             assertEquals(
-                "Merge PACS hosts the modality worklist.",
+                "I don't know from the available MANA evidence.",
                 answer,
             )
 
