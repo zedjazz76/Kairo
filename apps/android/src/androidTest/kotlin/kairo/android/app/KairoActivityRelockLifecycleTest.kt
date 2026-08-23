@@ -2,6 +2,7 @@ package kairo.android.app
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
@@ -31,6 +32,10 @@ class KairoActivityRelockLifecycleTest {
     @Test
     fun activity_relocks_after_background_timeout() {
         composeRule.onNodeWithText("Unlock Kairo").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Systems").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Systems").assertIsDisplayed()
 
         composeRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
