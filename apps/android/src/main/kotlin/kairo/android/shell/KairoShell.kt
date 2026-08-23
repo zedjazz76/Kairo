@@ -37,6 +37,7 @@ import kairo.android.copilot.Copilot
 import kairo.android.navigation.KairoDestination
 import kairo.android.navigation.KairoNavigator
 import kairo.android.offline.ConnectivityCapability
+import kairo.application.KairoAnswer
 import kairo.application.MemoryCandidateId
 import kairo.application.MemoryInboxService
 import kairo.domain.EvidenceRef
@@ -111,10 +112,7 @@ fun KairoShell(
                     onProjects = { navigateTo(KairoDestination.Projects) },
                     onKnowledge = { navigateTo(KairoDestination.Knowledge) },
                     onCapture = { navigateTo(KairoDestination.Capture) },
-                    onSources = {
-                        selectedEvidenceSourceId = null
-                        navigateTo(KairoDestination.Sources)
-                    },
+                    onSources = { selectedEvidenceSourceId = null; navigateTo(KairoDestination.Sources) },
                     onMemoryInbox = { navigateTo(KairoDestination.MemoryInbox) },
                     onCopilot = { navigateTo(KairoDestination.Copilot) },
                     onDeepAnalyze = { navigateTo(KairoDestination.DeepAnalyze) },
@@ -375,7 +373,7 @@ private fun CopilotDestination(
     onBack: () -> Unit,
 ) {
     var question by remember { mutableStateOf("") }
-    var answer by remember { mutableStateOf<String?>(null) }
+    var answer by remember { mutableStateOf<KairoAnswer?>(null) }
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
@@ -402,18 +400,36 @@ private fun CopilotDestination(
         ) {
             Text("Send")
         }
-        answer?.let {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Text(
-                    modifier = Modifier.padding(16.dp),
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
+        answer?.let { renderedAnswer ->
+            StructuredAnswerCard(renderedAnswer)
         }
+    }
+}
+
+@Composable
+private fun StructuredAnswerCard(answer: KairoAnswer) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(answer.text, style = MaterialTheme.typography.bodyLarge)
+            answer.assessment?.let { AnswerSection("Assessment", it) }
+            answer.currentManaUnderstanding?.let { AnswerSection("Current MANA Understanding", it) }
+            answer.nextAction?.let { AnswerSection("Next action", it) }
+            AnswerSection("Confidence", answer.confidence.name)
+        }
+    }
+}
+
+@Composable
+private fun AnswerSection(title: String, body: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, fontWeight = FontWeight.SemiBold)
+        Text(body)
     }
 }
 
@@ -575,12 +591,8 @@ private fun FactCard(
             }
             Text(value, fontWeight = FontWeight.SemiBold)
             Text(fact.state.name)
-
-            val evidence = fact.evidence.firstOrNull()
-            if (evidence != null) {
-                TextButton(
-                    onClick = { onOpenEvidence(evidence.sourceId) },
-                ) {
+            fact.evidence.firstOrNull()?.let { evidence ->
+                TextButton(onClick = { onOpenEvidence(evidence.sourceId) }) {
                     Text("Open evidence")
                 }
             }
@@ -594,6 +606,13 @@ private fun SourcesDestination(
     selectedSourceId: String?,
     onBack: () -> Unit,
 ) {
+    val visibleSources =
+        if (selectedSourceId == null) {
+            evidenceSources
+        } else {
+            evidenceSources.filter { it.sourceId == selectedSourceId }
+        }
+
     ScreenScaffold(
         title = "Sources overview",
         subtitle = "Inspect evidence provenance behind approved Kairo knowledge.",
@@ -604,13 +623,6 @@ private fun SourcesDestination(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
-
-        val visibleSources =
-            if (selectedSourceId == null) {
-                evidenceSources
-            } else {
-                evidenceSources.filter { it.sourceId == selectedSourceId }
-            }
 
         if (visibleSources.isEmpty()) {
             StatusCard(
@@ -709,7 +721,7 @@ private fun CaptureDestination(
     var predicate by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
     var saveStatus by remember { mutableStateOf<String?>(null) }
-    var sensitiveChoiceMade by remember(containsLikelyPhi) { mutableStateOf(!containsLikelyPhi) }
+    var sensitiveChoiceHandled by remember(containsLikelyPhi) { mutableStateOf(!containsLikelyPhi) }
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
@@ -717,16 +729,16 @@ private fun CaptureDestination(
         subtitle = "Capture a structured fact for review in Memory Inbox.",
         onBack = onBack,
     ) {
-        if (containsLikelyPhi && !sensitiveChoiceMade) {
+        if (containsLikelyPhi && !sensitiveChoiceHandled) {
             StatusCard(
                 title = "Potential PHI detected",
-                body = "Choose how Kairo should handle sensitive content before continuing.",
+                body = "Choose how Kairo should handle this sensitive capture before continuing.",
             )
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     onSensitiveContentChoice?.invoke(UserSensitiveChoice.REDACT)
-                    sensitiveChoiceMade = true
+                    sensitiveChoiceHandled = true
                 },
             ) {
                 Text("Redact and continue")
@@ -735,7 +747,7 @@ private fun CaptureDestination(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     onSensitiveContentChoice?.invoke(UserSensitiveChoice.TEMPORARY_USE)
-                    sensitiveChoiceMade = true
+                    sensitiveChoiceHandled = true
                 },
             ) {
                 Text("Temporary use only")
@@ -791,7 +803,6 @@ private fun CaptureDestination(
             },
             enabled =
                 knowledgeCapture != null &&
-                    sensitiveChoiceMade &&
                     subject.isNotBlank() &&
                     predicate.isNotBlank() &&
                     value.isNotBlank(),
