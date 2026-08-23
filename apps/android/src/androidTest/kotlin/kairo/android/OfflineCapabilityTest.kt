@@ -43,4 +43,20 @@ class OfflineCapabilityTest {
             .onNodeWithText("Offline mode")
             .assertIsDisplayed()
     }
+
+    @Test
+    fun online_mode_enables_deep_analyze_action() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity =
+                    ConnectivityCapability.Online,
+                authenticationState =
+                    AuthenticationState.Unlocked,
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Deep Analyze")
+            .assertIsEnabled()
+    }
 }
