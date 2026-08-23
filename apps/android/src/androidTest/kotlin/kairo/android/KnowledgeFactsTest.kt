@@ -3,7 +3,6 @@ package kairo.android
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import kairo.android.auth.AuthenticationState
@@ -55,15 +54,20 @@ class KnowledgeFactsTest {
             }
         }
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule
-                .onAllNodesWithText("Knowledge")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
+        composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Knowledge").performClick()
-        composeRule.onNodeWithText("Merge PACS hosts the modality worklist.").assertIsDisplayed()
-        composeRule.onNodeWithText("CONFIRMED").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Knowledge")
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.waitForIdle()
+
+        composeRule
+            .onNodeWithText("Merge PACS hosts the modality worklist.")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("CONFIRMED")
+            .assertIsDisplayed()
     }
 }
