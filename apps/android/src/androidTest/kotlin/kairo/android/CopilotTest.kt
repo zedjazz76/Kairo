@@ -33,34 +33,26 @@ class CopilotTest {
 
         composeRule.setContent {
             KairoShell(
-                connectivity =
-                    ConnectivityCapability.Online,
-                authenticationState =
-                    AuthenticationState.Unlocked,
+                connectivity = ConnectivityCapability.Online,
+                authenticationState = AuthenticationState.Unlocked,
                 copilot = copilot,
             )
         }
 
-        composeRule
-            .onNodeWithText("Copilot")
-            .performClick()
+        composeRule.onNodeWithText("Copilot").performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
+        }
 
         composeRule
             .onAllNodes(hasSetTextAction())[0]
-            .performTextInput(
-                "Who hosts the modality worklist?",
-            )
+            .performTextInput("Who hosts the modality worklist?")
 
-        composeRule
-            .onNodeWithText("Send")
-            .performClick()
-
+        composeRule.onNodeWithText("Send").performClick()
         composeRule.waitForIdle()
 
         composeRule
-            .onNodeWithText(
-                "Merge PACS hosts the modality worklist.",
-            )
+            .onNodeWithText("Merge PACS hosts the modality worklist.")
             .assertIsDisplayed()
     }
 }
