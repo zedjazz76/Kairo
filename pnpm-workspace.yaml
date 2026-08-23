@@ -1,2 +1,4 @@
 packages:
   - "shared/contracts"
+  - "relay"
+  - "apps/desktop-web"

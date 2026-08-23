@@ -1,9 +1,9 @@
 {
-  "name": "@kairo/relay",
+  "name": "@kairo/desktop-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.ts"
+    "test": "node --test src/**/*.test.ts"
   }
 }
