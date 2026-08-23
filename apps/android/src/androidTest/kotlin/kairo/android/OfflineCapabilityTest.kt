@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
@@ -64,5 +65,27 @@ class OfflineCapabilityTest {
         composeRule
             .onNodeWithText("Deep Analyze")
             .assertIsEnabled()
+    }
+
+    @Test
+    fun online_deep_analyze_opens_destination() {
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.setContent {
+                KairoShell(
+                    connectivity =
+                        ConnectivityCapability.Online,
+                    authenticationState =
+                        AuthenticationState.Unlocked,
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithText("Deep Analyze")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Deep Analyze overview")
+            .assertIsDisplayed()
     }
 }
