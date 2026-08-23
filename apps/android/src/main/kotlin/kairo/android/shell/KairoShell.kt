@@ -102,7 +102,11 @@ fun KairoShell(
                     onDeepAnalyze = { navigateTo(KairoDestination.DeepAnalyze) },
                 )
 
-            KairoDestination.Systems -> SystemsDestination(::backHome)
+            KairoDestination.Systems ->
+                SystemsDestination(
+                    knowledgeFacts = knowledgeFacts,
+                    onBack = ::backHome,
+                )
             KairoDestination.Workflows -> WorkflowsDestination(::backHome)
             KairoDestination.Projects -> ProjectsDestination(::backHome)
             KairoDestination.Knowledge ->
@@ -418,6 +422,29 @@ private fun DeepAnalyzeDestination(
 }
 
 @Composable
+private fun SystemsDestination(
+    knowledgeFacts: List<FactVersion>,
+    onBack: () -> Unit,
+) {
+    ScreenScaffold(
+        title = "Systems overview",
+        subtitle = "Inspect approved system facts from Kairo's current knowledge model.",
+        onBack = onBack,
+    ) {
+        if (knowledgeFacts.isEmpty()) {
+            StatusCard(
+                title = "No approved system facts",
+                body = "Approved system knowledge will appear here after Memory Inbox review.",
+            )
+        }
+
+        knowledgeFacts.forEach { fact ->
+            FactCard(fact)
+        }
+    }
+}
+
+@Composable
 private fun KnowledgeDestination(
     knowledgeFacts: List<FactVersion>,
     onBack: () -> Unit,
@@ -435,22 +462,27 @@ private fun KnowledgeDestination(
         }
 
         knowledgeFacts.forEach { fact ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    val value = when (val objectValue = fact.objectValue) {
-                        is FactObject.Literal -> objectValue.value
-                        is FactObject.Entity -> objectValue.value.value
-                    }
-                    Text(value, fontWeight = FontWeight.SemiBold)
-                    Text(fact.state.name)
-                }
+            FactCard(fact)
+        }
+    }
+}
+
+@Composable
+private fun FactCard(fact: FactVersion) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            val value = when (val objectValue = fact.objectValue) {
+                is FactObject.Literal -> objectValue.value
+                is FactObject.Entity -> objectValue.value.value
             }
+            Text(value, fontWeight = FontWeight.SemiBold)
+            Text(fact.state.name)
         }
     }
 }
@@ -565,12 +597,12 @@ private fun CaptureDestination(
     var subject by remember { mutableStateOf("") }
     var predicate by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
-    var saveStatus by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
-        title = "Capture intake",
-        subtitle = "Capture a structured fact for review in Memory Inbox.",
+        title = "Capture knowledge",
+        subtitle = "Record a local fact for Memory Inbox review.",
         onBack = onBack,
     ) {
         OutlinedTextField(
@@ -578,31 +610,39 @@ private fun CaptureDestination(
             value = subject,
             onValueChange = { subject = it },
             label = { Text("Subject") },
-            singleLine = true,
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = predicate,
             onValueChange = { predicate = it },
             label = { Text("Predicate") },
-            singleLine = true,
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = value,
             onValueChange = { value = it },
-            label = { Text("Fact") },
-            minLines = 4,
+            label = { Text("Value") },
+            minLines = 3,
         )
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val capture = knowledgeCapture ?: return@Button
-                val request = KnowledgeCaptureRequest(subject.trim(), predicate.trim(), value.trim())
-                if (request.subject.isEmpty() || request.predicate.isEmpty() || request.value.isEmpty()) return@Button
+                val submittedSubject = subject.trim()
+                val submittedPredicate = predicate.trim()
+                val submittedValue = value.trim()
+                if (submittedSubject.isEmpty() || submittedPredicate.isEmpty() || submittedValue.isEmpty()) {
+                    return@Button
+                }
                 scope.launch {
-                    capture.save(request)
-                    saveStatus = "Saved to Memory Inbox"
+                    capture.save(
+                        KnowledgeCaptureRequest(
+                            subject = submittedSubject,
+                            predicate = submittedPredicate,
+                            value = submittedValue,
+                        ),
+                    )
+                    status = "Saved to Memory Inbox"
                     subject = ""
                     predicate = ""
                     value = ""
@@ -612,27 +652,35 @@ private fun CaptureDestination(
         ) {
             Text("Save")
         }
-        saveStatus?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+        status?.let { Text(it) }
     }
 }
 
 @Composable
-private fun SystemsDestination(onBack: () -> Unit) {
-    ScreenScaffold("Systems overview", "Browse known systems and environments.", onBack) {
-        StatusCard("Systems", "Structured system browsing will consume the local evidence graph.")
-    }
-}
+private fun WorkflowsDestination(onBack: () -> Unit) =
+    PlaceholderDestination(
+        title = "Workflows overview",
+        detail = "Trace order, DMWL, modality, PACS, reporting, and downstream handoffs.",
+        onBack = onBack,
+    )
 
 @Composable
-private fun WorkflowsDestination(onBack: () -> Unit) {
-    ScreenScaffold("Workflows overview", "Trace clinical workflow paths and evidence.", onBack) {
-        StatusCard("Trace workflow", "Workflow tracing remains local-first and evidence-backed.")
-    }
-}
+private fun ProjectsDestination(onBack: () -> Unit) =
+    PlaceholderDestination(
+        title = "Projects overview",
+        detail = "Track active implementations, cutovers, migrations, and validation work.",
+        onBack = onBack,
+    )
 
 @Composable
-private fun ProjectsDestination(onBack: () -> Unit) {
-    ScreenScaffold("Projects overview", "Track active implementation and migration context.", onBack) {
-        StatusCard("Projects", "Project context stays separate from system truth.")
+private fun PlaceholderDestination(
+    title: String,
+    detail: String,
+    onBack: () -> Unit,
+) =
+    ScreenScaffold(title = title, subtitle = detail, onBack = onBack) {
+        StatusCard(
+            title = "Workspace ready",
+            body = "This destination is wired into the app shell and ready for task-specific data.",
+        )
     }
-}
