@@ -29,7 +29,7 @@ class KairoActivity : FragmentActivity() {
         private const val DEFAULT_RELOCK_TIMEOUT_MILLIS = 5 * 60 * 1000L
     }
 
-    private var backgroundedAtElapsedRealtime: Long? = null
+    private lateinit var relockTimer: RelockTimer
     private var relockRequested by mutableStateOf(false)
 
     lateinit var memoryInbox: MemoryInboxService
@@ -39,6 +39,12 @@ class KairoActivity : FragmentActivity() {
         savedInstanceState: Bundle?,
     ) {
         super.onCreate(savedInstanceState)
+
+        relockTimer =
+            RelockTimer(
+                timeoutMillis = relockTimeoutMillisOverride ?: DEFAULT_RELOCK_TIMEOUT_MILLIS,
+                nowMillis = SystemClock::elapsedRealtime,
+            )
 
         val authenticator =
             authenticatorOverride
@@ -145,19 +151,15 @@ class KairoActivity : FragmentActivity() {
     }
 
     override fun onPause() {
-        backgroundedAtElapsedRealtime = SystemClock.elapsedRealtime()
+        relockTimer.onLeaveForeground()
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
-
-        val backgroundedAt = backgroundedAtElapsedRealtime ?: return
-        val timeoutMillis = relockTimeoutMillisOverride ?: DEFAULT_RELOCK_TIMEOUT_MILLIS
-        if (SystemClock.elapsedRealtime() - backgroundedAt >= timeoutMillis) {
+        if (::relockTimer.isInitialized && relockTimer.onResume()) {
             relockRequested = true
         }
-        backgroundedAtElapsedRealtime = null
     }
 
     override fun onDestroy() {
