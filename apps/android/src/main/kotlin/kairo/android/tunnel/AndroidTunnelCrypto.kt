@@ -1,11 +1,18 @@
 package kairo.android.tunnel
 
+import java.math.BigInteger
 import java.nio.charset.StandardCharsets
+import java.security.AlgorithmParameters
+import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.SecureRandom
+import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
+import java.security.spec.ECParameterSpec
+import java.security.spec.ECPoint
+import java.security.spec.ECPublicKeySpec
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyAgreement
@@ -30,6 +37,8 @@ object AndroidTunnelCrypto {
     private const val AES_KEY_BYTES = 32
     private const val GCM_TAG_BITS = 128
     private const val GCM_NONCE_BYTES = 12
+    private const val P256_COORDINATE_BYTES = 32
+    private const val UNCOMPRESSED_PUBLIC_KEY_BYTES = 1 + (P256_COORDINATE_BYTES * 2)
 
     private val secureRandom = SecureRandom()
 
@@ -41,6 +50,41 @@ object AndroidTunnelCrypto {
         return EphemeralKeyPair(
             privateKey = keyPair.private,
             publicKey = keyPair.public,
+        )
+    }
+
+    fun exportPublicKey(publicKey: PublicKey): ByteArray {
+        val ecPublicKey = publicKey as? ECPublicKey
+            ?: throw IllegalArgumentException("invalid_public_key")
+        val x = unsignedCoordinate(ecPublicKey.w.affineX)
+        val y = unsignedCoordinate(ecPublicKey.w.affineY)
+
+        return ByteArray(UNCOMPRESSED_PUBLIC_KEY_BYTES).also { encoded ->
+            encoded[0] = 0x04
+            x.copyInto(encoded, destinationOffset = 1)
+            y.copyInto(encoded, destinationOffset = 1 + P256_COORDINATE_BYTES)
+        }
+    }
+
+    fun importPublicKey(encoded: ByteArray): PublicKey {
+        require(
+            encoded.size == UNCOMPRESSED_PUBLIC_KEY_BYTES && encoded[0] == 0x04.toByte(),
+        ) { "invalid_public_key" }
+
+        val x = BigInteger(
+            1,
+            encoded.copyOfRange(1, 1 + P256_COORDINATE_BYTES),
+        )
+        val y = BigInteger(
+            1,
+            encoded.copyOfRange(1 + P256_COORDINATE_BYTES, UNCOMPRESSED_PUBLIC_KEY_BYTES),
+        )
+        val parameters = AlgorithmParameters.getInstance("EC").apply {
+            init(ECGenParameterSpec(CURVE))
+        }.getParameterSpec(ECParameterSpec::class.java)
+
+        return KeyFactory.getInstance("EC").generatePublic(
+            ECPublicKeySpec(ECPoint(x, y), parameters),
         )
     }
 
@@ -110,6 +154,24 @@ object AndroidTunnelCrypto {
         cipher.updateAAD(authenticatedMetadata(metadata))
 
         return String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8)
+    }
+
+    private fun unsignedCoordinate(value: BigInteger): ByteArray {
+        val raw = value.toByteArray()
+        val unsigned = if (raw.size > P256_COORDINATE_BYTES && raw[0] == 0.toByte()) {
+            raw.copyOfRange(1, raw.size)
+        } else {
+            raw
+        }
+
+        require(unsigned.size <= P256_COORDINATE_BYTES) { "invalid_public_key" }
+
+        return ByteArray(P256_COORDINATE_BYTES).also { coordinate ->
+            unsigned.copyInto(
+                destination = coordinate,
+                destinationOffset = P256_COORDINATE_BYTES - unsigned.size,
+            )
+        }
     }
 
     private fun authenticatedMetadata(metadata: TunnelFrameMetadata): ByteArray {
