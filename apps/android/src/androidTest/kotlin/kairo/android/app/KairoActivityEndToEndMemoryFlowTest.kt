@@ -20,6 +20,13 @@ class KairoActivityEndToEndMemoryFlowTest {
             .onNodeWithText("Unlock Kairo")
             .performClick()
 
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule
+                .onAllNodesWithText("Capture")
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
         composeRule
             .onNodeWithText("Capture")
             .performClick()
