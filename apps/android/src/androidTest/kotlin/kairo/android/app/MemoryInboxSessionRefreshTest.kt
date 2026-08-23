@@ -16,61 +16,32 @@ class MemoryInboxSessionRefreshTest {
     @Test
     fun approving_pending_memory_refreshes_copilot_without_restart() =
         runBlocking {
-            val context =
-                ApplicationProvider.getApplicationContext<
-                    android.content.Context
-                >()
-
-            val database =
-                KairoDatabaseFactory.open(
-                    context = context,
-                )
-
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val database = KairoDatabaseFactory.open(context = context)
             database.clearAllTables()
-
-            val repository =
-                RoomKnowledgeRepository(
-                    database = database,
-                )
-
-            val session =
-                KairoKnowledgeSession(
-                    repository = repository,
-                )
-
+            val repository = RoomKnowledgeRepository(database = database)
+            val session = KairoKnowledgeSession(repository = repository)
             session.load()
 
             session.knowledgeCapture.save(
                 KnowledgeCaptureRequest(
                     subject = "modality-worklist",
                     predicate = "hosted-by",
-                    value =
-                        "Merge PACS hosts the modality worklist.",
+                    value = "Merge PACS hosts the modality worklist.",
                 ),
             )
 
             assertEquals(
                 "I don't know from the available MANA evidence.",
-                session.copilot.ask(
-                    "Who hosts the modality worklist?",
-                ),
+                session.copilot.ask("Who hosts the modality worklist?").text,
             )
 
-            val pending =
-                session.memoryInbox
-                    .pending()
-                    .single()
-
-            session.approveMemory(
-                candidateId = pending.id,
-                reviewer = "LOCAL_OWNER",
-            )
+            val pending = session.memoryInbox.pending().single()
+            session.approveMemory(candidateId = pending.id, reviewer = "LOCAL_OWNER")
 
             assertEquals(
                 "Merge PACS hosts the modality worklist.",
-                session.copilot.ask(
-                    "Who hosts the modality worklist?",
-                ),
+                session.copilot.ask("Who hosts the modality worklist?").text,
             )
 
             database.close()
@@ -79,28 +50,11 @@ class MemoryInboxSessionRefreshTest {
     @Test
     fun approved_simple_capture_is_immediately_queryable_by_subject() =
         runBlocking {
-            val context =
-                ApplicationProvider.getApplicationContext<
-                    android.content.Context
-                >()
-
-            val database =
-                KairoDatabaseFactory.open(
-                    context = context,
-                )
-
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val database = KairoDatabaseFactory.open(context = context)
             database.clearAllTables()
-
-            val repository =
-                RoomKnowledgeRepository(
-                    database = database,
-                )
-
-            val session =
-                KairoKnowledgeSession(
-                    repository = repository,
-                )
-
+            val repository = RoomKnowledgeRepository(database = database)
+            val session = KairoKnowledgeSession(repository = repository)
             session.load()
 
             session.knowledgeCapture.save(
@@ -111,86 +65,38 @@ class MemoryInboxSessionRefreshTest {
                 ),
             )
 
-            val pending =
-                session.memoryInbox
-                    .pending()
-                    .single()
+            val pending = session.memoryInbox.pending().single()
+            session.approveMemory(candidateId = pending.id, reviewer = "LOCAL_OWNER")
 
-            session.approveMemory(
-                candidateId = pending.id,
-                reviewer = "LOCAL_OWNER",
-            )
-
-            assertEquals(
-                "Test fact",
-                session.copilot.ask("test"),
-            )
-
+            assertEquals("Test fact", session.copilot.ask("test").text)
             database.close()
         }
 
     @Test
     fun session_exposes_real_deep_analyze_capability() =
         runBlocking {
-            val context =
-                ApplicationProvider.getApplicationContext<
-                    android.content.Context
-                >()
-
-            val database =
-                KairoDatabaseFactory.open(
-                    context = context,
-                )
-
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val database = KairoDatabaseFactory.open(context = context)
             database.clearAllTables()
-
-            val repository =
-                RoomKnowledgeRepository(
-                    database = database,
-                )
-
-            val session =
-                KairoKnowledgeSession(
-                    repository = repository,
-                )
-
+            val repository = RoomKnowledgeRepository(database = database)
+            val session = KairoKnowledgeSession(repository = repository)
             session.load()
 
             assertEquals(
                 "UNKNOWN_WORKFLOW_FAILURE\nValidate the first unresolved workflow hop.",
-                session.deepAnalyze(
-                    "Why is this workflow failing?",
-                ),
+                session.deepAnalyze("Why is this workflow failing?"),
             )
-
             database.close()
         }
 
     @Test
     fun approved_capture_exposes_evidence_sources_for_sources_screen() =
         runBlocking {
-            val context =
-                ApplicationProvider.getApplicationContext<
-                    android.content.Context
-                >()
-
-            val database =
-                KairoDatabaseFactory.open(
-                    context = context,
-                )
-
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val database = KairoDatabaseFactory.open(context = context)
             database.clearAllTables()
-
-            val repository =
-                RoomKnowledgeRepository(
-                    database = database,
-                )
-
-            val session =
-                KairoKnowledgeSession(
-                    repository = repository,
-                )
-
+            val repository = RoomKnowledgeRepository(database = database)
+            val session = KairoKnowledgeSession(repository = repository)
             session.load()
 
             session.knowledgeCapture.save(
@@ -202,45 +108,22 @@ class MemoryInboxSessionRefreshTest {
             )
 
             val pending = session.memoryInbox.pending().single()
-
-            session.approveMemory(
-                candidateId = pending.id,
-                reviewer = "LOCAL_OWNER",
-            )
+            session.approveMemory(candidateId = pending.id, reviewer = "LOCAL_OWNER")
 
             val sources = session.evidenceSources()
-
             assertEquals(1, sources.size)
             assertTrue(sources.single().sourceId.startsWith("capture-source-"))
-
             database.close()
         }
 
     @Test
     fun approved_capture_exposes_current_knowledge_facts() =
         runBlocking {
-            val context =
-                ApplicationProvider.getApplicationContext<
-                    android.content.Context
-                >()
-
-            val database =
-                KairoDatabaseFactory.open(
-                    context = context,
-                )
-
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val database = KairoDatabaseFactory.open(context = context)
             database.clearAllTables()
-
-            val repository =
-                RoomKnowledgeRepository(
-                    database = database,
-                )
-
-            val session =
-                KairoKnowledgeSession(
-                    repository = repository,
-                )
-
+            val repository = RoomKnowledgeRepository(database = database)
+            val session = KairoKnowledgeSession(repository = repository)
             session.load()
 
             session.knowledgeCapture.save(
@@ -252,20 +135,15 @@ class MemoryInboxSessionRefreshTest {
             )
 
             val pending = session.memoryInbox.pending().single()
-            session.approveMemory(
-                candidateId = pending.id,
-                reviewer = "LOCAL_OWNER",
-            )
+            session.approveMemory(candidateId = pending.id, reviewer = "LOCAL_OWNER")
 
             val facts = session.knowledgeFacts()
-
             assertEquals(1, facts.size)
             assertEquals(
                 "Merge PACS hosts the modality worklist.",
                 facts.single().objectValue.toString().substringAfter("value=").removeSuffix(")"),
             )
             assertEquals("OBSERVED", facts.single().state.name)
-
             database.close()
         }
 }
