@@ -3,7 +3,7 @@ package kairo.android
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNode
+import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -34,34 +34,17 @@ class CopilotTest {
 
         composeRule.setContent {
             KairoShell(
-                connectivity =
-                    ConnectivityCapability.Online,
-                authenticationState =
-                    AuthenticationState.Unlocked,
+                connectivity = ConnectivityCapability.Online,
+                authenticationState = AuthenticationState.Unlocked,
                 copilot = copilot,
             )
         }
 
-        composeRule
-            .onNodeWithText("Copilot")
-            .performClick()
-
-        composeRule
-            .onNode(hasSetTextAction())
-            .performTextInput(
-                "Who hosts the modality worklist?",
-            )
-
-        composeRule
-            .onNodeWithText("Send")
-            .performClick()
-
+        composeRule.onNodeWithText("Copilot").performClick()
+        composeRule.onAllNodes(hasSetTextAction())[0]
+            .performTextInput("Who hosts the modality worklist?")
+        composeRule.onNodeWithText("Send").performClick()
         composeRule.waitForIdle()
-
-        composeRule
-            .onNodeWithText(
-                "Merge PACS hosts the modality worklist.",
-            )
-            .assertIsDisplayed()
+        composeRule.onNodeWithText("Merge PACS hosts the modality worklist.").assertIsDisplayed()
     }
 }
