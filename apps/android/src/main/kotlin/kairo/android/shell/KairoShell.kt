@@ -21,7 +21,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,10 +62,9 @@ fun KairoShell(
     val navigator = remember { KairoNavigator() }
     var destination by remember { mutableStateOf(navigator.destination) }
 
-    LaunchedEffect(shouldRelock?.invoke()) {
-        if (state == AuthenticationState.Unlocked && shouldRelock?.invoke() == true) {
-            state = AuthenticationState.Locked
-        }
+    val relockRequested = shouldRelock?.invoke() == true
+    if (state == AuthenticationState.Unlocked && relockRequested) {
+        state = AuthenticationState.Locked
     }
 
     fun navigateTo(target: KairoDestination) {
