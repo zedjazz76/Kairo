@@ -47,3 +47,16 @@ test("replayed sequence numbers are rejected", async () => {
     /replay_detected/,
   );
 });
+
+test("disconnect immediately removes live routing state", async () => {
+  const broker = new TunnelBroker({ now: () => now });
+  broker.openSession({ sessionId, expiresAt: now + 60_000 });
+
+  await broker.route(frame(1));
+  broker.closeSession(sessionId);
+
+  await assert.rejects(
+    broker.route(frame(2)),
+    /session_expired/,
+  );
+});
