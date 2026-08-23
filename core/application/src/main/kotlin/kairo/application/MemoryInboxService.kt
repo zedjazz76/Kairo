@@ -223,8 +223,8 @@ class MemoryInboxService(
             audit = AuditEvent(
                 id = "audit-${UUID.randomUUID()}",
                 action = "MEMORY_APPROVED",
-                targetType = "MEMORY_CANDIDATE",
-                targetId = candidate.id.value,
+                targetType = "FACT_VERSION",
+                targetId = factId.value,
                 occurredAt = now(),
                 correlationId = candidate.draft.sessionId.value,
             ),
