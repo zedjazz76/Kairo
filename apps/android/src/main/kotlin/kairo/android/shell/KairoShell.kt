@@ -51,7 +51,7 @@ fun KairoShell(
     knowledgeCapture: KnowledgeCapture? = null,
     memoryInbox: MemoryInboxService? = null,
     onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)? = null,
-    deepAnalyze: ((String) -> String)? = null,
+    deepAnalyze: (suspend (String) -> String)? = null,
 ) {
     var state by remember(authenticationState) { mutableStateOf(authenticationState) }
     val navigator = remember { KairoNavigator() }
@@ -365,11 +365,12 @@ private fun CopilotDestination(
 
 @Composable
 private fun DeepAnalyzeDestination(
-    deepAnalyze: ((String) -> String)?,
+    deepAnalyze: (suspend (String) -> String)?,
     onBack: () -> Unit,
 ) {
     var question by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     ScreenScaffold(
         title = "Deep Analyze overview",
@@ -389,7 +390,9 @@ private fun DeepAnalyzeDestination(
                 val analyze = deepAnalyze ?: return@Button
                 val submitted = question.trim()
                 if (submitted.isEmpty()) return@Button
-                result = analyze(submitted)
+                scope.launch {
+                    result = analyze(submitted)
+                }
             },
             enabled = deepAnalyze != null && question.isNotBlank(),
         ) {
