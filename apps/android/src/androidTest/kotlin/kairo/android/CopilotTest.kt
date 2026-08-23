@@ -39,7 +39,7 @@ class CopilotTest {
             )
         }
 
-        composeRule.onNodeWithText("Copilot").performClick()
+        composeRule.onNodeWithText("Ask Kairo").performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
         }
