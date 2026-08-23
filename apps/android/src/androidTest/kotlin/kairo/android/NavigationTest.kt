@@ -253,7 +253,7 @@ class NavigationTest {
         }
 
         composeRule
-            .onNodeWithText("Copilot")
+            .onNodeWithText("Ask Kairo", useUnmergedTree = true)
             .performClick()
 
         composeRule
