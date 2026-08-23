@@ -17,6 +17,7 @@ import kairo.android.shell.KairoShell
 import kairo.android.theme.KairoTheme
 import kairo.application.MemoryInboxService
 import kairo.domain.EvidenceRef
+import kairo.domain.FactVersion
 import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoActivity : FragmentActivity() {
@@ -69,9 +70,14 @@ class KairoActivity : FragmentActivity() {
                 mutableStateOf<List<EvidenceRef>>(emptyList())
             }
 
+            var knowledgeFacts by remember {
+                mutableStateOf<List<FactVersion>>(emptyList())
+            }
+
             LaunchedEffect(session) {
                 session.load()
                 evidenceSources = session.evidenceSources()
+                knowledgeFacts = session.knowledgeFacts()
                 loaded = true
                 sessionRevision = session.revision
             }
@@ -87,6 +93,7 @@ class KairoActivity : FragmentActivity() {
                             )
 
                             evidenceSources = session.evidenceSources()
+                            knowledgeFacts = session.knowledgeFacts()
                             sessionRevision =
                                 session.revision
                         }
@@ -118,11 +125,13 @@ class KairoActivity : FragmentActivity() {
                             )
 
                             evidenceSources = session.evidenceSources()
+                            knowledgeFacts = session.knowledgeFacts()
                             sessionRevision =
                                 session.revision
                         },
                     deepAnalyze = session::deepAnalyze,
                     evidenceSources = evidenceSources,
+                    knowledgeFacts = knowledgeFacts,
                 )
             }
         }
