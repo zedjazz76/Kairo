@@ -7,26 +7,35 @@ Remote: https://github.com/zedjazz76/Kairo.git
 
 ## Progress checkpoint — Task 11 Android UI
 
-2026-08-23 Task 11 Android UI milestone checkpoint recorded after grouped connected-device regression passed on SM-S176V.
+2026-08-23 Task 11 Android UI full-gate completion candidate recorded after the user reported a successful local run on SM-S176V.
 
-Verified grouped regression command:
-`./gradlew :apps:android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=kairo.android.KnowledgeFactsTest,kairo.android.SourcesEvidenceTest,kairo.android.SystemsFactsTest,kairo.android.WorkflowsFactsTest,kairo.android.ProjectsFactsTest,kairo.android.MemoryInboxApprovalTest,kairo.android.CaptureKnowledgeTest,kairo.android.OfflineCapabilityTest`
+User-reported full verification command:
+`./gradlew :apps:android:testDebugUnitTest :apps:android:connectedDebugAndroidTest`
 
-Result: 13/13 focused Android instrumentation tests passed after restoring the established Capture and Memory Inbox contracts.
+Reported result: PASS. The assistant cannot independently execute the connected-device suite from GitHub, so this ledger records the result as user-reported local verification rather than independently reproduced verification.
 
-Current Task 11 surface state:
+Task 11 implemented surface:
+- Premium dark Android shell with Copilot, Systems, Workflows, Projects, Knowledge, Capture, Sources, Memory Inbox, Quick, Deep Analyze, and offline capability boundaries.
 - Knowledge renders approved `FactVersion` values and evidence states from the authoritative `knowledgeFacts` list.
-- Sources renders current evidence references.
 - Systems, Workflows, and Projects render from the same authoritative approved knowledge model; no parallel stores were introduced.
-- `KairoActivity` wires live `session.knowledgeFacts()` into production shell state and refreshes it after capture/approval flows.
-- Capture retains the established structured fact contract (`Subject`, `Predicate`, `Fact`, disabled-until-complete `Save`, and `Saved` confirmation).
-- Memory Inbox retains direct service approval fallback when no external approval callback is supplied.
-- Offline capability coverage remained green in the grouped regression.
+- Sources renders current `EvidenceRef` entries, and facts can navigate through `Open evidence` to the matching source anchor.
+- `KairoActivity` wires live session knowledge/evidence state into the production shell and refreshes after capture/approval flows.
+- Capture retains the structured fact contract and now gates likely-PHI continuation through the existing Core `UserSensitiveChoice` values: `REDACT`, `TEMPORARY_USE`, and `CANCEL`.
+- Memory Inbox approval refreshes authoritative knowledge and Copilot without restart.
+- Copilot now preserves structured `KairoAnswer` data end-to-end and renders Assessment, Current MANA Understanding, Next action, and qualitative Confidence when present.
+- Offline mode keeps local capabilities available and disables cloud-dependent Deep Analyze.
+- Platform authentication uses Android `BiometricPrompt` with strong biometric or device credential.
+- Background relock timing is isolated in the deterministic `RelockTimer`; shell relock behavior is covered separately, replacing the brittle full-Activity lifecycle instrumentation duplicate.
+- Existing capture, persistence, memory approval, and end-to-end query flows were reconciled with the structured-answer contract during full-suite regression repair.
 
-Notable recovery: a broad `KairoShell.kt` regression introduced during Projects work was repaired by restoring the intact shell structure and then reapplying only the intended project rendering plus known-good Capture/Memory Inbox behavior. Focused grouped verification is the evidence for this checkpoint.
+Prior grouped checkpoint:
+`./gradlew :apps:android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=kairo.android.KnowledgeFactsTest,kairo.android.SourcesEvidenceTest,kairo.android.SystemsFactsTest,kairo.android.WorkflowsFactsTest,kairo.android.ProjectsFactsTest,kairo.android.MemoryInboxApprovalTest,kairo.android.CaptureKnowledgeTest,kairo.android.OfflineCapabilityTest`
+Result: 13/13 focused Android instrumentation tests passed.
 
-Next step: stop at this milestone before another feature slice. Do not mark all of Task 11 complete solely from this checkpoint; review remaining Task 11 plan requirements before final completion.
+Task 11 status: implementation and local full-gate verification are reported complete. Independent connected-device reproduction is not available through the GitHub connector.
+
+Next planned task: Task 12 — secure browser-to-Core pairing and stateless relay tunnel.
 
 ## Historical ledger
 
-The prior Task 1–10 and Task 11 work history remains in repository history; this checkpoint intentionally records only the current verified milestone to avoid rewriting earlier rulings during recovery.
+The prior Task 1–10 and Task 11 work history remains in repository history; this checkpoint records the final Task 11 implementation state and the latest reported local verification result.
