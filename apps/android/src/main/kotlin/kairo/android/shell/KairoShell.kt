@@ -589,8 +589,8 @@ private fun MemoryInboxDestination(
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
-        title = "Memory Inbox",
-        subtitle = "Review proposed memory before it becomes authoritative knowledge.",
+        title = "Memory Inbox overview",
+        subtitle = "Review captured knowledge before it becomes active evidence.",
         onBack = onBack,
     ) {
         refreshToken
@@ -610,14 +610,22 @@ private fun MemoryInboxDestination(
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(candidate.draft.text, fontWeight = FontWeight.SemiBold)
+                    Text(candidate.draft.text)
                     Button(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            val approve = onApproveMemory ?: return@Button
                             scope.launch {
-                                approve(candidate.id, "LOCAL_OWNER")
+                                val approve = onApproveMemory
+                                if (approve != null) {
+                                    approve(candidate.id, "LOCAL_OWNER")
+                                } else {
+                                    memoryInbox?.approve(
+                                        candidateId = candidate.id,
+                                        reviewer = "LOCAL_OWNER",
+                                    )
+                                }
                                 refreshToken += 1
                             }
                         },
@@ -638,12 +646,12 @@ private fun CaptureDestination(
     var subject by remember { mutableStateOf("") }
     var predicate by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
-    var saved by remember { mutableStateOf(false) }
+    var saveStatus by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     ScreenScaffold(
-        title = "Capture knowledge",
-        subtitle = "Add an observation for Memory Inbox review.",
+        title = "Capture intake",
+        subtitle = "Capture a structured fact for review in Memory Inbox.",
         onBack = onBack,
     ) {
         OutlinedTextField(
@@ -651,41 +659,63 @@ private fun CaptureDestination(
             value = subject,
             onValueChange = { subject = it },
             label = { Text("Subject") },
+            singleLine = true,
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = predicate,
             onValueChange = { predicate = it },
             label = { Text("Predicate") },
+            singleLine = true,
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = value,
             onValueChange = { value = it },
-            label = { Text("Value") },
-            minLines = 3,
+            label = { Text("Fact") },
+            minLines = 4,
         )
         Button(
             modifier = Modifier.fillMaxWidth(),
-            enabled = knowledgeCapture != null,
             onClick = {
                 val capture = knowledgeCapture ?: return@Button
-                scope.launch {
-                    capture.save(
-                        KnowledgeCaptureRequest(
-                            subject = subject,
-                            predicate = predicate,
-                            value = value,
-                        ),
+                val request =
+                    KnowledgeCaptureRequest(
+                        subject = subject.trim(),
+                        predicate = predicate.trim(),
+                        value = value.trim(),
                     )
-                    saved = true
+                if (request.subject.isEmpty() || request.predicate.isEmpty() || request.value.isEmpty()) {
+                    return@Button
+                }
+
+                scope.launch {
+                    saveStatus = "Saving..."
+                    capture.save(request)
+                    subject = ""
+                    predicate = ""
+                    value = ""
+                    saveStatus = "Saved"
                 }
             },
+            enabled =
+                knowledgeCapture != null &&
+                    subject.isNotBlank() &&
+                    predicate.isNotBlank() &&
+                    value.isNotBlank(),
         ) {
-            Text("Save to Memory Inbox")
+            Text("Save")
         }
-        if (saved) {
-            Text("Saved for review")
+        saveStatus?.let {
+            StatusCard(
+                title = it,
+                body =
+                    if (it == "Saved") {
+                        "Capture is waiting for review in Memory Inbox."
+                    } else {
+                        "Persisting local capture."
+                    },
+            )
         }
     }
 }
