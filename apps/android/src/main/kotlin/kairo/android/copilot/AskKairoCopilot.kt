@@ -1,6 +1,7 @@
 package kairo.android.copilot
 
 import kairo.application.AskKairoService
+import kairo.application.KairoAnswer
 
 class AskKairoCopilot(
     private val service: AskKairoService,
@@ -8,6 +9,6 @@ class AskKairoCopilot(
 
     override suspend fun ask(
         question: String,
-    ): String =
-        service.quick(question).text
+    ): KairoAnswer =
+        service.quick(question)
 }
