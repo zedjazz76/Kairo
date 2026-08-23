@@ -103,6 +103,16 @@ class KairoActivity : FragmentActivity() {
                     knowledgeCapture =
                         observableCapture,
                     memoryInbox = memoryInbox,
+                    onApproveMemory =
+                        { candidateId, reviewer ->
+                            session.approveMemory(
+                                candidateId = candidateId,
+                                reviewer = reviewer,
+                            )
+
+                            sessionRevision =
+                                session.revision
+                        },
                 )
             }
         }
