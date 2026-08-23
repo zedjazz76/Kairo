@@ -420,6 +420,12 @@ private fun SourcesDestination(
         subtitle = "Inspect evidence provenance behind approved Kairo knowledge.",
         onBack = onBack,
     ) {
+        Text(
+            text = "Evidence sources",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+
         if (evidenceSources.isEmpty()) {
             StatusCard(
                 title = "No evidence sources",
