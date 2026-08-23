@@ -20,13 +20,15 @@ class OfflineCapabilityTest {
 
     @Test
     fun offline_mode_keeps_local_capabilities_and_disables_cloud_actions() {
-        composeRule.activity.setContent {
-            KairoShell(
-                connectivity =
-                    ConnectivityCapability.Offline,
-                authenticationState =
-                    AuthenticationState.Unlocked,
-            )
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.setContent {
+                KairoShell(
+                    connectivity =
+                        ConnectivityCapability.Offline,
+                    authenticationState =
+                        AuthenticationState.Unlocked,
+                )
+            }
         }
 
         composeRule
@@ -48,13 +50,15 @@ class OfflineCapabilityTest {
 
     @Test
     fun online_mode_enables_deep_analyze_action() {
-        composeRule.activity.setContent {
-            KairoShell(
-                connectivity =
-                    ConnectivityCapability.Online,
-                authenticationState =
-                    AuthenticationState.Unlocked,
-            )
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.setContent {
+                KairoShell(
+                    connectivity =
+                        ConnectivityCapability.Online,
+                    authenticationState =
+                        AuthenticationState.Unlocked,
+                )
+            }
         }
 
         composeRule
