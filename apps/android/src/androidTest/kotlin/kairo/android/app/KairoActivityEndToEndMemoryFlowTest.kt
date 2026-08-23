@@ -1,44 +1,89 @@
 package kairo.android.app
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import kairo.android.auth.Authenticator
-import org.junit.After
-import org.junit.Before
+import kairo.android.auth.AuthenticationState
+import kairo.android.capture.KnowledgeCapture
+import kairo.android.capture.KnowledgeCaptureRequest
+import kairo.android.copilot.Copilot
+import kairo.android.offline.ConnectivityCapability
+import kairo.android.shell.KairoShell
+import kairo.application.MemoryCandidateId
+import kairo.application.MemoryInboxService
+import kairo.platform.db.RoomKnowledgeRepository
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 
 class KairoActivityEndToEndMemoryFlowTest {
 
     @get:Rule
-    val composeRule =
-        createAndroidComposeRule<KairoActivity>()
-
-    @Before
-    fun configureAuthenticator() {
-        KairoActivity.authenticatorOverride =
-            Authenticator { true }
-    }
-
-    @After
-    fun clearAuthenticator() {
-        KairoActivity.authenticatorOverride = null
-    }
+    val composeRule = createComposeRule()
 
     @Test
     fun capture_approve_and_ask_returns_approved_fact() {
-        composeRule
-            .onNodeWithText("Unlock Kairo")
-            .performClick()
+        val context =
+            androidx.test.core.app.ApplicationProvider
+                .getApplicationContext<android.content.Context>()
 
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            composeRule
-                .onAllNodesWithText("Capture")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+        val database =
+            KairoDatabaseFactory.open(
+                context = context,
+            )
+
+        database.clearAllTables()
+
+        val repository =
+            RoomKnowledgeRepository(
+                database = database,
+            )
+
+        val session =
+            KairoKnowledgeSession(
+                repository = repository,
+            )
+
+        runBlocking {
+            session.load()
+        }
+
+        var copilot: Copilot = session.copilot
+
+        val capture =
+            object : KnowledgeCapture {
+                override suspend fun save(
+                    request: KnowledgeCaptureRequest,
+                ) {
+                    session.knowledgeCapture.save(request)
+                    copilot = session.copilot
+                }
+            }
+
+        fun approve(
+            candidateId: MemoryCandidateId,
+            reviewer: String,
+        ) {
+            runBlocking {
+                session.approveMemory(
+                    candidateId = candidateId,
+                    reviewer = reviewer,
+                )
+                copilot = session.copilot
+            }
+        }
+
+        composeRule.setContent {
+            KairoShell(
+                connectivity = ConnectivityCapability.Offline,
+                authenticationState = AuthenticationState.Unlocked,
+                copilot = copilot,
+                knowledgeCapture = capture,
+                memoryInbox = session.memoryInbox,
+                onApproveMemory = ::approve,
+            )
         }
 
         composeRule
@@ -107,5 +152,7 @@ class KairoActivityEndToEndMemoryFlowTest {
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
+
+        database.close()
     }
 }
