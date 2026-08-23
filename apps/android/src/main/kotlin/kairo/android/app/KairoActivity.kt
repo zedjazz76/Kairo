@@ -113,6 +113,7 @@ class KairoActivity : FragmentActivity() {
                             sessionRevision =
                                 session.revision
                         },
+                    deepAnalyze = session::deepAnalyze,
                 )
             }
         }
