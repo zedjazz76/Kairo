@@ -127,4 +127,41 @@ class MemoryInboxSessionRefreshTest {
 
             database.close()
         }
+
+    @Test
+    fun session_exposes_real_deep_analyze_capability() =
+        runBlocking {
+            val context =
+                ApplicationProvider.getApplicationContext<
+                    android.content.Context
+                >()
+
+            val database =
+                KairoDatabaseFactory.open(
+                    context = context,
+                )
+
+            database.clearAllTables()
+
+            val repository =
+                RoomKnowledgeRepository(
+                    database = database,
+                )
+
+            val session =
+                KairoKnowledgeSession(
+                    repository = repository,
+                )
+
+            session.load()
+
+            assertEquals(
+                "UNKNOWN_WORKFLOW_FAILURE\nValidate the first unresolved workflow hop.",
+                session.deepAnalyze(
+                    "Why is this workflow failing?",
+                ),
+            )
+
+            database.close()
+        }
 }
