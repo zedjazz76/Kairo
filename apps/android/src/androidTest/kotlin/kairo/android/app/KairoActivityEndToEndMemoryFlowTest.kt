@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import kairo.android.auth.Authenticator
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -15,11 +17,19 @@ class KairoActivityEndToEndMemoryFlowTest {
     val composeRule =
         createAndroidComposeRule<KairoActivity>()
 
+    @Before
+    fun configureAuthenticator() {
+        KairoActivity.authenticatorOverride =
+            Authenticator { true }
+    }
+
+    @After
+    fun clearAuthenticator() {
+        KairoActivity.authenticatorOverride = null
+    }
+
     @Test
     fun capture_approve_and_ask_returns_approved_fact() {
-        composeRule.activity.authenticatorOverride =
-            Authenticator { true }
-
         composeRule
             .onNodeWithText("Unlock Kairo")
             .performClick()
