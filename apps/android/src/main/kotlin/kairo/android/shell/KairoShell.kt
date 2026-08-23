@@ -102,52 +102,15 @@ fun KairoShell(
                     onDeepAnalyze = { navigateTo(KairoDestination.DeepAnalyze) },
                 )
 
-            KairoDestination.Systems ->
-                SystemsDestination(
-                    knowledgeFacts = knowledgeFacts,
-                    onBack = ::backHome,
-                )
-            KairoDestination.Workflows ->
-                WorkflowsDestination(
-                    knowledgeFacts = knowledgeFacts,
-                    onBack = ::backHome,
-                )
-            KairoDestination.Projects ->
-                ProjectsDestination(
-                    knowledgeFacts = knowledgeFacts,
-                    onBack = ::backHome,
-                )
-            KairoDestination.Knowledge ->
-                KnowledgeDestination(
-                    knowledgeFacts = knowledgeFacts,
-                    onBack = ::backHome,
-                )
-            KairoDestination.Capture ->
-                CaptureDestination(
-                    knowledgeCapture = knowledgeCapture,
-                    onBack = ::backHome,
-                )
-            KairoDestination.Sources ->
-                SourcesDestination(
-                    evidenceSources = evidenceSources,
-                    onBack = ::backHome,
-                )
-            KairoDestination.MemoryInbox ->
-                MemoryInboxDestination(
-                    memoryInbox = memoryInbox,
-                    onApproveMemory = onApproveMemory,
-                    onBack = ::backHome,
-                )
-            KairoDestination.Copilot ->
-                CopilotDestination(
-                    copilot = copilot,
-                    onBack = ::backHome,
-                )
-            KairoDestination.DeepAnalyze ->
-                DeepAnalyzeDestination(
-                    deepAnalyze = deepAnalyze,
-                    onBack = ::backHome,
-                )
+            KairoDestination.Systems -> SystemsDestination(knowledgeFacts, ::backHome)
+            KairoDestination.Workflows -> WorkflowsDestination(knowledgeFacts, ::backHome)
+            KairoDestination.Projects -> ProjectsDestination(knowledgeFacts, ::backHome)
+            KairoDestination.Knowledge -> KnowledgeDestination(knowledgeFacts, ::backHome)
+            KairoDestination.Capture -> CaptureDestination(knowledgeCapture, ::backHome)
+            KairoDestination.Sources -> SourcesDestination(evidenceSources, ::backHome)
+            KairoDestination.MemoryInbox -> MemoryInboxDestination(memoryInbox, onApproveMemory, ::backHome)
+            KairoDestination.Copilot -> CopilotDestination(copilot, ::backHome)
+            KairoDestination.DeepAnalyze -> DeepAnalyzeDestination(deepAnalyze, ::backHome)
         }
     }
 }
@@ -162,30 +125,18 @@ private fun LockedDestination(
         modifier = Modifier.fillMaxSize().padding(28.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = "KAIRO",
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-        )
+        Text("KAIRO", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Clinical Systems Copilot",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text("Clinical Systems Copilot", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(28.dp))
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val auth = authenticator ?: return@Button
-                scope.launch {
-                    if (auth.authenticate()) onUnlocked()
-                }
+                scope.launch { if (auth.authenticate()) onUnlocked() }
             },
             enabled = authenticator != null,
-        ) {
-            Text("Unlock Kairo")
-        }
+        ) { Text("Unlock Kairo") }
     }
 }
 
@@ -203,87 +154,36 @@ private fun HomeDestination(
     onDeepAnalyze: () -> Unit,
 ) {
     val offline = connectivity == ConnectivityCapability.Offline
-
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text("KAIRO", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Text(
-            "Clinical Systems Copilot",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        if (offline) {
-            StatusCard(
-                title = "Offline mode",
-                body = "Local knowledge remains available. Deep reasoning is unavailable.",
-            )
-        }
-
-        FeatureCard(
-            title = "Copilot",
-            body = "Ask Kairo about approved local clinical-systems knowledge.",
-            action = "Ask Kairo",
-            onClick = onCopilot,
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        Text("Clinical Systems Copilot", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (offline) StatusCard("Offline mode", "Local knowledge remains available. Deep reasoning is unavailable.")
+        FeatureCard("Copilot", "Ask Kairo about approved local clinical-systems knowledge.", "Ask Kairo", onCopilot)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CompactAction(Modifier.weight(1f), "Capture", onCapture)
             CompactAction(Modifier.weight(1f), "Memory Inbox", onMemoryInbox)
         }
-
-        Text(
-            "Knowledge workspace",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        Text("Knowledge workspace", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CompactAction(Modifier.weight(1f), "Systems", onSystems)
             CompactAction(Modifier.weight(1f), "Workflows", onWorkflows)
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CompactAction(Modifier.weight(1f), "Projects", onProjects)
             CompactAction(Modifier.weight(1f), "Knowledge", onKnowledge)
         }
         CompactAction(Modifier.fillMaxWidth(), "Sources", onSources)
-
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onDeepAnalyze,
-            enabled = !offline,
-        ) {
-            Text("Deep Analyze")
-        }
+        OutlinedButton(Modifier.fillMaxWidth(), onClick = onDeepAnalyze, enabled = !offline) { Text("Deep Analyze") }
     }
 }
 
 @Composable
-private fun FeatureCard(
-    title: String,
-    body: String,
-    action: String,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+private fun FeatureCard(title: String, body: String, action: String, onClick: () -> Unit) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
             Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick = onClick) { Text(action) }
@@ -292,30 +192,14 @@ private fun FeatureCard(
 }
 
 @Composable
-private fun CompactAction(
-    modifier: Modifier = Modifier,
-    title: String,
-    onClick: () -> Unit,
-) {
-    OutlinedButton(
-        modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
-        onClick = onClick,
-    ) {
-        Text(title)
-    }
+private fun CompactAction(modifier: Modifier = Modifier, title: String, onClick: () -> Unit) {
+    OutlinedButton(modifier, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp), onClick = onClick) { Text(title) }
 }
 
 @Composable
 private fun StatusCard(title: String, body: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         }
@@ -323,12 +207,7 @@ private fun StatusCard(title: String, body: String) {
 }
 
 @Composable
-private fun ScreenScaffold(
-    title: String,
-    subtitle: String? = null,
-    onBack: () -> Unit,
-    content: @Composable () -> Unit,
-) {
+private fun ScreenScaffold(title: String, subtitle: String? = null, onBack: () -> Unit, content: @Composable () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -341,196 +220,75 @@ private fun ScreenScaffold(
 }
 
 @Composable
-private fun CopilotDestination(
-    copilot: Copilot?,
-    onBack: () -> Unit,
-) {
+private fun CopilotDestination(copilot: Copilot?, onBack: () -> Unit) {
     var question by remember { mutableStateOf("") }
     var answer by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-
-    ScreenScaffold(
-        title = "Kairo Copilot",
-        subtitle = "Ask against approved local knowledge.",
-        onBack = onBack,
-    ) {
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = question,
-            onValueChange = { question = it },
-            label = { Text("Ask Kairo") },
-            minLines = 3,
-        )
+    ScreenScaffold("Kairo Copilot", "Ask against approved local knowledge.", onBack) {
+        OutlinedTextField(Modifier.fillMaxWidth(), value = question, onValueChange = { question = it }, label = { Text("Ask Kairo") }, minLines = 3)
         Button(
-            modifier = Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth(),
             onClick = {
                 val activeCopilot = copilot ?: return@Button
-                val submittedQuestion = question.trim()
-                if (submittedQuestion.isEmpty()) return@Button
-                scope.launch { answer = activeCopilot.ask(submittedQuestion) }
+                val submitted = question.trim()
+                if (submitted.isEmpty()) return@Button
+                scope.launch { answer = activeCopilot.ask(submitted) }
             },
             enabled = copilot != null,
-        ) {
-            Text("Send")
-        }
-        answer?.let {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Text(
-                    modifier = Modifier.padding(16.dp),
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-        }
+        ) { Text("Send") }
+        answer?.let { Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) { Text(it, modifier = Modifier.padding(16.dp)) } }
     }
 }
 
 @Composable
-private fun DeepAnalyzeDestination(
-    deepAnalyze: (suspend (String) -> String)?,
-    onBack: () -> Unit,
-) {
+private fun DeepAnalyzeDestination(deepAnalyze: (suspend (String) -> String)?, onBack: () -> Unit) {
     var question by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-
-    ScreenScaffold(
-        title = "Deep Analyze overview",
-        subtitle = "Run expanded diagnostic reasoning against the current Kairo evidence model.",
-        onBack = onBack,
-    ) {
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = question,
-            onValueChange = { question = it },
-            label = { Text("Analyze question") },
-            minLines = 3,
-        )
+    ScreenScaffold("Deep Analyze overview", "Run expanded diagnostic reasoning against the current Kairo evidence model.", onBack) {
+        OutlinedTextField(Modifier.fillMaxWidth(), value = question, onValueChange = { question = it }, label = { Text("Analyze question") }, minLines = 3)
         Button(
-            modifier = Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth(),
             onClick = {
                 val analyze = deepAnalyze ?: return@Button
                 val submitted = question.trim()
                 if (submitted.isEmpty()) return@Button
-                scope.launch {
-                    result = analyze(submitted)
-                }
+                scope.launch { result = analyze(submitted) }
             },
             enabled = deepAnalyze != null && question.isNotBlank(),
-        ) {
-            Text("Analyze")
-        }
-        result?.lineSequence()?.filter { it.isNotBlank() }?.forEach { line ->
-            Text(line)
-        }
+        ) { Text("Analyze") }
+        result?.lineSequence()?.filter { it.isNotBlank() }?.forEach { Text(it) }
     }
 }
 
 @Composable
-private fun SystemsDestination(
-    knowledgeFacts: List<FactVersion>,
-    onBack: () -> Unit,
-) {
-    ScreenScaffold(
-        title = "Systems overview",
-        subtitle = "Inspect approved system facts from Kairo's current knowledge model.",
-        onBack = onBack,
-    ) {
-        if (knowledgeFacts.isEmpty()) {
-            StatusCard(
-                title = "No approved system facts",
-                body = "Approved system knowledge will appear here after Memory Inbox review.",
-            )
-        }
-
-        knowledgeFacts.forEach { fact ->
-            FactCard(fact)
-        }
-    }
-}
+private fun SystemsDestination(knowledgeFacts: List<FactVersion>, onBack: () -> Unit) =
+    FactsDestination("Systems overview", "Inspect approved system facts from Kairo's current knowledge model.", "No approved system facts", "Approved system knowledge will appear here after Memory Inbox review.", knowledgeFacts, onBack)
 
 @Composable
-private fun WorkflowsDestination(
-    knowledgeFacts: List<FactVersion>,
-    onBack: () -> Unit,
-) {
-    ScreenScaffold(
-        title = "Workflows overview",
-        subtitle = "Inspect approved workflow facts from Kairo's current knowledge model.",
-        onBack = onBack,
-    ) {
-        if (knowledgeFacts.isEmpty()) {
-            StatusCard(
-                title = "No approved workflow facts",
-                body = "Approved workflow knowledge will appear here after Memory Inbox review.",
-            )
-        }
-
-        knowledgeFacts.forEach { fact ->
-            FactCard(fact)
-        }
-    }
-}
+private fun WorkflowsDestination(knowledgeFacts: List<FactVersion>, onBack: () -> Unit) =
+    FactsDestination("Workflows overview", "Inspect approved workflow facts from Kairo's current knowledge model.", "No approved workflow facts", "Approved workflow knowledge will appear here after Memory Inbox review.", knowledgeFacts, onBack)
 
 @Composable
-private fun ProjectsDestination(
-    knowledgeFacts: List<FactVersion>,
-    onBack: () -> Unit,
-) {
-    ScreenScaffold(
-        title = "Projects overview",
-        subtitle = "Inspect approved project facts from Kairo's current knowledge model.",
-        onBack = onBack,
-    ) {
-        if (knowledgeFacts.isEmpty()) {
-            StatusCard(
-                title = "No approved project facts",
-                body = "Approved project knowledge will appear here after Memory Inbox review.",
-            )
-        }
-
-        knowledgeFacts.forEach { fact ->
-            FactCard(fact)
-        }
-    }
-}
+private fun ProjectsDestination(knowledgeFacts: List<FactVersion>, onBack: () -> Unit) =
+    FactsDestination("Projects overview", "Inspect approved project facts from Kairo's current knowledge model.", "No approved project facts", "Approved project knowledge will appear here after Memory Inbox review.", knowledgeFacts, onBack)
 
 @Composable
-private fun KnowledgeDestination(
-    knowledgeFacts: List<FactVersion>,
-    onBack: () -> Unit,
-) {
-    ScreenScaffold(
-        title = "Knowledge overview",
-        subtitle = "Inspect Kairo's current approved understanding.",
-        onBack = onBack,
-    ) {
-        if (knowledgeFacts.isEmpty()) {
-            StatusCard(
-                title = "No approved knowledge",
-                body = "Approved facts will appear here after Memory Inbox review.",
-            )
-        }
+private fun KnowledgeDestination(knowledgeFacts: List<FactVersion>, onBack: () -> Unit) =
+    FactsDestination("Knowledge overview", "Inspect Kairo's current approved understanding.", "No approved knowledge", "Approved facts will appear here after Memory Inbox review.", knowledgeFacts, onBack)
 
-        knowledgeFacts.forEach { fact ->
-            FactCard(fact)
-        }
+@Composable
+private fun FactsDestination(title: String, subtitle: String, emptyTitle: String, emptyBody: String, facts: List<FactVersion>, onBack: () -> Unit) {
+    ScreenScaffold(title, subtitle, onBack) {
+        if (facts.isEmpty()) StatusCard(emptyTitle, emptyBody)
+        facts.forEach { FactCard(it) }
     }
 }
 
 @Composable
 private fun FactCard(fact: FactVersion) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val value = when (val objectValue = fact.objectValue) {
                 is FactObject.Literal -> objectValue.value
                 is FactObject.Entity -> objectValue.value.value
@@ -542,42 +300,16 @@ private fun FactCard(fact: FactVersion) {
 }
 
 @Composable
-private fun SourcesDestination(
-    evidenceSources: List<EvidenceRef>,
-    onBack: () -> Unit,
-) {
-    ScreenScaffold(
-        title = "Sources overview",
-        subtitle = "Inspect evidence provenance behind approved Kairo knowledge.",
-        onBack = onBack,
-    ) {
-        Text(
-            text = "Evidence sources",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-
-        if (evidenceSources.isEmpty()) {
-            StatusCard(
-                title = "No evidence sources",
-                body = "Approved knowledge has no source references to display yet.",
-            )
-        }
-
+private fun SourcesDestination(evidenceSources: List<EvidenceRef>, onBack: () -> Unit) {
+    ScreenScaffold("Sources overview", "Inspect evidence provenance behind approved Kairo knowledge.", onBack) {
+        Text("Evidence sources", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        if (evidenceSources.isEmpty()) StatusCard("No evidence sources", "Approved knowledge has no source references to display yet.")
         evidenceSources.forEach { source ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(source.sourceId, fontWeight = FontWeight.SemiBold)
                     source.anchor?.let { Text(it) }
-                    source.extractionConfidence?.let {
-                        Text("Confidence ${(it * 100).toInt()}%")
-                    }
+                    source.extractionConfidence?.let { Text("Confidence ${(it * 100).toInt()}%") }
                 }
             }
         }
@@ -592,33 +324,14 @@ private fun MemoryInboxDestination(
 ) {
     var refreshToken by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
-
-    ScreenScaffold(
-        title = "Memory Inbox",
-        subtitle = "Review proposed memory before it becomes authoritative knowledge.",
-        onBack = onBack,
-    ) {
+    ScreenScaffold("Memory Inbox", "Review proposed memory before it becomes authoritative knowledge.", onBack) {
         refreshToken
         val pending = memoryInbox?.pending().orEmpty()
-
-        if (pending.isEmpty()) {
-            StatusCard(
-                title = "Inbox clear",
-                body = "No pending memory candidates.",
-            )
-        }
-
+        if (pending.isEmpty()) StatusCard("Inbox clear", "No pending memory candidates.")
         pending.forEach { candidate ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(candidate.value, fontWeight = FontWeight.SemiBold)
-                    Text(candidate.state.name)
+            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(candidate.draft.text, fontWeight = FontWeight.SemiBold)
                     Button(
                         onClick = {
                             val approve = onApproveMemory ?: return@Button
@@ -627,9 +340,7 @@ private fun MemoryInboxDestination(
                                 refreshToken += 1
                             }
                         },
-                    ) {
-                        Text("Approve")
-                    }
+                    ) { Text("Approve") }
                 }
             }
         }
@@ -637,61 +348,24 @@ private fun MemoryInboxDestination(
 }
 
 @Composable
-private fun CaptureDestination(
-    knowledgeCapture: KnowledgeCapture?,
-    onBack: () -> Unit,
-) {
+private fun CaptureDestination(knowledgeCapture: KnowledgeCapture?, onBack: () -> Unit) {
     var subject by remember { mutableStateOf("") }
     var predicate by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
-    var saved by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    ScreenScaffold(
-        title = "Capture knowledge",
-        subtitle = "Add an observation for Memory Inbox review.",
-        onBack = onBack,
-    ) {
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = subject,
-            onValueChange = { subject = it },
-            label = { Text("Subject") },
-        )
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = predicate,
-            onValueChange = { predicate = it },
-            label = { Text("Predicate") },
-        )
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = value,
-            onValueChange = { value = it },
-            label = { Text("Value") },
-            minLines = 3,
-        )
+    ScreenScaffold("Capture", "Save a proposed knowledge candidate for review.", onBack) {
+        OutlinedTextField(Modifier.fillMaxWidth(), value = subject, onValueChange = { subject = it }, label = { Text("Subject") })
+        OutlinedTextField(Modifier.fillMaxWidth(), value = predicate, onValueChange = { predicate = it }, label = { Text("Predicate") })
+        OutlinedTextField(Modifier.fillMaxWidth(), value = value, onValueChange = { value = it }, label = { Text("Value") }, minLines = 3)
         Button(
-            modifier = Modifier.fillMaxWidth(),
-            enabled = knowledgeCapture != null,
+            Modifier.fillMaxWidth(),
             onClick = {
                 val capture = knowledgeCapture ?: return@Button
-                scope.launch {
-                    capture.save(
-                        KnowledgeCaptureRequest(
-                            subject = subject,
-                            predicate = predicate,
-                            value = value,
-                        ),
-                    )
-                    saved = true
-                }
+                val s = subject.trim(); val p = predicate.trim(); val v = value.trim()
+                if (s.isEmpty() || p.isEmpty() || v.isEmpty()) return@Button
+                scope.launch { capture.save(KnowledgeCaptureRequest(subject = s, predicate = p, value = v)); subject = ""; predicate = ""; value = "" }
             },
-        ) {
-            Text("Save to Memory Inbox")
-        }
-        if (saved) {
-            Text("Saved for review")
-        }
+            enabled = knowledgeCapture != null,
+        ) { Text("Save for review") }
     }
 }
