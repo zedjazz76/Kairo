@@ -51,6 +51,7 @@ fun KairoShell(
     knowledgeCapture: KnowledgeCapture? = null,
     memoryInbox: MemoryInboxService? = null,
     onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)? = null,
+    deepAnalyze: ((String) -> String)? = null,
 ) {
     var state by remember(authenticationState) { mutableStateOf(authenticationState) }
     val navigator = remember { KairoNavigator() }
@@ -118,7 +119,10 @@ fun KairoShell(
                     onBack = ::backHome,
                 )
             KairoDestination.DeepAnalyze ->
-                DeepAnalyzeDestination(::backHome)
+                DeepAnalyzeDestination(
+                    deepAnalyze = deepAnalyze,
+                    onBack = ::backHome,
+                )
         }
     }
 }
@@ -361,17 +365,39 @@ private fun CopilotDestination(
 
 @Composable
 private fun DeepAnalyzeDestination(
+    deepAnalyze: ((String) -> String)?,
     onBack: () -> Unit,
 ) {
+    var question by remember { mutableStateOf("") }
+    var result by remember { mutableStateOf<String?>(null) }
+
     ScreenScaffold(
         title = "Deep Analyze overview",
-        subtitle = "Expanded reasoning will be connected through the existing Core capability in the next slice.",
+        subtitle = "Run expanded diagnostic reasoning against the current Kairo evidence model.",
         onBack = onBack,
     ) {
-        StatusCard(
-            title = "Online reasoning workspace",
-            body = "Navigation is active. Analysis execution remains intentionally unconnected in this step.",
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = question,
+            onValueChange = { question = it },
+            label = { Text("Analyze question") },
+            minLines = 3,
         )
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                val analyze = deepAnalyze ?: return@Button
+                val submitted = question.trim()
+                if (submitted.isEmpty()) return@Button
+                result = analyze(submitted)
+            },
+            enabled = deepAnalyze != null && question.isNotBlank(),
+        ) {
+            Text("Analyze")
+        }
+        result?.lineSequence()?.filter { it.isNotBlank() }?.forEach { line ->
+            Text(line)
+        }
     }
 }
 
