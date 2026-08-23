@@ -1,14 +1,12 @@
 package kairo.android
 
-import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
-import kairo.android.test.TestFragmentActivity
 import kairo.domain.EntityId
 import kairo.domain.EvidenceRef
 import kairo.domain.EvidenceState
@@ -24,7 +22,7 @@ import org.junit.Test
 class KnowledgeFactsTest {
 
     @get:Rule
-    val composeRule = createAndroidComposeRule<TestFragmentActivity>()
+    val composeRule = createComposeRule()
 
     @Test
     fun knowledge_destination_renders_approved_fact_and_state() {
@@ -44,24 +42,18 @@ class KnowledgeFactsTest {
                 evidence = setOf(EvidenceRef(sourceId = "source-dmwl")),
             )
 
-        composeRule.activity.runOnUiThread {
-            composeRule.activity.setContent {
-                KairoShell(
-                    connectivity = ConnectivityCapability.Offline,
-                    authenticationState = AuthenticationState.Unlocked,
-                    knowledgeFacts = listOf(fact),
-                )
-            }
+        composeRule.setContent {
+            KairoShell(
+                connectivity = ConnectivityCapability.Offline,
+                authenticationState = AuthenticationState.Unlocked,
+                knowledgeFacts = listOf(fact),
+            )
         }
-
-        composeRule.waitForIdle()
 
         composeRule
             .onNodeWithText("Knowledge")
             .assertIsDisplayed()
             .performClick()
-
-        composeRule.waitForIdle()
 
         composeRule
             .onNodeWithText("Merge PACS hosts the modality worklist.")
