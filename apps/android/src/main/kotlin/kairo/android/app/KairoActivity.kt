@@ -1,6 +1,7 @@
 package kairo.android.app
 
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +25,12 @@ class KairoActivity : FragmentActivity() {
 
     companion object {
         var authenticatorOverride: Authenticator? = null
+        var relockTimeoutMillisOverride: Long? = null
+        private const val DEFAULT_RELOCK_TIMEOUT_MILLIS = 5 * 60 * 1000L
     }
+
+    private var backgroundedAtElapsedRealtime: Long? = null
+    private var relockRequested by mutableStateOf(false)
 
     lateinit var memoryInbox: MemoryInboxService
         private set
@@ -132,9 +138,26 @@ class KairoActivity : FragmentActivity() {
                     deepAnalyze = session::deepAnalyze,
                     evidenceSources = evidenceSources,
                     knowledgeFacts = knowledgeFacts,
+                    shouldRelock = { relockRequested },
                 )
             }
         }
+    }
+
+    override fun onStop() {
+        backgroundedAtElapsedRealtime = SystemClock.elapsedRealtime()
+        super.onStop()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        val backgroundedAt = backgroundedAtElapsedRealtime ?: return
+        val timeoutMillis = relockTimeoutMillisOverride ?: DEFAULT_RELOCK_TIMEOUT_MILLIS
+        if (SystemClock.elapsedRealtime() - backgroundedAt >= timeoutMillis) {
+            relockRequested = true
+        }
+        backgroundedAtElapsedRealtime = null
     }
 
     override fun onDestroy() {
