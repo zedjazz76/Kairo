@@ -30,6 +30,10 @@ export class TunnelBroker {
     });
   }
 
+  closeSession(sessionId: string): void {
+    this.sessions.delete(sessionId);
+  }
+
   async route(frame: TunnelFrame): Promise<void> {
     const session = this.sessions.get(frame.sessionId);
     const currentTime = this.now();
