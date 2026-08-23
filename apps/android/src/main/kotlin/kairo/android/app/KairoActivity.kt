@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kairo.android.auth.AndroidAuthenticator
+import kairo.android.auth.Authenticator
 import kairo.android.capture.KnowledgeCapture
 import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.offline.ConnectivityCapability
@@ -22,15 +23,18 @@ class KairoActivity : FragmentActivity() {
     lateinit var memoryInbox: MemoryInboxService
         private set
 
+    var authenticatorOverride: Authenticator? = null
+
     override fun onCreate(
         savedInstanceState: Bundle?,
     ) {
         super.onCreate(savedInstanceState)
 
         val authenticator =
-            AndroidAuthenticator(
-                activity = this,
-            )
+            authenticatorOverride
+                ?: AndroidAuthenticator(
+                    activity = this,
+                )
 
         val database =
             KairoDatabaseFactory.open(
