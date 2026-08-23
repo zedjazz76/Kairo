@@ -50,8 +50,16 @@ class ProjectsFactsTest {
             )
         }
 
-        composeRule.onNodeWithText("Projects").performClick()
-        composeRule.onNodeWithText("Baxter imaging go-live is planned for September 2.").assertIsDisplayed()
-        composeRule.onNodeWithText("PLANNED").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Projects")
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Baxter imaging go-live is planned for September 2.")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("PLANNED")
+            .assertIsDisplayed()
     }
 }
