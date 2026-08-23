@@ -16,6 +16,7 @@ import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
 import kairo.android.theme.KairoTheme
 import kairo.application.MemoryInboxService
+import kairo.domain.EvidenceRef
 import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoActivity : FragmentActivity() {
@@ -64,8 +65,13 @@ class KairoActivity : FragmentActivity() {
                 mutableStateOf(0)
             }
 
+            var evidenceSources by remember {
+                mutableStateOf<List<EvidenceRef>>(emptyList())
+            }
+
             LaunchedEffect(session) {
                 session.load()
+                evidenceSources = session.evidenceSources()
                 loaded = true
                 sessionRevision = session.revision
             }
@@ -80,6 +86,7 @@ class KairoActivity : FragmentActivity() {
                                 request,
                             )
 
+                            evidenceSources = session.evidenceSources()
                             sessionRevision =
                                 session.revision
                         }
@@ -110,10 +117,12 @@ class KairoActivity : FragmentActivity() {
                                 reviewer = reviewer,
                             )
 
+                            evidenceSources = session.evidenceSources()
                             sessionRevision =
                                 session.revision
                         },
                     deepAnalyze = session::deepAnalyze,
+                    evidenceSources = evidenceSources,
                 )
             }
         }
