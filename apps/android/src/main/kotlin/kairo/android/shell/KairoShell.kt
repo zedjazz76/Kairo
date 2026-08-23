@@ -107,7 +107,11 @@ fun KairoShell(
                     knowledgeFacts = knowledgeFacts,
                     onBack = ::backHome,
                 )
-            KairoDestination.Workflows -> WorkflowsDestination(::backHome)
+            KairoDestination.Workflows ->
+                WorkflowsDestination(
+                    knowledgeFacts = knowledgeFacts,
+                    onBack = ::backHome,
+                )
             KairoDestination.Projects -> ProjectsDestination(::backHome)
             KairoDestination.Knowledge ->
                 KnowledgeDestination(
@@ -445,6 +449,29 @@ private fun SystemsDestination(
 }
 
 @Composable
+private fun WorkflowsDestination(
+    knowledgeFacts: List<FactVersion>,
+    onBack: () -> Unit,
+) {
+    ScreenScaffold(
+        title = "Workflows overview",
+        subtitle = "Inspect approved workflow facts from Kairo's current knowledge model.",
+        onBack = onBack,
+    ) {
+        if (knowledgeFacts.isEmpty()) {
+            StatusCard(
+                title = "No approved workflow facts",
+                body = "Approved workflow knowledge will appear here after Memory Inbox review.",
+            )
+        }
+
+        knowledgeFacts.forEach { fact ->
+            FactCard(fact)
+        }
+    }
+}
+
+@Composable
 private fun KnowledgeDestination(
     knowledgeFacts: List<FactVersion>,
     onBack: () -> Unit,
@@ -602,7 +629,7 @@ private fun CaptureDestination(
 
     ScreenScaffold(
         title = "Capture knowledge",
-        subtitle = "Record a local fact for Memory Inbox review.",
+        subtitle = "Capture a candidate fact for Memory Inbox review.",
         onBack = onBack,
     ) {
         OutlinedTextField(
@@ -628,18 +655,12 @@ private fun CaptureDestination(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val capture = knowledgeCapture ?: return@Button
-                val submittedSubject = subject.trim()
-                val submittedPredicate = predicate.trim()
-                val submittedValue = value.trim()
-                if (submittedSubject.isEmpty() || submittedPredicate.isEmpty() || submittedValue.isEmpty()) {
-                    return@Button
-                }
                 scope.launch {
                     capture.save(
                         KnowledgeCaptureRequest(
-                            subject = submittedSubject,
-                            predicate = submittedPredicate,
-                            value = submittedValue,
+                            subject = subject.trim(),
+                            predicate = predicate.trim(),
+                            value = value.trim(),
                         ),
                     )
                     status = "Saved to Memory Inbox"
@@ -648,7 +669,11 @@ private fun CaptureDestination(
                     value = ""
                 }
             },
-            enabled = knowledgeCapture != null,
+            enabled =
+                knowledgeCapture != null &&
+                    subject.isNotBlank() &&
+                    predicate.isNotBlank() &&
+                    value.isNotBlank(),
         ) {
             Text("Save")
         }
@@ -657,30 +682,8 @@ private fun CaptureDestination(
 }
 
 @Composable
-private fun WorkflowsDestination(onBack: () -> Unit) =
-    PlaceholderDestination(
-        title = "Workflows overview",
-        detail = "Trace order, DMWL, modality, PACS, reporting, and downstream handoffs.",
-        onBack = onBack,
-    )
-
-@Composable
-private fun ProjectsDestination(onBack: () -> Unit) =
-    PlaceholderDestination(
-        title = "Projects overview",
-        detail = "Track active implementations, cutovers, migrations, and validation work.",
-        onBack = onBack,
-    )
-
-@Composable
-private fun PlaceholderDestination(
-    title: String,
-    detail: String,
-    onBack: () -> Unit,
-) =
-    ScreenScaffold(title = title, subtitle = detail, onBack = onBack) {
-        StatusCard(
-            title = "Workspace ready",
-            body = "This destination is wired into the app shell and ready for task-specific data.",
-        )
+private fun ProjectsDestination(onBack: () -> Unit) {
+    ScreenScaffold("Projects overview", "Track implementation and migration work.", onBack) {
+        StatusCard("Project workspace", "Project data will appear here as the workspace grows.")
     }
+}
