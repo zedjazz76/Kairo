@@ -3,9 +3,12 @@ package kairo.android.app
 import kairo.android.copilot.AskKairoCopilot
 import kairo.android.copilot.Copilot
 import kairo.application.AskKairoService
+import kairo.application.FactQuery
+import kairo.application.KnowledgeRepository
 import kairo.application.KairoAnswer
 import kairo.application.ReasoningPacket
 import kairo.application.ReasoningProvider
+import kairo.domain.FactVersion
 import kairo.retrieval.HybridRetriever
 
 class KairoCompositionRoot private constructor(
@@ -14,10 +17,30 @@ class KairoCompositionRoot private constructor(
 
     companion object {
 
-        fun empty(): KairoCompositionRoot {
+        fun empty(): KairoCompositionRoot =
+            fromFacts(
+                facts = emptyList(),
+            )
+
+        suspend fun fromRepository(
+            repository: KnowledgeRepository,
+        ): KairoCompositionRoot {
+            val facts =
+                repository.currentUnderstanding(
+                    FactQuery(),
+                )
+
+            return fromFacts(
+                facts = facts,
+            )
+        }
+
+        fun fromFacts(
+            facts: List<FactVersion>,
+        ): KairoCompositionRoot {
             val retriever =
                 HybridRetriever(
-                    facts = emptyList(),
+                    facts = facts,
                 )
 
             val reasoningProvider =
@@ -26,7 +49,7 @@ class KairoCompositionRoot private constructor(
                         packet: ReasoningPacket,
                     ): KairoAnswer {
                         error(
-                            "Cloud reasoning is not configured in the empty Android composition root.",
+                            "Cloud reasoning is not configured in the Android composition root.",
                         )
                     }
                 }
