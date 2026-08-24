@@ -5,7 +5,35 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
-## Progress checkpoint — Task 11 Android UI
+## Progress checkpoint — Task 12 secure browser-to-Core tunnel
+
+2026-08-23 Task 12 secure browser-to-Core pairing and stateless relay tunnel recorded complete after the user reported the grouped local verification gate passed.
+
+User-reported grouped verification commands:
+`npx --yes pnpm@11.19.0 --filter @kairo/relay test`
+`npx --yes pnpm@11.19.0 --filter @kairo/desktop-web test`
+`./gradlew :apps:android:testDebugUnitTest`
+
+Reported result: PASS for all three commands. The assistant cannot independently execute the user's local Android/Node toolchain from GitHub, so this ledger records the grouped gate as user-reported local verification rather than independently reproduced verification.
+
+Task 12 implemented surface:
+- Relay `PairingService` with short-lived six-digit pairing codes, explicit Core-device confirmation, same-device cancellation, expiry, one-time consumption, and consumed/cancelled fail-closed behavior.
+- Confirmed pairing is bound exactly once to a relay tunnel session; the tunnel session cannot outlive the pairing expiry.
+- Relay `TunnelBroker` routes opaque encrypted frames only, rejects expired sessions/frames and replayed/non-monotonic sequence numbers, and removes live routing state immediately on disconnect.
+- Bounded encrypted payload chunking and deterministic out-of-order reassembly with missing, duplicate, and mismatched chunk-set rejection.
+- Browser Web Crypto-compatible P-256 ECDH, HKDF-SHA-256 session derivation using the `kairo-v1-paired-tunnel` context, AES-256-GCM frames, 96-bit random nonces, and authenticated session/sequence/expiry metadata.
+- Browser and Android use the same portable uncompressed P-256 public-key encoding: `0x04 || X(32 bytes) || Y(32 bytes)`.
+- Browser `PairedTunnelClient` encrypts before transport, emits monotonic sequence numbers, enforces local expiry/disconnect state, and sends generated `CoreCommandV1` envelopes through the encrypted path.
+- Android `CoreTunnelClient` provides the transport-agnostic Core-side session boundary with fail-closed disconnected/session-mismatch behavior.
+- Android `AndroidTunnelCrypto` implements matching P-256 ECDH, HKDF-SHA-256, AES-256-GCM, authenticated frame metadata, portable public-key import/export, and tamper rejection.
+- Relay model-gateway legacy tests were aligned with the package's direct TypeScript `node --test` runner so the package-wide Task 12 verification gate can execute cleanly.
+- `ADR-0002-desktop-tunnel-cryptography.md` records the algorithm suite, pairing/session lifecycle, relay-retention boundary, threat model, rotation/expiry, disconnect cleanup, and recovery behavior.
+
+Task 12 status: implementation and grouped local verification are reported complete.
+
+Next planned task: Task 13 — browser desktop capture, Copilot, and evidence review.
+
+## Prior checkpoint — Task 11 Android UI
 
 2026-08-23 Task 11 Android UI full-gate completion candidate recorded after the user reported a successful local run on SM-S176V.
 
@@ -28,14 +56,8 @@ Task 11 implemented surface:
 - Background relock timing is isolated in the deterministic `RelockTimer`; shell relock behavior is covered separately, replacing the brittle full-Activity lifecycle instrumentation duplicate.
 - Existing capture, persistence, memory approval, and end-to-end query flows were reconciled with the structured-answer contract during full-suite regression repair.
 
-Prior grouped checkpoint:
-`./gradlew :apps:android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=kairo.android.KnowledgeFactsTest,kairo.android.SourcesEvidenceTest,kairo.android.SystemsFactsTest,kairo.android.WorkflowsFactsTest,kairo.android.ProjectsFactsTest,kairo.android.MemoryInboxApprovalTest,kairo.android.CaptureKnowledgeTest,kairo.android.OfflineCapabilityTest`
-Result: 13/13 focused Android instrumentation tests passed.
-
 Task 11 status: implementation and local full-gate verification are reported complete. Independent connected-device reproduction is not available through the GitHub connector.
-
-Next planned task: Task 12 — secure browser-to-Core pairing and stateless relay tunnel.
 
 ## Historical ledger
 
-The prior Task 1–10 and Task 11 work history remains in repository history; this checkpoint records the final Task 11 implementation state and the latest reported local verification result.
+The prior Task 1–10 work history remains in repository history; this checkpoint records the final Task 11 and Task 12 implementation states and their latest reported local verification results.
