@@ -20,6 +20,7 @@ User-reported focused verification completed for:
 - `generated-types.test.ts`
 - `CopilotDeepAnalyze.test.tsx`
 - `CaptureDrop.test.tsx`
+- `MemoryInbox.test.tsx`
 
 Task 13 implemented so far:
 - `DesktopWorkspace` is the single browser workspace state spine with approved destinations: Capture, Copilot, Memory, and Projects.
@@ -29,14 +30,15 @@ Task 13 implemented so far:
 - `App.tsx` renders the first browser split-view shell using `CaptureWorkspace`, `CopilotWorkspace`, and `EvidencePane`.
 - Copilot exposes an `Open evidence` action wired through the existing `DesktopWorkspace.openEvidence(...)`; opening evidence preserves Copilot and displays the matching evidence reference.
 - `CaptureWorkspace` exposes `Analyze together`, consumes the existing ordered `CaptureBatch.commands()`, and dispatches staged `CaptureSource` commands sequentially through an injected async Core-command sender.
-- `CaptureWorkspace` now accepts browser-selected files through a multiple-file input, preserves browser selection order, converts each file to metadata-only staged state through a caller-supplied source-reference function, renders staged filenames immediately, and does not retain raw file contents in `CaptureBatch`.
+- `CaptureWorkspace` accepts browser-selected files through a multiple-file input, preserves browser selection order, converts each file to metadata-only staged state through a caller-supplied source-reference function, renders staged filenames immediately, and does not retain raw file contents in `CaptureBatch`.
 - `CopilotWorkspace` renders a real Ask Kairo form and dispatches one typed `AskKairo` `CoreCommandV1` using an injected async Core-command sender and caller-supplied request ID.
 - The Core contract defines a dedicated `DeepAnalyze` command and success-result branch, with generated TypeScript declarations synchronized from the source schema.
 - `CopilotWorkspace` exposes a distinct `Deep Analyze` action that reuses the current question field and dispatches a typed `DeepAnalyze` `CoreCommandV1` through the same injected sender without changing the existing Ask Kairo or Open evidence paths.
-- The capture and Copilot slices do not introduce a second browser state store, persist raw file bytes, or couple UI components directly to a concrete tunnel implementation.
+- `MemoryInbox` renders injected memory candidates and dispatches an exact typed `ReviewMemoryCandidate` command for the selected candidate through an injected sender, with no browser persistence or direct tunnel dependency introduced.
+- The capture, Copilot, and Memory Inbox slices do not introduce a second browser state store, persist raw file bytes, or couple UI components directly to a concrete tunnel implementation.
 - pnpm workspace build policy explicitly permits the Vite/esbuild install script so the no-install browser development/test harness is reproducible without interactive approval.
 
-Task 13 status: shell, evidence-navigation, ordered capture-command dispatch, real browser capture/drop staging, Ask Kairo dispatch, and Deep Analyze contract/UI dispatch are complete. Remaining Task 13 work includes Memory Inbox, Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
+Task 13 status: shell, evidence-navigation, ordered capture-command dispatch, real browser capture/drop staging, Ask Kairo dispatch, Deep Analyze contract/UI dispatch, and Memory Inbox review dispatch are complete. Remaining Task 13 work includes Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
 
 Next design gate: choose the next bounded Task 13 interaction slice before implementation.
 
