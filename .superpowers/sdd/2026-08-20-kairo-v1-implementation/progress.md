@@ -5,6 +5,29 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 13 desktop capture/Copilot/evidence shell
+
+2026-08-23 Task 13 first desktop-web slice recorded after focused local verification reported PASS.
+
+User-reported focused verification completed for:
+- `DesktopWorkspace.test.ts`
+- `CaptureBatch.test.ts`
+- `App.test.tsx`
+- `EvidenceAction.test.tsx`
+
+Task 13 implemented so far:
+- `DesktopWorkspace` is the single browser workspace state spine with approved destinations: Capture, Copilot, Memory, and Projects.
+- Capture is the initial workspace; Copilot remains visible while evidence is reviewed.
+- `CaptureBatch` stages ordered source metadata only, retains no raw file bytes in the batch model, and deterministically emits typed `CaptureSource` `CoreCommandV1` envelopes.
+- Desktop React/Vite/TypeScript foundation is present with automatic `react-jsx` runtime configuration.
+- `App.tsx` renders the first browser split-view shell using `CaptureWorkspace`, `CopilotWorkspace`, and `EvidencePane`.
+- Copilot exposes an `Open evidence` action wired through the existing `DesktopWorkspace.openEvidence(...)`; opening evidence preserves Copilot and displays the matching evidence reference.
+- pnpm workspace build policy explicitly permits the Vite/esbuild install script so the no-install browser development/test harness is reproducible without interactive approval.
+
+Task 13 status: first shell and evidence-navigation slice complete. Remaining Task 13 work includes real capture interaction/analysis flow, Ask Kairo and Deep Analyze interaction, Memory Inbox, Projects, source/evidence inspection behavior, and the planned browser E2E gate.
+
+Next design gate: choose the next bounded Task 13 interaction slice before implementation.
+
 ## Progress checkpoint — Task 12 secure browser-to-Core tunnel
 
 2026-08-23 Task 12 secure browser-to-Core pairing and stateless relay tunnel recorded complete after the user reported the grouped local verification gate passed.
