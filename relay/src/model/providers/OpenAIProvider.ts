@@ -2,7 +2,7 @@ import type {
   ModelProvider,
   ModelRequest,
   ModelResponse,
-} from "../ModelGateway.js";
+} from "../ModelGateway.ts";
 
 export type OpenAIEnvironment = {
   OPENAI_API_KEY?: string;
