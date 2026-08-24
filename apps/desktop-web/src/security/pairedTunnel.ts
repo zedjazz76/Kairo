@@ -14,6 +14,71 @@ export type EncryptedTunnelFrame = TunnelFrameMetadata & {
   ciphertext: string;
 };
 
+export interface TunnelFrameTransport {
+  send(frame: EncryptedTunnelFrame): Promise<void>;
+  disconnect(): Promise<void>;
+}
+
+export type PairedTunnelClientOptions = {
+  sessionId: string;
+  expiresAt: number;
+  sessionKey: CryptoKey;
+  transport: TunnelFrameTransport;
+  now?: () => number;
+};
+
+export class PairedTunnelClient {
+  private readonly sessionId: string;
+  private readonly expiresAt: number;
+  private readonly sessionKey: CryptoKey;
+  private readonly transport: TunnelFrameTransport;
+  private readonly now: () => number;
+  private sequence = 0;
+  private connected = true;
+
+  constructor(options: PairedTunnelClientOptions) {
+    this.sessionId = options.sessionId;
+    this.expiresAt = options.expiresAt;
+    this.sessionKey = options.sessionKey;
+    this.transport = options.transport;
+    this.now = options.now ?? Date.now;
+  }
+
+  async sendPlaintext(plaintext: string): Promise<void> {
+    if (!this.connected) {
+      throw new Error("tunnel_not_connected");
+    }
+
+    if (this.expiresAt <= this.now()) {
+      throw new Error("session_expired");
+    }
+
+    const sequence = this.sequence + 1;
+    this.sequence = sequence;
+
+    const frame = await encryptTunnelFrame(
+      this.sessionKey,
+      {
+        sessionId: this.sessionId,
+        sequence,
+        expiresAt: this.expiresAt,
+      },
+      plaintext,
+    );
+
+    await this.transport.send(frame);
+  }
+
+  async disconnect(): Promise<void> {
+    if (!this.connected) {
+      return;
+    }
+
+    this.connected = false;
+    await this.transport.disconnect();
+  }
+}
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const P256_UNCOMPRESSED_PUBLIC_KEY_BYTES = 65;
