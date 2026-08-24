@@ -5,5 +5,10 @@
   "scripts": {
     "contracts:generate": "node scripts/generate-contract-types.mjs",
     "test": "node scripts/run-contract-tests.mjs"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
