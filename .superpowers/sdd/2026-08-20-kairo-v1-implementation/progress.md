@@ -18,6 +18,7 @@ User-reported focused verification completed for:
 - `CopilotAsk.test.tsx`
 - `deep-analyze-contract.test.ts`
 - `generated-types.test.ts`
+- `CopilotDeepAnalyze.test.tsx`
 
 Task 13 implemented so far:
 - `DesktopWorkspace` is the single browser workspace state spine with approved destinations: Capture, Copilot, Memory, and Projects.
@@ -28,13 +29,14 @@ Task 13 implemented so far:
 - Copilot exposes an `Open evidence` action wired through the existing `DesktopWorkspace.openEvidence(...)`; opening evidence preserves Copilot and displays the matching evidence reference.
 - `CaptureWorkspace` exposes `Analyze together`, consumes the existing ordered `CaptureBatch.commands()`, and dispatches staged `CaptureSource` commands sequentially through an injected async Core-command sender.
 - `CopilotWorkspace` renders a real Ask Kairo form and dispatches one typed `AskKairo` `CoreCommandV1` using an injected async Core-command sender and caller-supplied request ID.
-- The Core contract now defines a dedicated `DeepAnalyze` command and success-result branch, with generated TypeScript declarations synchronized from the source schema.
+- The Core contract defines a dedicated `DeepAnalyze` command and success-result branch, with generated TypeScript declarations synchronized from the source schema.
+- `CopilotWorkspace` exposes a distinct `Deep Analyze` action that reuses the current question field and dispatches a typed `DeepAnalyze` `CoreCommandV1` through the same injected sender without changing the existing Ask Kairo or Open evidence paths.
 - The capture and Copilot slices do not introduce a second browser state store, persist raw file bytes, or couple UI components directly to a concrete tunnel implementation.
 - pnpm workspace build policy explicitly permits the Vite/esbuild install script so the no-install browser development/test harness is reproducible without interactive approval.
 
-Task 13 status: shell, evidence-navigation, ordered capture-command dispatch, Ask Kairo dispatch, and the DeepAnalyze contract/type surface are complete. Remaining Task 13 work includes the Deep Analyze UI interaction, real capture/drop interaction, Memory Inbox, Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
+Task 13 status: shell, evidence-navigation, ordered capture-command dispatch, Ask Kairo dispatch, and Deep Analyze contract/UI dispatch are complete. Remaining Task 13 work includes real capture/drop interaction, Memory Inbox, Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
 
-Next design gate: add the bounded Deep Analyze Copilot interaction using the synchronized `DeepAnalyze` Core command.
+Next design gate: choose the next bounded Task 13 interaction slice before implementation.
 
 ## Progress checkpoint — Task 12 secure browser-to-Core tunnel
 
