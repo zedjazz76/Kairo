@@ -9,6 +9,8 @@ node_modules/
 **/node_modules/
 dist/
 **/dist/
+test-results/
+**/test-results/
 .idea/
 local.properties
 .env

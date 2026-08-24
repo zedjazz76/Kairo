@@ -6,12 +6,14 @@ export type CaptureWorkspaceProps = {
   captureBatch: CaptureBatch;
   onSendCommand?: (command: CoreCommandV1) => Promise<void>;
   sourceRefForFile?: (file: File, index: number) => string;
+  onStaged?: () => void;
 };
 
 export function CaptureWorkspace({
   captureBatch,
   onSendCommand,
   sourceRefForFile,
+  onStaged,
 }: CaptureWorkspaceProps) {
   const stageSelectedFiles = (event: ChangeEvent<HTMLInputElement>): void => {
     const files = Array.from(event.currentTarget.files ?? []);
@@ -26,6 +28,10 @@ export function CaptureWorkspace({
         mediaType: file.type,
       });
     });
+
+    if (files.length > 0) {
+      onStaged?.();
+    }
   };
 
   const analyzeTogether = async (): Promise<void> => {

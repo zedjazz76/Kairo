@@ -3,5 +3,5 @@ packages:
   - "relay"
   - "apps/desktop-web"
 
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  esbuild: true

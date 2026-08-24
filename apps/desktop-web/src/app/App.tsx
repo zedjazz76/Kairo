@@ -27,6 +27,8 @@ export type AppProps = {
   createRequestId?: () => string;
   memoryCandidates?: readonly MemoryCandidate[];
   projects?: ProjectSummary[];
+  onWorkspaceChange?: () => void;
+  onCaptureStaged?: () => void;
 };
 
 export function App({
@@ -37,6 +39,8 @@ export function App({
   createRequestId,
   memoryCandidates = [],
   projects = [],
+  onWorkspaceChange,
+  onCaptureStaged,
 }: AppProps) {
   const pairedCommands = commandSender ?? composePairedDesktopCommands();
   const sendCommand = pairedCommands.send.bind(pairedCommands);
@@ -51,11 +55,28 @@ export function App({
     });
 
     workspace.openEvidence(evidenceRef);
+    onWorkspaceChange?.();
+  };
+
+  const navigate = (destination: DesktopWorkspace["activeWorkspace"]): void => {
+    workspace.navigate(destination);
+    onWorkspaceChange?.();
   };
 
   return (
     <main>
-      <CaptureWorkspace captureBatch={captureBatch} onSendCommand={sendCommand} />
+      <nav aria-label="Desktop workspace">
+        <button type="button" onClick={() => navigate("capture")}>Capture</button>
+        <button type="button" onClick={() => navigate("memory")}>Memory</button>
+        <button type="button" onClick={() => navigate("projects")}>Projects</button>
+      </nav>
+      {workspace.activeWorkspace === "capture" ? (
+        <CaptureWorkspace
+          captureBatch={captureBatch}
+          onSendCommand={sendCommand}
+          onStaged={onCaptureStaged}
+        />
+      ) : null}
       {workspace.copilotVisible ? (
         <CopilotWorkspace
           createRequestId={nextRequestId}

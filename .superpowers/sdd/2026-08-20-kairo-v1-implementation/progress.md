@@ -5,6 +5,30 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 13 browser host, E2E gate, and closure
+
+2026-08-24 Task 13 is complete for the approved browser-desktop scope.
+
+Implemented:
+- Vite browser host (`index.html`, `main.tsx`, and `DesktopBrowserApp`) with React-owned rerender boundaries around the existing ephemeral workspace and metadata-only CaptureBatch state.
+- Desktop navigation for Capture, Memory, and Projects; Copilot remains visible while evidence is opened.
+- Playwright desktop E2E coverage for ordered multi-file staging, Analyze together, Deep Analyze, evidence opening beside Copilot, and Memory navigation.
+- The E2E seam substitutes only the external paired-command sender and records command types; it contains no fake Core database and retains no command/file plaintext.
+- `pnpm-workspace.yaml` now uses pnpm 11's current `allowBuilds` map (`esbuild: true`). This replaces the obsolete `onlyBuiltDependencies` setting that pnpm 11 reported as ignored; no obsolete `package.json` pnpm build-policy field was introduced.
+- `@playwright/test` is a desktop dev dependency. The local test runner may set `KAIRO_PLAYWRIGHT_EXECUTABLE` for an already-installed browser; no machine path is committed and CI/default environments use Playwright provisioning.
+
+Fresh verification:
+- `npx --yes pnpm@11.19.0 install --frozen-lockfile` — PASS.
+- `npx --yes pnpm@11.19.0 --filter @kairo/desktop-web test` — PASS (16 tests).
+- `npx --yes pnpm@11.19.0 --filter @kairo/desktop-web build` — PASS.
+- `npx --yes pnpm@11.19.0 test` — PASS (12 shared-contract tests).
+- `npx --yes pnpm@11.19.0 --filter @kairo/relay test` — PASS (18 relay tests).
+- `KAIRO_PLAYWRIGHT_EXECUTABLE=/usr/bin/google-chrome npx --yes pnpm@11.19.0 --filter @kairo/desktop-web e2e` — PASS (1 browser E2E test).
+
+Task 13 closure decision: Android verification was not rerun because this Task 13 work changed neither shared contracts nor Android/tunnel implementation. Pairing UX was intentionally not added because the approved Task 13 plan does not specify it; the composed desktop command boundary remains fail-closed until a paired client is provided.
+
+Next major architectural boundary: Task 14 — controlled Genesis Corpus import and private benchmark.
+
 ## Progress checkpoint — Task 13 paired desktop command composition
 
 2026-08-24 Task 13 paired command composition completed with focused desktop verification.

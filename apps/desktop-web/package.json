@@ -6,13 +6,15 @@
   "scripts": {
     "test": "tsx --test src/**/*.test.ts src/**/*.test.tsx",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "tsx": "^4.0.0",
