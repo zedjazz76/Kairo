@@ -5,9 +5,15 @@
   "$defs": {
     "CoreCommandTypeV1": {
       "type": "string",
-      "enum": ["AskKairo", "CaptureSource", "SearchKnowledge", "GetSystem", "TraceWorkflow", "GetProject", "ReviewMemoryCandidate", "OpenEvidence"]
+      "enum": ["AskKairo", "DeepAnalyze", "CaptureSource", "SearchKnowledge", "GetSystem", "TraceWorkflow", "GetProject", "ReviewMemoryCandidate", "OpenEvidence"]
     },
     "AskKairoCommandPayloadV1": {
+      "type": "object",
+      "required": ["question"],
+      "properties": { "question": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "DeepAnalyzeCommandPayloadV1": {
       "type": "object",
       "required": ["question"],
       "properties": { "question": { "type": "string", "minLength": 1 } },
@@ -70,6 +76,7 @@
       "additionalProperties": false,
       "oneOf": [
         { "properties": { "type": { "const": "AskKairo" }, "payload": { "$ref": "#/$defs/AskKairoCommandPayloadV1" } } },
+        { "properties": { "type": { "const": "DeepAnalyze" }, "payload": { "$ref": "#/$defs/DeepAnalyzeCommandPayloadV1" } } },
         { "properties": { "type": { "const": "CaptureSource" }, "payload": { "$ref": "#/$defs/CaptureSourceCommandPayloadV1" } } },
         { "properties": { "type": { "const": "SearchKnowledge" }, "payload": { "$ref": "#/$defs/SearchKnowledgeCommandPayloadV1" } } },
         { "properties": { "type": { "const": "GetSystem" }, "payload": { "$ref": "#/$defs/GetSystemCommandPayloadV1" } } },
@@ -94,6 +101,12 @@
       "additionalProperties": false
     },
     "AskKairoSuccessDataV1": {
+      "type": "object",
+      "required": ["answerRef"],
+      "properties": { "answerRef": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "DeepAnalyzeSuccessDataV1": {
       "type": "object",
       "required": ["answerRef"],
       "properties": { "answerRef": { "type": "string", "minLength": 1 } },
@@ -161,6 +174,7 @@
       "additionalProperties": false,
       "oneOf": [
         { "required": ["data"], "properties": { "type": { "const": "AskKairo" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/AskKairoSuccessDataV1" } }, "not": { "required": ["error"] } },
+        { "required": ["data"], "properties": { "type": { "const": "DeepAnalyze" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/DeepAnalyzeSuccessDataV1" } }, "not": { "required": ["error"] } },
         { "required": ["data"], "properties": { "type": { "const": "CaptureSource" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/CaptureSourceSuccessDataV1" } }, "not": { "required": ["error"] } },
         { "required": ["data"], "properties": { "type": { "const": "SearchKnowledge" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/SearchKnowledgeSuccessDataV1" } }, "not": { "required": ["error"] } },
         { "required": ["data"], "properties": { "type": { "const": "GetSystem" }, "status": { "const": "SUCCESS" }, "data": { "$ref": "#/$defs/GetSystemSuccessDataV1" } }, "not": { "required": ["error"] } },
