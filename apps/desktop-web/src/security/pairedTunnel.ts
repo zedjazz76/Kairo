@@ -1,3 +1,5 @@
+import type { CoreCommandV1 } from "../../../../shared/contracts/generated/contracts.v1.ts";
+
 export type EphemeralKeyPair = {
   privateKey: CryptoKey;
   publicKey: CryptoKey;
@@ -42,6 +44,10 @@ export class PairedTunnelClient {
     this.sessionKey = options.sessionKey;
     this.transport = options.transport;
     this.now = options.now ?? Date.now;
+  }
+
+  async sendCommand(command: CoreCommandV1): Promise<void> {
+    await this.sendPlaintext(JSON.stringify(command));
   }
 
   async sendPlaintext(plaintext: string): Promise<void> {
