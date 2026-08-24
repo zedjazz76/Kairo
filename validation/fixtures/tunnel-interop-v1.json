@@ -1,0 +1,9 @@
+{
+  "sessionKeyHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "sessionId": "session-interop-1",
+  "sequence": 7,
+  "expiresAt": 1725000060000,
+  "nonceBase64": "AAECAwQFBgcICQoL",
+  "plaintext": "{\"type\":\"ASK_KAIRO\",\"question\":\"What is AbbaDox routing?\"}",
+  "ciphertextBase64": "__TO_BE_FILLED_BY_RED__"
+}
