@@ -49,3 +49,26 @@ test("confirmation from a different Core device is rejected", () => {
     /pairing_device_mismatch/,
   );
 });
+
+test("cancelled pairing code cannot be confirmed or consumed", () => {
+  const service = new PairingService({ now: () => now, codeTtlMillis: 60_000 });
+  const offer = service.createOffer({ coreDeviceId: "android-core-1" });
+
+  service.cancel({ code: offer.code, coreDeviceId: "android-core-1" });
+
+  assert.throws(
+    () => service.confirm({ code: offer.code, coreDeviceId: "android-core-1" }),
+    /pairing_cancelled/,
+  );
+  assert.equal(service.consumeConfirmed(offer.code), null);
+});
+
+test("pairing cancellation is bound to the same Core device", () => {
+  const service = new PairingService({ now: () => now, codeTtlMillis: 60_000 });
+  const offer = service.createOffer({ coreDeviceId: "android-core-1" });
+
+  assert.throws(
+    () => service.cancel({ code: offer.code, coreDeviceId: "other-core" }),
+    /pairing_device_mismatch/,
+  );
+});
