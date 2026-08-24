@@ -19,9 +19,13 @@ export interface KairoClaimV1 {
   evidenceRefs: Array<string>;
 }
 
-export type CoreCommandTypeV1 = "AskKairo" | "CaptureSource" | "SearchKnowledge" | "GetSystem" | "TraceWorkflow" | "GetProject" | "ReviewMemoryCandidate" | "OpenEvidence";
+export type CoreCommandTypeV1 = "AskKairo" | "DeepAnalyze" | "CaptureSource" | "SearchKnowledge" | "GetSystem" | "TraceWorkflow" | "GetProject" | "ReviewMemoryCandidate" | "OpenEvidence";
 
 export interface AskKairoCommandPayloadV1 {
+  question: string;
+}
+
+export interface DeepAnalyzeCommandPayloadV1 {
   question: string;
 }
 
@@ -56,6 +60,7 @@ export interface OpenEvidenceCommandPayloadV1 {
 
 export type CoreCommandV1 =
   | { requestId: string; type: "AskKairo"; contractVersion: "v1"; payload: AskKairoCommandPayloadV1; }
+  | { requestId: string; type: "DeepAnalyze"; contractVersion: "v1"; payload: DeepAnalyzeCommandPayloadV1; }
   | { requestId: string; type: "CaptureSource"; contractVersion: "v1"; payload: CaptureSourceCommandPayloadV1; }
   | { requestId: string; type: "SearchKnowledge"; contractVersion: "v1"; payload: SearchKnowledgeCommandPayloadV1; }
   | { requestId: string; type: "GetSystem"; contractVersion: "v1"; payload: GetSystemCommandPayloadV1; }
@@ -73,6 +78,10 @@ export interface CoreErrorV1 {
 }
 
 export interface AskKairoSuccessDataV1 {
+  answerRef: string;
+}
+
+export interface DeepAnalyzeSuccessDataV1 {
   answerRef: string;
 }
 
@@ -106,6 +115,7 @@ export interface OpenEvidenceSuccessDataV1 {
 
 export type CoreResultV1 =
   | { requestId: string; type: "AskKairo"; contractVersion: "v1"; status: "SUCCESS"; data: AskKairoSuccessDataV1; }
+  | { requestId: string; type: "DeepAnalyze"; contractVersion: "v1"; status: "SUCCESS"; data: DeepAnalyzeSuccessDataV1; }
   | { requestId: string; type: "CaptureSource"; contractVersion: "v1"; status: "SUCCESS"; data: CaptureSourceSuccessDataV1; }
   | { requestId: string; type: "SearchKnowledge"; contractVersion: "v1"; status: "SUCCESS"; data: SearchKnowledgeSuccessDataV1; }
   | { requestId: string; type: "GetSystem"; contractVersion: "v1"; status: "SUCCESS"; data: GetSystemSuccessDataV1; }
