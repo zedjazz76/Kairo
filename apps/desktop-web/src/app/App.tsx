@@ -13,7 +13,9 @@ export function App({ workspace, captureBatch }: AppProps) {
   return (
     <main>
       <CaptureWorkspace captureBatch={captureBatch} />
-      {workspace.copilotVisible ? <CopilotWorkspace /> : null}
+      {workspace.copilotVisible ? (
+        <CopilotWorkspace onOpenEvidence={(evidenceRef) => workspace.openEvidence(evidenceRef)} />
+      ) : null}
       {workspace.evidencePaneVisible && workspace.activeEvidenceRef ? (
         <EvidencePane evidenceRef={workspace.activeEvidenceRef} />
       ) : null}
