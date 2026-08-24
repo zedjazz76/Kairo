@@ -21,6 +21,7 @@ User-reported focused verification completed for:
 - `CopilotDeepAnalyze.test.tsx`
 - `CaptureDrop.test.tsx`
 - `MemoryInbox.test.tsx`
+- `ProjectsWorkspace.test.tsx`
 
 Task 13 implemented so far:
 - `DesktopWorkspace` is the single browser workspace state spine with approved destinations: Capture, Copilot, Memory, and Projects.
@@ -35,12 +36,13 @@ Task 13 implemented so far:
 - The Core contract defines a dedicated `DeepAnalyze` command and success-result branch, with generated TypeScript declarations synchronized from the source schema.
 - `CopilotWorkspace` exposes a distinct `Deep Analyze` action that reuses the current question field and dispatches a typed `DeepAnalyze` `CoreCommandV1` through the same injected sender without changing the existing Ask Kairo or Open evidence paths.
 - `MemoryInbox` renders injected memory candidates and dispatches an exact typed `ReviewMemoryCandidate` command for the selected candidate through an injected sender, with no browser persistence or direct tunnel dependency introduced.
-- The capture, Copilot, and Memory Inbox slices do not introduce a second browser state store, persist raw file bytes, or couple UI components directly to a concrete tunnel implementation.
+- `ProjectsWorkspace` renders injected project summaries and dispatches an exact typed `GetProject` command for the selected project through an injected sender, preserving the project ID without browser persistence or direct tunnel dependency.
+- The capture, Copilot, Memory Inbox, and Projects slices do not introduce a second browser state store, persist raw file bytes, or couple UI components directly to a concrete tunnel implementation.
 - pnpm workspace build policy explicitly permits the Vite/esbuild install script so the no-install browser development/test harness is reproducible without interactive approval.
 
-Task 13 status: shell, evidence-navigation, ordered capture-command dispatch, real browser capture/drop staging, Ask Kairo dispatch, Deep Analyze contract/UI dispatch, and Memory Inbox review dispatch are complete. Remaining Task 13 work includes Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
+Task 13 status: shell, evidence-navigation, ordered capture-command dispatch, real browser capture/drop staging, Ask Kairo dispatch, Deep Analyze contract/UI dispatch, Memory Inbox review dispatch, and Projects open dispatch are complete. Remaining Task 13 work includes richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
 
-Next design gate: choose the next bounded Task 13 interaction slice before implementation.
+Next design gate: choose the richer source/evidence inspection slice before composing the browser shell with the paired tunnel.
 
 ## Progress checkpoint — Task 12 secure browser-to-Core tunnel
 
@@ -56,7 +58,7 @@ Reported result: PASS for all three commands. The assistant cannot independently
 Task 12 implemented surface:
 - Relay `PairingService` with short-lived six-digit pairing codes, explicit Core-device confirmation, same-device cancellation, expiry, one-time consumption, and consumed/cancelled fail-closed behavior.
 - Confirmed pairing is bound exactly once to a relay tunnel session; the tunnel session cannot outlive the pairing expiry.
-- Relay `TunnelBroker` routes opaque encrypted frames only, rejects expired sessions/frames and replayed/non-monotonic sequence numbers, and removes live routing state immediately on disconnect.
+- Relay `TunnelBroker` routes opaque ciphertext only, rejects expired frames and replayed/non-monotonic sequence numbers, and removes live routing state immediately on disconnect.
 - Bounded encrypted payload chunking and deterministic out-of-order reassembly with missing, duplicate, and mismatched chunk-set rejection.
 - Browser Web Crypto-compatible P-256 ECDH, HKDF-SHA-256 session derivation using the `kairo-v1-paired-tunnel` context, AES-256-GCM frames, 96-bit random nonces, and authenticated session/sequence/expiry metadata.
 - Browser and Android use the same portable uncompressed P-256 public-key encoding: `0x04 || X(32 bytes) || Y(32 bytes)`.
