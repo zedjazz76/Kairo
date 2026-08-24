@@ -5,6 +5,36 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Shutdown handoff — 2026-08-23
+
+Work stopped intentionally after the Projects slice passed focused local verification.
+
+Authoritative resume branch: `kairo-v1`.
+
+Latest completed Task 13 slices:
+- desktop workspace state spine
+- Capture + persistent Copilot + evidence split-view shell
+- evidence open action through `DesktopWorkspace.openEvidence(...)`
+- ordered `CaptureSource` Analyze together dispatch
+- browser multiple-file capture staging with metadata-only durable batch state
+- Ask Kairo typed command dispatch
+- dedicated DeepAnalyze Core schema, generated TypeScript contract surface, and Deep Analyze UI dispatch
+- Memory Inbox `ReviewMemoryCandidate` dispatch
+- Projects `GetProject` dispatch
+
+User-reported focused tests for every slice above are GREEN. No Task 13 evidence-inspection RED has been started yet, so tomorrow should resume from a clean design/TDD boundary rather than from an intentionally failing test.
+
+Recommended next bounded slice: richer source/evidence inspection. Proposed behavior: inject evidence metadata into `EvidencePane`, render source name, source type, and evidence reference for the active evidence record, preserve Copilot beside the evidence pane, and avoid file-content loading, browser persistence, or tunnel coupling in that slice. Start RED-first with a focused evidence-inspection component test.
+
+After richer evidence inspection, remaining Task 13 structural work is paired-tunnel composition and the planned browser E2E gate.
+
+Resume sequence on another machine:
+1. `git checkout kairo-v1`
+2. `git pull`
+3. read this `progress.md` checkpoint
+4. verify working tree with `git status --short`
+5. continue with the richer evidence-inspection RED
+
 ## Progress checkpoint — Task 13 desktop capture/Copilot/evidence shell
 
 2026-08-23 Task 13 desktop-web capture/Copilot/evidence work recorded after focused local verification reported PASS.
