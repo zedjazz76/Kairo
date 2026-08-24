@@ -7,13 +7,14 @@ Remote: https://github.com/zedjazz76/Kairo.git
 
 ## Progress checkpoint — Task 13 desktop capture/Copilot/evidence shell
 
-2026-08-23 Task 13 first desktop-web slice recorded after focused local verification reported PASS.
+2026-08-23 Task 13 desktop-web capture/Copilot/evidence work recorded after focused local verification reported PASS.
 
 User-reported focused verification completed for:
 - `DesktopWorkspace.test.ts`
 - `CaptureBatch.test.ts`
 - `App.test.tsx`
 - `EvidenceAction.test.tsx`
+- `CaptureAnalyze.test.tsx`
 
 Task 13 implemented so far:
 - `DesktopWorkspace` is the single browser workspace state spine with approved destinations: Capture, Copilot, Memory, and Projects.
@@ -22,9 +23,11 @@ Task 13 implemented so far:
 - Desktop React/Vite/TypeScript foundation is present with automatic `react-jsx` runtime configuration.
 - `App.tsx` renders the first browser split-view shell using `CaptureWorkspace`, `CopilotWorkspace`, and `EvidencePane`.
 - Copilot exposes an `Open evidence` action wired through the existing `DesktopWorkspace.openEvidence(...)`; opening evidence preserves Copilot and displays the matching evidence reference.
+- `CaptureWorkspace` now exposes `Analyze together`, consumes the existing ordered `CaptureBatch.commands()`, and dispatches the staged `CaptureSource` commands sequentially through an injected async Core-command sender.
+- The Analyze-together slice does not introduce a second browser state store, persist raw file bytes, or couple the UI directly to a concrete tunnel implementation.
 - pnpm workspace build policy explicitly permits the Vite/esbuild install script so the no-install browser development/test harness is reproducible without interactive approval.
 
-Task 13 status: first shell and evidence-navigation slice complete. Remaining Task 13 work includes real capture interaction/analysis flow, Ask Kairo and Deep Analyze interaction, Memory Inbox, Projects, source/evidence inspection behavior, and the planned browser E2E gate.
+Task 13 status: shell, evidence-navigation, and ordered capture-command dispatch slices complete. Remaining Task 13 work includes real capture/drop interaction, Ask Kairo and Deep Analyze interaction, Memory Inbox, Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
 
 Next design gate: choose the next bounded Task 13 interaction slice before implementation.
 
@@ -83,4 +86,4 @@ Task 11 status: implementation and local full-gate verification are reported com
 
 ## Historical ledger
 
-The prior Task 1–10 work history remains in repository history; this checkpoint records the final Task 11 and Task 12 implementation states and their latest reported local verification results.
+The prior Task 1–10 work history remains in repository history; this checkpoint records the final Task 11 and Task 12 implementation states and the current Task 13 progress.
