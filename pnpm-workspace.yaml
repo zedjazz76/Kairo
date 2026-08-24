@@ -2,3 +2,6 @@ packages:
   - "shared/contracts"
   - "relay"
   - "apps/desktop-web"
+
+onlyBuiltDependencies:
+  - esbuild
