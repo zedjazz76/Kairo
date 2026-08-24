@@ -41,3 +41,33 @@ test("opening evidence preserves Copilot beside the evidence pane", () => {
   assert.match(html, /data-testid="evidence-pane"/);
   assert.match(html, /evidence-1/);
 });
+
+test("desktop shell injects the active evidence record into the evidence pane", () => {
+  const workspace = new DesktopWorkspace();
+  workspace.openEvidence("evidence-abbadox-routing");
+
+  const html = renderToStaticMarkup(
+    App({
+      workspace,
+      captureBatch: new CaptureBatch({ captureSessionId: "capture-1" }),
+      evidenceRecords: [
+        {
+          evidenceRef: "evidence-abbadox-routing",
+          sourceId: "source-abbadox-meeting",
+          sourceName: "AbbaDox routing workshop notes.docx",
+          sourceType: "DOCUMENT",
+          mediaType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          origin: "IMPORT",
+          classification: "CONFIDENTIAL",
+          importedAt: "2026-08-23T14:30:00Z",
+          contentHash: "sha256:1f4a9c",
+          anchorDescription: "Decision section, paragraphs 12–14",
+        },
+      ],
+    } as never),
+  );
+
+  assert.match(html, /AbbaDox routing workshop notes\.docx/);
+  assert.match(html, /Decision section, paragraphs 12–14/);
+});

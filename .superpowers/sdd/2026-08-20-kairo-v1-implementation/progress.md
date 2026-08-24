@@ -5,6 +5,24 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 13 evidence metadata inspection
+
+2026-08-24 Task 13 evidence inspection completed with focused desktop verification.
+
+Implemented:
+- `EvidencePane` resolves an injected, transient evidence-inspection record by the exact active `evidenceRef`.
+- The pane makes provenance visible: source name and ID, source/media type, origin, classification, import timestamp, content hash, and already-resolved anchor description.
+- `App` passes injected records only to the active evidence pane. The browser creates no evidence store, retains no source contents, and does not fetch source files directly.
+
+Focused verification:
+`apps/desktop-web/node_modules/.bin/tsx --tsconfig apps/desktop-web/tsconfig.json --test apps/desktop-web/src/features/evidence/EvidencePane.test.tsx apps/desktop-web/src/app/App.test.tsx apps/desktop-web/src/app/EvidenceAction.test.tsx`
+
+Result: PASS (5 tests, 0 failures).
+
+Architectural decision: the current shared `OpenEvidence` result carries only an `evidenceRef`; metadata remains resolver-injected at the desktop boundary for this slice rather than inventing a new wire contract or browser persistence layer.
+
+Next: compose the existing injected desktop command path through `PairedTunnelClient`, then add the browser E2E host/gate.
+
 ## Progress checkpoint — Task 13 desktop capture/Copilot/evidence shell
 
 2026-08-23 Task 13 desktop-web capture/Copilot/evidence work recorded after focused local verification reported PASS.
