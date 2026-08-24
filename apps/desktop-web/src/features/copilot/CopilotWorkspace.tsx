@@ -3,19 +3,22 @@ import type { CoreCommandV1 } from "../../../../../shared/contracts/generated/co
 
 export type CopilotWorkspaceProps = {
   requestId?: string;
+  createRequestId?: () => string;
   onSendCommand?: (command: CoreCommandV1) => Promise<void>;
   onOpenEvidence?: (evidenceRef: string) => void;
 };
 
 export function CopilotWorkspace({
   requestId,
+  createRequestId,
   onSendCommand,
   onOpenEvidence,
 }: CopilotWorkspaceProps) {
   async function submitQuestion(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (!requestId || !onSendCommand) return;
+    const commandRequestId = createRequestId?.() ?? requestId;
+    if (!commandRequestId || !onSendCommand) return;
 
     const questionElement = event.currentTarget.elements.namedItem("question");
     const question =
@@ -24,7 +27,7 @@ export function CopilotWorkspace({
         : "";
 
     await onSendCommand({
-      requestId,
+      requestId: commandRequestId,
       type: "AskKairo",
       contractVersion: "v1",
       payload: {
@@ -36,7 +39,8 @@ export function CopilotWorkspace({
   async function deepAnalyze(event: MouseEvent<HTMLButtonElement>): Promise<void> {
     event.preventDefault();
 
-    if (!requestId || !onSendCommand) return;
+    const commandRequestId = createRequestId?.() ?? requestId;
+    if (!commandRequestId || !onSendCommand) return;
 
     const questionElement = event.currentTarget.form?.elements.namedItem("question");
     const question =
@@ -45,7 +49,7 @@ export function CopilotWorkspace({
         : "";
 
     await onSendCommand({
-      requestId,
+      requestId: commandRequestId,
       type: "DeepAnalyze",
       contractVersion: "v1",
       payload: {

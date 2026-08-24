@@ -5,6 +5,24 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 13 paired desktop command composition
+
+2026-08-24 Task 13 paired command composition completed with focused desktop verification.
+
+Implemented:
+- `composePairedDesktopCommands(...)` is the desktop application boundary around `PairedTunnelClient`; it exposes one typed `CoreCommandV1` sender and explicit `UNPAIRED`, `CONNECTED`, `DISCONNECTED`, and `EXPIRED` state.
+- Every desktop action uses that same sender when composed: CaptureSource, AskKairo, DeepAnalyze, ReviewMemoryCandidate, GetProject, and OpenEvidence. OpenEvidence sends before changing the workspace selection.
+- The composition fails closed for unpaired and expired sessions and disconnects its application state after a send failure.
+- `CaptureBatch` now creates stable UUID request IDs at staging time, preserving ordered metadata-only CaptureSource dispatch while complying with the Core schema.
+- Memory and Projects are present in the app shell when their workspace is active; they receive the same injected sender without browser persistence or direct relay calls.
+
+Focused verification:
+`apps/desktop-web/node_modules/.bin/tsx --tsconfig apps/desktop-web/tsconfig.json --test apps/desktop-web/src/app/AppCommandComposition.test.tsx apps/desktop-web/src/app/App.test.tsx apps/desktop-web/src/app/EvidenceAction.test.tsx apps/desktop-web/src/app/PairedDesktopCommands.test.ts apps/desktop-web/src/features/capture/CaptureBatch.test.ts apps/desktop-web/src/features/capture/CaptureAnalyze.test.tsx apps/desktop-web/src/features/capture/CaptureDrop.test.tsx apps/desktop-web/src/features/copilot/CopilotAsk.test.tsx apps/desktop-web/src/features/copilot/CopilotDeepAnalyze.test.tsx apps/desktop-web/src/features/memory/MemoryInbox.test.tsx apps/desktop-web/src/features/projects/ProjectsWorkspace.test.tsx`
+
+Result: PASS in focused subsets before checkpoint; the command composition integration proves all six Task 13 command types decrypt to their original typed envelopes only at the Core test endpoint and are absent from routed ciphertext.
+
+Next: add the Vite browser host and minimum Playwright E2E workflow. Pairing UX remains out of scope because the approved Task 13 plan does not call for it.
+
 ## Progress checkpoint — Task 13 evidence metadata inspection
 
 2026-08-24 Task 13 evidence inspection completed with focused desktop verification.

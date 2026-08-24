@@ -24,7 +24,14 @@ function findButton(node: ReactNode, label: string): ReactElement | undefined {
 }
 
 test("Analyze together sends staged CaptureSource commands in order", async () => {
-  const batch = new CaptureBatch({ captureSessionId: "capture-1" });
+  const requestIds = [
+    "d4a31a5c-e4f9-4a73-8958-b4929efad3c7",
+    "e7612b8a-482b-4cad-994c-09c6194a0846",
+  ];
+  const batch = new CaptureBatch({
+    captureSessionId: "capture-1",
+    createRequestId: () => requestIds.shift()!,
+  });
   batch.stage({
     sourceRef: "source-1",
     name: "meeting-notes.docx",
@@ -54,7 +61,7 @@ test("Analyze together sends staged CaptureSource commands in order", async () =
 
   assert.deepEqual(sent, batch.commands());
   assert.deepEqual(sent.map((command) => command.requestId), [
-    "capture-1:1",
-    "capture-1:2",
+    "d4a31a5c-e4f9-4a73-8958-b4929efad3c7",
+    "e7612b8a-482b-4cad-994c-09c6194a0846",
   ]);
 });

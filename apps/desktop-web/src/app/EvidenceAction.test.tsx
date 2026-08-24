@@ -11,11 +11,23 @@ function createCaptureBatch(): CaptureBatch {
   return new CaptureBatch({ captureSessionId: "capture-1" });
 }
 
-test("Open evidence action preserves Copilot and opens the matching evidence pane", () => {
+test("Open evidence sends the typed command before preserving Copilot beside the matching pane", async () => {
   const workspace = new DesktopWorkspace();
   const captureBatch = createCaptureBatch();
+  const sent: CoreCommandV1[] = [];
 
-  const app = App({ workspace, captureBatch }) as ReactElement;
+  const app = App({
+    workspace,
+    captureBatch,
+    commandSender: {
+      connectionState: "CONNECTED",
+      send: async (command: CoreCommandV1) => {
+        sent.push(command);
+      },
+      disconnect: async () => {},
+    },
+    createRequestId: () => "f0a36846-8b3c-479f-9d52-1b737f57a495",
+  } as never) as ReactElement;
   const children = Array.isArray(app.props.children)
     ? app.props.children
     : [app.props.children];
@@ -26,7 +38,16 @@ test("Open evidence action preserves Copilot and opens the matching evidence pan
   assert.ok(copilot, "Copilot workspace should be rendered");
   assert.equal(typeof copilot.props.onOpenEvidence, "function");
 
-  copilot.props.onOpenEvidence("evidence-1");
+  await copilot.props.onOpenEvidence("evidence-1");
+
+  assert.deepEqual(sent, [
+    {
+      requestId: "f0a36846-8b3c-479f-9d52-1b737f57a495",
+      type: "OpenEvidence",
+      contractVersion: "v1",
+      payload: { evidenceRef: "evidence-1" },
+    },
+  ]);
 
   assert.equal(workspace.activeEvidenceRef, "evidence-1");
   assert.equal(workspace.evidencePaneVisible, true);

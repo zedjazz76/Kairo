@@ -26,7 +26,14 @@ test("capture batch stages metadata without retaining raw file bytes", () => {
 });
 
 test("capture batch emits typed CaptureSource commands in staged order", () => {
-  const batch = new CaptureBatch({ captureSessionId: "capture-1" });
+  const requestIds = [
+    "d4a31a5c-e4f9-4a73-8958-b4929efad3c7",
+    "e7612b8a-482b-4cad-994c-09c6194a0846",
+  ];
+  const batch = new CaptureBatch({
+    captureSessionId: "capture-1",
+    createRequestId: () => requestIds.shift()!,
+  });
 
   batch.stage({
     sourceRef: "source-1",
@@ -43,7 +50,7 @@ test("capture batch emits typed CaptureSource commands in staged order", () => {
 
   assert.deepEqual(batch.commands(), [
     {
-      requestId: "capture-1:1",
+      requestId: "d4a31a5c-e4f9-4a73-8958-b4929efad3c7",
       type: "CaptureSource",
       contractVersion: "v1",
       payload: {
@@ -52,7 +59,7 @@ test("capture batch emits typed CaptureSource commands in staged order", () => {
       },
     },
     {
-      requestId: "capture-1:2",
+      requestId: "e7612b8a-482b-4cad-994c-09c6194a0846",
       type: "CaptureSource",
       contractVersion: "v1",
       payload: {
@@ -61,4 +68,22 @@ test("capture batch emits typed CaptureSource commands in staged order", () => {
       },
     },
   ]);
+});
+
+test("capture batch creates stable UUID request IDs for Core commands", () => {
+  const batch = new CaptureBatch({ captureSessionId: "capture-1" });
+  batch.stage({
+    sourceRef: "source-1",
+    name: "meeting-notes.docx",
+    sizeBytes: 1_024,
+    mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
+
+  const first = batch.commands();
+
+  assert.match(
+    first[0].requestId,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+  );
+  assert.deepEqual(batch.commands(), first);
 });

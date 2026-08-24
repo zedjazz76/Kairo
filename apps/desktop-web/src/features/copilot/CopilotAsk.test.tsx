@@ -25,7 +25,7 @@ function findElement(
 test("Ask Kairo sends the entered question as a typed Core command", async () => {
   const sent: CoreCommandV1[] = [];
   const workspace = CopilotWorkspace({
-    requestId: "ask-1",
+    requestId: "b65f163c-d6d5-4ee7-9e29-73c0edb4e612",
     onSendCommand: async (command: CoreCommandV1) => {
       sent.push(command);
     },
@@ -52,7 +52,7 @@ test("Ask Kairo sends the entered question as a typed Core command", async () =>
 
   assert.deepEqual(sent, [
     {
-      requestId: "ask-1",
+      requestId: "b65f163c-d6d5-4ee7-9e29-73c0edb4e612",
       type: "AskKairo",
       contractVersion: "v1",
       payload: {
