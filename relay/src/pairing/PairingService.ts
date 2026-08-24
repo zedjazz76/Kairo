@@ -16,6 +16,7 @@ export interface ConfirmedPairingSession {
 interface PairingRecord extends PairingOffer {
   confirmedAt: number | null;
   consumed: boolean;
+  cancelled: boolean;
 }
 
 export interface PairingServiceOptions {
@@ -42,6 +43,7 @@ export class PairingService {
       expiresAt: createdAt + this.codeTtlMillis,
       confirmedAt: null,
       consumed: false,
+      cancelled: false,
     };
 
     this.offers.set(code, record);
@@ -68,11 +70,38 @@ export class PairingService {
       throw new Error("pairing_device_mismatch");
     }
 
+    if (record.cancelled) {
+      throw new Error("pairing_cancelled");
+    }
+
     if (record.consumed) {
       throw new Error("pairing_consumed");
     }
 
     record.confirmedAt = this.now();
+  }
+
+  cancel({ code, coreDeviceId }: { code: string; coreDeviceId: string }): void {
+    const record = this.offers.get(code);
+    if (!record) {
+      throw new Error("pairing_not_found");
+    }
+
+    if (this.isExpired(record)) {
+      this.offers.delete(code);
+      throw new Error("pairing_expired");
+    }
+
+    if (record.coreDeviceId !== coreDeviceId) {
+      throw new Error("pairing_device_mismatch");
+    }
+
+    if (record.consumed) {
+      throw new Error("pairing_consumed");
+    }
+
+    record.cancelled = true;
+    record.confirmedAt = null;
   }
 
   confirmed(code: string): ConfirmedPairingSession | null {
@@ -86,7 +115,7 @@ export class PairingService {
       return null;
     }
 
-    if (record.confirmedAt === null || record.consumed) {
+    if (record.cancelled || record.confirmedAt === null || record.consumed) {
       return null;
     }
 
