@@ -15,6 +15,7 @@ User-reported focused verification completed for:
 - `App.test.tsx`
 - `EvidenceAction.test.tsx`
 - `CaptureAnalyze.test.tsx`
+- `CopilotAsk.test.tsx`
 
 Task 13 implemented so far:
 - `DesktopWorkspace` is the single browser workspace state spine with approved destinations: Capture, Copilot, Memory, and Projects.
@@ -23,11 +24,12 @@ Task 13 implemented so far:
 - Desktop React/Vite/TypeScript foundation is present with automatic `react-jsx` runtime configuration.
 - `App.tsx` renders the first browser split-view shell using `CaptureWorkspace`, `CopilotWorkspace`, and `EvidencePane`.
 - Copilot exposes an `Open evidence` action wired through the existing `DesktopWorkspace.openEvidence(...)`; opening evidence preserves Copilot and displays the matching evidence reference.
-- `CaptureWorkspace` now exposes `Analyze together`, consumes the existing ordered `CaptureBatch.commands()`, and dispatches the staged `CaptureSource` commands sequentially through an injected async Core-command sender.
-- The Analyze-together slice does not introduce a second browser state store, persist raw file bytes, or couple the UI directly to a concrete tunnel implementation.
+- `CaptureWorkspace` exposes `Analyze together`, consumes the existing ordered `CaptureBatch.commands()`, and dispatches staged `CaptureSource` commands sequentially through an injected async Core-command sender.
+- `CopilotWorkspace` now renders a real Ask Kairo form and dispatches one typed `AskKairo` `CoreCommandV1` using an injected async Core-command sender and caller-supplied request ID.
+- The capture and Copilot slices do not introduce a second browser state store, persist raw file bytes, or couple UI components directly to a concrete tunnel implementation.
 - pnpm workspace build policy explicitly permits the Vite/esbuild install script so the no-install browser development/test harness is reproducible without interactive approval.
 
-Task 13 status: shell, evidence-navigation, and ordered capture-command dispatch slices complete. Remaining Task 13 work includes real capture/drop interaction, Ask Kairo and Deep Analyze interaction, Memory Inbox, Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
+Task 13 status: shell, evidence-navigation, ordered capture-command dispatch, and Ask Kairo command-dispatch slices complete. Remaining Task 13 work includes real capture/drop interaction, Deep Analyze interaction, Memory Inbox, Projects, richer source/evidence inspection behavior, paired-tunnel composition, and the planned browser E2E gate.
 
 Next design gate: choose the next bounded Task 13 interaction slice before implementation.
 
