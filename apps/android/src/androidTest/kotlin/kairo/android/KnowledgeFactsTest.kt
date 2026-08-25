@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
@@ -51,12 +52,15 @@ class KnowledgeFactsTest {
         }
 
         composeRule
-            .onNodeWithText("Knowledge")
+            .onNodeWithText("Memory")
             .assertIsDisplayed()
             .performClick()
 
+        composeRule.onNodeWithText("Knowledge").assertIsDisplayed()
+        composeRule.onNodeWithText("CONFIRMED").performScrollTo().assertIsDisplayed()
         composeRule
             .onNodeWithText("Merge PACS hosts the modality worklist.")
+            .performScrollTo()
             .assertIsDisplayed()
         composeRule
             .onNodeWithText("CONFIRMED")

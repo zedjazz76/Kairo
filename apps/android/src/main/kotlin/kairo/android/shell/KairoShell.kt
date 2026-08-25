@@ -1,6 +1,7 @@
 package kairo.android.shell
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -19,7 +23,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,13 +36,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kairo.android.guardian.GuardianCard
 import kairo.android.guardian.GuardianEmblem
 import kairo.android.guardian.GuardianHero
 import kairo.android.guardian.GuardianStatusChip
 import kairo.android.guardian.GuardianWordmark
+import kairo.android.guardian.GuardianActionCard
+import kairo.android.guardian.GuardianAskCard
+import kairo.android.guardian.GuardianBottomBar
+import kairo.android.guardian.GuardianNotificationButton
 import kairo.android.theme.GuardianColors
 import kairo.android.auth.AuthenticationState
 import kairo.android.auth.Authenticator
@@ -54,6 +67,14 @@ import kairo.domain.FactVersion
 import kairo.domain.SourceId
 import kairo.security.UserSensitiveChoice
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.Hub
+import androidx.compose.material.icons.outlined.ArrowBack
 
 @Composable
 fun KairoShell(
@@ -114,6 +135,19 @@ fun KairoShell(
             return@Surface
         }
 
+        Scaffold(
+            bottomBar = {
+                GuardianBottomBar(
+                    selected = when (destination) { KairoDestination.Home -> "home"; KairoDestination.Workflows -> "trace"; KairoDestination.Knowledge -> "memory"; KairoDestination.MemoryInbox -> "inbox"; else -> "" },
+                    onHome = { navigateTo(KairoDestination.Home) },
+                    onTrace = { navigateTo(KairoDestination.Workflows) },
+                    onCapture = { navigateTo(KairoDestination.Capture) },
+                    onMemory = { navigateTo(KairoDestination.Knowledge) },
+                    onInbox = { navigateTo(KairoDestination.MemoryInbox) },
+                )
+            },
+        ) { shellPadding ->
+        Surface(modifier = Modifier.padding(shellPadding), color = MaterialTheme.colorScheme.background) {
         when (destination) {
             KairoDestination.Home ->
                 HomeDestination(
@@ -136,7 +170,7 @@ fun KairoShell(
                     onBack = ::backHome,
                 )
             KairoDestination.Workflows ->
-                WorkflowsDestination(
+                TraceWorkflowDestination(
                     knowledgeFacts = knowledgeFacts,
                     onOpenEvidence = ::openEvidence,
                     onBack = ::backHome,
@@ -184,6 +218,8 @@ fun KairoShell(
                     deepAnalyze = deepAnalyze,
                     onBack = ::backHome,
                 )
+        }
+        }
         }
     }
 }
@@ -235,93 +271,45 @@ private fun HomeDestination(
     val offline = connectivity == ConnectivityCapability.Offline
 
     Column(
-        modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                GuardianEmblem(Modifier.size(42.dp), dark = false)
-                GuardianWordmark()
+                GuardianEmblem(Modifier.size(34.dp), dark = false)
+                GuardianWordmark(compact = true)
             }
-            Text("♧", style = MaterialTheme.typography.headlineSmall, color = GuardianColors.ClinicalBlue)
+            GuardianNotificationButton()
         }
         Text(
             "Good morning, Robert",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = GuardianColors.Ink,
         )
         Text(
             "Clinical Systems Copilot",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        GuardianCard(modifier = Modifier.fillMaxWidth()) {
-            Text("Ask KAIRO anything…                                      ♫", color = GuardianColors.MutedInk)
-            Text("✦  Example: Why is today's imaging workflow delayed?", style = MaterialTheme.typography.bodyMedium, color = GuardianColors.ClinicalBlue)
-            TextButton(onClick = onCopilot) { Text("Open assistant") }
-        }
-
-        if (offline) {
-            StatusCard(
-                title = "Offline mode",
-                body = "Local knowledge remains available. Deep reasoning is unavailable.",
-            )
-        }
+        GuardianAskCard(onClick = onCopilot, modifier = Modifier.fillMaxWidth())
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            CompactAction(Modifier.weight(1f), "Trace Workflow", onWorkflows)
-            CompactAction(Modifier.weight(1f), "Capture", onCapture)
-            CompactAction(Modifier.weight(1f), "Analyze", onDeepAnalyze)
+            GuardianActionCard("Trace Workflow", Icons.Outlined.AccountTree, onWorkflows, Modifier.weight(1f))
+            GuardianActionCard("Capture", Icons.Outlined.CameraAlt, onCapture, Modifier.weight(1f))
+            GuardianActionCard("Analyze", Icons.Outlined.Psychology, onDeepAnalyze, Modifier.weight(1f))
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            CompactAction(Modifier.weight(1f), "Search Knowledge", onKnowledge)
-            CompactAction(Modifier.weight(1f), "Recent Incidents", onSources)
-            CompactAction(Modifier.weight(1f), "Systems Map", onSystems)
+            GuardianActionCard("Search Knowledge", Icons.Outlined.Search, onKnowledge, Modifier.weight(1f))
+            GuardianActionCard("Recent Incidents", Icons.Outlined.WarningAmber, onSources, Modifier.weight(1f))
+            GuardianActionCard("Systems Map", Icons.Outlined.Hub, onSystems, Modifier.weight(1f))
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text("TODAY'S FOCUS", style = MaterialTheme.typography.labelLarge)
             TextButton(onClick = onSources) { Text("View all") }
         }
-        GuardianCard(modifier = Modifier.fillMaxWidth()) {
-            Text("Evidence and incident focus", style = MaterialTheme.typography.titleMedium)
-            Text("Open local evidence and review scoped workflow context.", color = GuardianColors.MutedInk)
-            GuardianStatusChip(if (offline) "LOCAL OFFLINE" else "LIVE REASONING AVAILABLE")
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            CompactAction(Modifier.weight(1f), "Capture", onCapture)
-            CompactAction(Modifier.weight(1f), "Memory Inbox", onMemoryInbox)
-        }
-
-        Text("Knowledge workspace", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            CompactAction(Modifier.weight(1f), "Systems", onSystems)
-            CompactAction(Modifier.weight(1f), "Workflows", onWorkflows)
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            CompactAction(Modifier.weight(1f), "Projects", onProjects)
-            CompactAction(Modifier.weight(1f), "Knowledge", onKnowledge)
-        }
-        CompactAction(Modifier.fillMaxWidth(), "Sources", onSources)
-
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onDeepAnalyze,
-            enabled = !offline,
-        ) {
-            Text("Deep Analyze")
-        }
+        if (offline) StatusCard("Offline mode", "Local knowledge remains available. Deep reasoning is unavailable.")
+        else GuardianCard(modifier = Modifier.fillMaxWidth()) { Text("No priority incidents in the current local view.", style = MaterialTheme.typography.bodyMedium); Text("Open evidence or trace a workflow to review scoped context.", style = MaterialTheme.typography.labelSmall, color = GuardianColors.MutedInk) }
     }
 }
 
@@ -350,7 +338,12 @@ private fun CompactAction(
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
         onClick = onClick,
     ) {
-        Text(title)
+        Text(
+            title,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -371,15 +364,19 @@ private fun ScreenScaffold(
     title: String,
     subtitle: String? = null,
     onBack: () -> Unit,
+    compact: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(if (compact) 16.dp else 20.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp),
     ) {
-        TextButton(onClick = onBack) { Text("←  Back") }
-        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-        subtitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = GuardianColors.Cyan) }
+            Text("Back", style = MaterialTheme.typography.labelMedium, color = GuardianColors.Cyan)
+        }
+        Text(title, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+        subtitle?.let { Text(it, style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         content()
     }
 }
@@ -528,6 +525,62 @@ private fun WorkflowsDestination(
 }
 
 @Composable
+private fun TraceWorkflowDestination(
+    knowledgeFacts: List<FactVersion>,
+    onOpenEvidence: (String) -> Unit,
+    onBack: () -> Unit,
+) {
+    ScreenScaffold(title = "Trace Workflow", subtitle = "Read-only evidence trace", onBack = onBack, compact = true) {
+        GuardianCard { Text("Workflow context", style = MaterialTheme.typography.titleSmall); Text("No patient or order identifiers are shown in this local view.", style = MaterialTheme.typography.labelSmall, color = GuardianColors.MutedInk) }
+        listOf("Order", "RIS", "DMWL", "Modality", "PACS", "Reporting", "Result").forEachIndexed { index, label ->
+            TraceStageRow(index = index, label = label, isLast = index == 6)
+        }
+        Button(modifier = Modifier.fillMaxWidth(), onClick = {}) { Text("Run Trace") }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(modifier = Modifier.weight(1f), onClick = {}) { Text("Save Trace") }; OutlinedButton(modifier = Modifier.weight(1f), onClick = {}) { Text("Share") } }
+        Text("EVIDENCE TIMELINE", style = MaterialTheme.typography.labelLarge)
+        if (knowledgeFacts.isEmpty()) StatusCard("No trace events", "Open evidence-backed workflow knowledge to populate this timeline.") else knowledgeFacts.take(3).forEach { FactCard(it, onOpenEvidence) }
+    }
+}
+
+@Composable
+private fun TraceStageRow(index: Int, label: String, isLast: Boolean) {
+    val completed = index == 0
+    val current = index == 1
+    val accent = when {
+        completed -> GuardianColors.ClinicalBlue
+        current -> GuardianColors.Cyan
+        else -> GuardianColors.SteelMist
+    }
+    val state = when {
+        completed -> "OBSERVED"
+        current -> "VERIFY"
+        else -> "PENDING"
+    }
+    val detail = when {
+        completed -> "Evidence context available"
+        current -> "Validation is next"
+        else -> "Awaiting trace evidence"
+    }
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(38.dp)) {
+            Surface(color = accent, shape = CircleShape, modifier = Modifier.size(30.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text((index + 1).toString(), style = MaterialTheme.typography.labelSmall, color = if (current) GuardianColors.Black else GuardianColors.White)
+                }
+            }
+            if (!isLast) Box(Modifier.width(2.dp).height(24.dp).background(GuardianColors.SteelMist.copy(alpha = .75f)))
+        }
+        Column(modifier = Modifier.weight(1f).padding(start = 8.dp, bottom = if (isLast) 0.dp else 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                GuardianStatusChip(state)
+            }
+            Text(detail, style = MaterialTheme.typography.labelSmall, color = GuardianColors.MutedInk)
+        }
+    }
+}
+
+@Composable
 private fun ProjectsDestination(
     knowledgeFacts: List<FactVersion>,
     onOpenEvidence: (String) -> Unit,
@@ -551,7 +604,7 @@ private fun KnowledgeDestination(
     onBack: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    ScreenScaffold(title = "Knowledge", subtitle = "Approved evidence vault", onBack = onBack) {
+    ScreenScaffold(title = "Knowledge", subtitle = "Approved evidence vault", onBack = onBack, compact = true) {
         OutlinedTextField(modifier = Modifier.fillMaxWidth(), value = query, onValueChange = { query = it }, label = { Text("Search knowledge vault…") }, singleLine = true)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("All", "Observed", "Confirmed", "Planned", "VERIFY").forEach { GuardianStatusChip(it) }

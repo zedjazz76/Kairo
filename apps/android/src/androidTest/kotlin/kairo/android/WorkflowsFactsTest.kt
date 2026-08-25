@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
@@ -50,8 +51,9 @@ class WorkflowsFactsTest {
             )
         }
 
-        composeRule.onNodeWithText("Workflows").performClick()
-        composeRule.onNodeWithText("Ultrasound routes through GE ViewPoint before reporting.").assertIsDisplayed()
-        composeRule.onNodeWithText("OBSERVED").assertIsDisplayed()
+        composeRule.onNodeWithText("Trace Workflow").performClick()
+        composeRule.onNodeWithText("Trace Workflow").assertIsDisplayed()
+        composeRule.onNodeWithText("EVIDENCE TIMELINE").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Ultrasound routes through GE ViewPoint before reporting.").performScrollTo().assertIsDisplayed()
     }
 }
