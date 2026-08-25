@@ -32,6 +32,8 @@ Commits:
 
 Remaining external blocker: approved private Genesis source payloads are absent locally. Populate ignored/private source material, compute real SHA-256 values, change the manifest to `READY`, and execute the private benchmark before claiming Task 14 fully complete.
 
+Known debt: the focused and grouped Gradle runs continue to emit pre-existing deprecated/obsolete AGP variant API and Kotlin/AGP setting warnings. Task 14 did not change those build settings.
+
 Next task: Task 15 is not started. It is ready only after the private-corpus execution blocker is resolved (or Robert explicitly narrows the release gate).
 
 ## Progress checkpoint — Task 13 browser host, E2E gate, and closure
