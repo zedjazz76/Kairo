@@ -3,6 +3,7 @@ package kairo.android
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import kairo.android.auth.AuthenticationState
@@ -52,7 +53,7 @@ class KnowledgeFactsTest {
         }
 
         composeRule
-            .onNodeWithText("Memory")
+            .onNodeWithTag("guardian_nav_memory", useUnmergedTree = true)
             .assertIsDisplayed()
             .performClick()
 

@@ -55,7 +55,7 @@ class KairoActivityDeepAnalyzeTest {
         }
 
         composeRule
-            .onNodeWithText("Deep Analyze")
+            .onNodeWithText("Analyze")
             .performClick()
 
         composeRule

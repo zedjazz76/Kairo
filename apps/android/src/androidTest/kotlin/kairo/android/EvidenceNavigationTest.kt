@@ -3,6 +3,8 @@ package kairo.android
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
@@ -52,8 +54,8 @@ class EvidenceNavigationTest {
             )
         }
 
-        composeRule.onNodeWithText("Knowledge").performClick()
-        composeRule.onNodeWithText("PACSPROD").assertIsDisplayed()
+        composeRule.onNodeWithTag("guardian_nav_memory", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("PACSPROD").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Open evidence").performClick()
 
         composeRule.onNodeWithText("Evidence sources").assertIsDisplayed()

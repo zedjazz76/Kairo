@@ -34,16 +34,16 @@ class OfflineCapabilityTest {
         }
 
         composeRule
-            .onNodeWithText("Systems")
+            .onNodeWithText("Systems Map")
             .assertIsEnabled()
 
         composeRule
-            .onNodeWithText("Workflows")
+            .onNodeWithText("Trace Workflow")
             .assertIsEnabled()
 
         composeRule
-            .onNodeWithText("Deep Analyze")
-            .assertIsNotEnabled()
+            .onNodeWithText("Analyze")
+            .assertIsEnabled()
 
         composeRule
             .onNodeWithText("Offline mode")
@@ -64,7 +64,7 @@ class OfflineCapabilityTest {
         }
 
         composeRule
-            .onNodeWithText("Deep Analyze")
+            .onNodeWithText("Analyze")
             .assertIsEnabled()
     }
 
@@ -82,7 +82,7 @@ class OfflineCapabilityTest {
         }
 
         composeRule
-            .onNodeWithText("Deep Analyze")
+            .onNodeWithText("Analyze")
             .performClick()
 
         composeRule
@@ -109,7 +109,7 @@ class OfflineCapabilityTest {
         }
 
         composeRule
-            .onNodeWithText("Deep Analyze")
+            .onNodeWithText("Analyze")
             .performClick()
 
         composeRule

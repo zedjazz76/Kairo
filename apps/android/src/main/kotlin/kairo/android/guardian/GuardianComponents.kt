@@ -173,7 +173,7 @@ fun GuardianBottomBar(selected: String, onHome: () -> Unit, onTrace: () -> Unit,
 @Composable private fun GuardianNavItem(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 2.dp),
+        modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).testTag("guardian_nav_${label.lowercase()}").padding(horizontal = 8.dp, vertical = 2.dp),
     ) {
         Icon(icon, label, tint = if (selected) GuardianColors.Cyan else GuardianColors.ClinicalBlue, modifier = Modifier.size(48.dp))
         Text(label, style = MaterialTheme.typography.labelSmall, color = if (selected) GuardianColors.Cyan else GuardianColors.MutedInk)

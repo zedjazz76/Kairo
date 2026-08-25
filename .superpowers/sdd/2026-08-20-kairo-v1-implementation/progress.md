@@ -371,4 +371,16 @@ Task 11 status: implementation and local full-gate verification are reported com
 
 ## Historical ledger
 
+## Guardian UI Gold Pass closure — 2026-08-25
+
+- Baseline: `b1732373a00d68fad829d0f72f04e691503300d5` (`feat: match Android shell to Guardian layout board`).
+- Authoritative sources retained: `docs/branding/kairo-guardian-ui-layout-board.png` for composition and `docs/branding/kairo-guardian-brand-identity-board.png` for Guardian materials, artwork, palette, and wordmark.
+- Final Android shell verification: Samsung SM-S176V (`R5GYC4YHMNN`) captured safe Home, Trace, and Knowledge screenshots in ignored `.private/guardian-ui/`; fixed bottom navigation remains above system navigation. Trace retains its dedicated ordered evidence timeline and Knowledge retains search/filter/empty-state behavior without fabricated facts.
+- Focused connected Android instrumentation: PASS, 11 tests covering Guardian identity, custom bottom navigation, Trace Workflow, Knowledge, Memory Inbox approval, Evidence navigation, online/offline Deep Analyze behavior, and KairoActivity Deep Analyze wiring.
+- Grouped Android/Core regression: PASS — `:apps:android:testDebugUnitTest`, `:platform:android:testDebugUnitTest`, `:core:application:test`, and `:core:retrieval:test`.
+- Desktop unit regression: PASS, 16 tests. Playwright E2E remains environment-blocked: the required Chromium headless-shell executable was absent and the in-scope `playwright install chromium` download stalled without output; no product test failure was observed.
+- Security: PASS — PHI boundary and relay-retention Node suites, production dependency audit, `git diff --check`, and repository secret scan (excluding ignored private artifacts).
+- Final APK: `apps/android/build/outputs/apk/debug/android-debug.apk`; fresh build and Samsung install PASS. Ignored convenience copy: `.private/releases/Kairo-Guardian-Gold.apk`.
+- Remaining non-blocking debt: rerun the single desktop Playwright workflow once the local Playwright Chromium runtime is available. Guardian UI Gold Pass closure is otherwise ready for documentation commit/push.
+
 The prior Task 1–10 work history remains in repository history; this checkpoint records the final Task 11 and Task 12 implementation states and the current Task 13 progress.

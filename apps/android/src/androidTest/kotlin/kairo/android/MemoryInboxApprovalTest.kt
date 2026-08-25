@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
@@ -65,11 +67,12 @@ class MemoryInboxApprovalTest {
         }
 
         composeRule
-            .onNodeWithText("Memory Inbox")
+            .onNodeWithTag("guardian_nav_inbox", useUnmergedTree = true)
             .performClick()
 
         composeRule
             .onNodeWithText("Merge PACS hosts the modality worklist.")
+            .performScrollTo()
             .assertIsDisplayed()
 
         composeRule
@@ -123,11 +126,12 @@ class MemoryInboxApprovalTest {
         }
 
         composeRule
-            .onNodeWithText("Memory Inbox")
+            .onNodeWithTag("guardian_nav_inbox", useUnmergedTree = true)
             .performClick()
 
         composeRule
             .onNodeWithText("Approve curated Genesis knowledge")
+            .performScrollTo()
             .assertIsDisplayed()
             .performClick()
 
