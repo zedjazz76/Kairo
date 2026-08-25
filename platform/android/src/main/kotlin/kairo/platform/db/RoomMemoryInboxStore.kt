@@ -32,6 +32,8 @@ class RoomMemoryInboxStore(
                     text = row.text,
                     proposedScope = KnowledgeScope.valueOf(row.proposedScope),
                     proposedState = EvidenceState.valueOf(row.proposedState),
+                    proposedPredicate = row.proposedPredicate,
+                    proposedObjectValue = row.proposedObjectValue,
                     evidenceAnchors = dao.anchors(row.candidateId)
                         .map(::anchorFromEntity)
                         .toSet(),
@@ -60,6 +62,8 @@ class RoomMemoryInboxStore(
                 text = candidate.draft.text,
                 proposedScope = candidate.draft.proposedScope.name,
                 proposedState = candidate.draft.proposedState.name,
+                proposedPredicate = candidate.draft.proposedPredicate,
+                proposedObjectValue = candidate.draft.proposedObjectValue,
             ),
         )
 

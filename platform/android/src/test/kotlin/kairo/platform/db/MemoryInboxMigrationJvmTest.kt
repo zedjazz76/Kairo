@@ -37,6 +37,7 @@ class MemoryInboxMigrationJvmTest {
             .addMigrations(
                 KairoDatabase.MIGRATION_4_5,
                 KairoDatabase.MIGRATION_5_6,
+                KairoDatabase.MIGRATION_6_7,
             )
             .allowMainThreadQueries()
             .build()
@@ -52,7 +53,12 @@ class MemoryInboxMigrationJvmTest {
         )
 
         assertEquals(
-            setOf("proposed_scope", "proposed_state"),
+            setOf(
+                "proposed_scope",
+                "proposed_state",
+                "proposed_predicate",
+                "proposed_object_value",
+            ),
             candidateProposalColumns(database),
         )
         assertEquals(
@@ -82,6 +88,16 @@ class MemoryInboxMigrationJvmTest {
         database.openHelper.writableDatabase.execSQL(
             """
             ALTER TABLE memory_candidates DROP COLUMN proposed_state
+            """.trimIndent(),
+        )
+        database.openHelper.writableDatabase.execSQL(
+            """
+            ALTER TABLE memory_candidates DROP COLUMN proposed_predicate
+            """.trimIndent(),
+        )
+        database.openHelper.writableDatabase.execSQL(
+            """
+            ALTER TABLE memory_candidates DROP COLUMN proposed_object_value
             """.trimIndent(),
         )
         database.openHelper.writableDatabase.execSQL(
@@ -134,7 +150,14 @@ class MemoryInboxMigrationJvmTest {
             .use { cursor ->
                 generateSequence {
                     if (cursor.moveToNext()) cursor.getString(cursor.getColumnIndexOrThrow("name")) else null
-                }.filter { it in setOf("proposed_scope", "proposed_state") }.toSet()
+                }.filter {
+                    it in setOf(
+                        "proposed_scope",
+                        "proposed_state",
+                        "proposed_predicate",
+                        "proposed_object_value",
+                    )
+                }.toSet()
             }
 
     private fun sourceAuthorityColumns(database: KairoDatabase): Set<String> =

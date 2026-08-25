@@ -46,9 +46,21 @@ data class MemoryCandidateDraft(
     val subjectLabel: String,
     val text: String,
     val evidenceAnchors: Set<SourceAnchor>,
+    /** Optional reviewed relation metadata for structured imports; legacy captures infer from text. */
+    val proposedPredicate: String? = null,
+    val proposedObjectValue: String? = null,
     val proposedScope: KnowledgeScope = KnowledgeScope.MANA_PRODUCTION,
     val proposedState: EvidenceState = EvidenceState.OBSERVED,
-)
+) {
+    init {
+        require(proposedPredicate == null || proposedPredicate.isNotBlank()) {
+            "Memory candidate proposedPredicate must not be blank"
+        }
+        require(proposedObjectValue == null || proposedObjectValue.isNotBlank()) {
+            "Memory candidate proposedObjectValue must not be blank"
+        }
+    }
+}
 
 data class IngestionResult(
     val sessionId: CaptureSessionId,

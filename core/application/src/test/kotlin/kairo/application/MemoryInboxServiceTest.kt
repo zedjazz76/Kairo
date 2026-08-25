@@ -251,6 +251,40 @@ class MemoryInboxServiceTest {
     }
 
     @Test
+    fun `approval preserves a structured Genesis relation without re-inferring it`() {
+        runSuspend {
+            val repository = RecordingKnowledgeRepository()
+            val service = MemoryInboxService(repository)
+            val pending = service.receive(
+                MemoryCandidateDraft(
+                    sessionId = CaptureSessionId("genesis-curated-mana-discovery"),
+                    subjectLabel = "MANA",
+                    text = "MANA uses Merge / AMICAS PACS.",
+                    evidenceAnchors = setOf(
+                        SourceAnchor(
+                            sourceId = SourceId("curated-mana-discovery"),
+                            variantId = SourceVariantId("curated-mana-discovery-v1"),
+                            locator = AnchorLocator.TextSpan(0, 31),
+                        ),
+                    ),
+                    proposedPredicate = "USES",
+                    proposedObjectValue = "Merge / AMICAS PACS",
+                    proposedScope = KnowledgeScope.MANA_PRODUCTION,
+                    proposedState = EvidenceState.OBSERVED,
+                ),
+            )
+
+            service.approve(pending.id, reviewer = "LOCAL_OWNER")
+
+            val fact = repository.currentUnderstanding(FactQuery(subject = EntityId("mana"))).single()
+            assertEquals("USES", fact.predicate)
+            assertEquals(FactObject.Literal("Merge / AMICAS PACS"), fact.objectValue)
+            assertEquals(KnowledgeScope.MANA_PRODUCTION, fact.scope)
+            assertEquals(EvidenceState.OBSERVED, fact.state)
+        }
+    }
+
+    @Test
     fun `approval preserves planned project candidate without rewriting production truth`() {
         runSuspend {
             val repository = RecordingKnowledgeRepository()

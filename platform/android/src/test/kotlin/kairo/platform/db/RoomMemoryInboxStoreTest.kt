@@ -62,6 +62,8 @@ class RoomMemoryInboxStoreTest {
                 ),
                 proposedScope = KnowledgeScope.PROJECT,
                 proposedState = EvidenceState.PLANNED,
+                proposedPredicate = "REPLACED_BY",
+                proposedObjectValue = "AbbaDox CareFlow",
             ),
         )
 
@@ -89,6 +91,14 @@ class RoomMemoryInboxStoreTest {
         assertEquals(
             EvidenceState.PLANNED,
             recreatedStore.pending().single().draft.proposedState,
+        )
+        assertEquals(
+            "REPLACED_BY",
+            recreatedStore.pending().single().draft.proposedPredicate,
+        )
+        assertEquals(
+            "AbbaDox CareFlow",
+            recreatedStore.pending().single().draft.proposedObjectValue,
         )
 
         assertEquals(

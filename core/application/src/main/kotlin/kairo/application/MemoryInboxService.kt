@@ -195,7 +195,9 @@ class MemoryInboxService(
                 .trim('-'),
         )
 
-        val text = approvedText
+        val usesReviewedStructure = approvedText == candidate.draft.text.trim() &&
+            candidate.draft.proposedPredicate != null &&
+            candidate.draft.proposedObjectValue != null
 
         val factId = FactId("memory-${candidate.id.value}")
 
@@ -203,8 +205,18 @@ class MemoryInboxService(
             id = factId,
             lineageId = FactLineageId(factId.value),
             subject = subjectId,
-            predicate = inferPredicate(text),
-            objectValue = FactObject.Literal(text),
+            predicate = if (usesReviewedStructure) {
+                requireNotNull(candidate.draft.proposedPredicate)
+            } else {
+                inferPredicate(approvedText)
+            },
+            objectValue = FactObject.Literal(
+                if (usesReviewedStructure) {
+                    requireNotNull(candidate.draft.proposedObjectValue)
+                } else {
+                    approvedText
+                },
+            ),
             scope = candidate.draft.proposedScope,
             state = candidate.draft.proposedState,
             effectiveFrom = null,

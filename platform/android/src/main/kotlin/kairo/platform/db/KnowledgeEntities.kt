@@ -357,6 +357,12 @@ data class MemoryCandidateEntity(
 
     @ColumnInfo(name = "proposed_state", defaultValue = "'OBSERVED'")
     val proposedState: String,
+
+    @ColumnInfo(name = "proposed_predicate")
+    val proposedPredicate: String?,
+
+    @ColumnInfo(name = "proposed_object_value")
+    val proposedObjectValue: String?,
 )
 
 @Entity(tableName = "memory_decisions")
