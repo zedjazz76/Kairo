@@ -59,6 +59,35 @@ present and authorized device `R5GYC4YHMNN` connected.
   was printed. The live gate cannot pass until billing is activated for the
   configured API project. Guardian UI Gold Pass remains unstarted.
 
+## Closure — Live Deep Analyze activation
+
+2026-08-25 the funded relay environment and unlocked authorized device closed
+the local Live Deep Analyze gate from `9d76eb2`.
+
+- `OPENAI_API_KEY` and `KAIRO_REASONING_MODEL` were present in the inherited
+  relay environment; their values were not read or printed. The relay ran only
+  on `127.0.0.1:8787`, and `adb reverse tcp:8787 tcp:8787` was active for
+  `R5GYC4YHMNN` (Samsung SM-S176V).
+- The non-PHI local Responses smoke passed with a structured advisory and no
+  production-write claim. The manual Android live gate
+  `LiveDeepAnalyzeDeviceGateTest` passed on the same device through the
+  production `LocalRelayReasoningProvider`.
+- The unlocked Android gate passed all 11 requested UI/scope tests:
+  `OfflineCapabilityTest`, `EvidenceNavigationTest`,
+  `AndroidCopilotRetrievalProjectionTest`, and `KairoActivityDeepAnalyzeTest`.
+  This covers Quick/local offline behavior, Deep Analyze UI composition,
+  evidence navigation, and planned PROJECT, INCIDENT, and VERIFY boundaries.
+- Fresh deterministic fallback coverage passed:
+  `./gradlew --no-daemon --rerun-tasks :core:application:test --tests
+  '*DeepAnalyzeServiceTest'`. A relay/provider failure preserves the local
+  deterministic result without model enrichment.
+- Focused security coverage passed: `pnpm --filter @kairo/relay test` (22/22)
+  and `node --test validation/security/relay-retention.spec.ts` (1/1). The
+  relay remains live-only and deletes routing state on disconnect.
+
+Status: **COMPLETE — Live Deep Analyze is green on the authorized Android
+device and ready to push. Guardian UI Gold Pass remains unstarted.**
+
 ## Progress checkpoint — Task 15 V1 Definition of Done and release closure
 
 2026-08-25 Task 15 is complete. It closes the technical V1 Definition of Done
