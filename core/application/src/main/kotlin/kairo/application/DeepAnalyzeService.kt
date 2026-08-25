@@ -453,8 +453,9 @@ class DeepAnalyzeService(
         )
 
         val answer =
-            provider.analyze(
-                ReasoningPacket(
+            try {
+                provider.analyze(
+                    ReasoningPacket(
                     question = question,
                     evidence = bundle,
                     confirmed = bundle.rankedClaims.filter {
@@ -477,8 +478,11 @@ class DeepAnalyzeService(
                         "Do not present unsupported MANA claims as facts.",
                         "Do not convert planned or project state into current production truth.",
                     ),
-                ),
-            )
+                    ),
+                )
+            } catch (_: Exception) {
+                return deterministic
+            }
 
         val enrichment =
             when (

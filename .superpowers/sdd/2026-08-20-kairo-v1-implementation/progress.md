@@ -5,6 +5,23 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Live Deep Analyze activation (blocked external boundary)
+
+2026-08-25 started from the clean Task 15 closure `80d4802` on `kairo-v1`.
+
+Recovery and investigation:
+- Authorized Android device `R5GYC4YHMNN` is connected.
+- Safe environment inspection reported `OPENAI_API_KEY present: no`; no secret value was read or emitted.
+- Android has deterministic `DeepAnalyzeService` and answer validation, but its composition root still installs an erroring cloud provider. The relay currently contains in-process `ModelGateway`/`OpenAIProvider` classes only: it has no runtime endpoint, deployed relay URL, or Android session-authorized channel for a live request.
+- Official OpenAI documentation was checked before model selection. A future implementation must use the Responses API, keep `store: false`, and select a reasoning-capable model through relay environment configuration rather than a hard-coded Android/browser value.
+
+Focused TDD completed before the boundary:
+- Added a failing `DeepAnalyzeServiceTest` proving a relay/provider transport failure must preserve the deterministic diagnostic result.
+- RED: the provider exception escaped `deepAnalyzeWithReasoning`.
+- GREEN: `DeepAnalyzeService` now catches provider exceptions and returns the deterministic result with no enrichment; `./gradlew --no-daemon :core:application:test --tests '*DeepAnalyzeServiceTest'` passed.
+
+Status: **BLOCKED**. Completing the requested live Android → relay → OpenAI path requires a running relay deployment with an explicit Android-session authentication mechanism and an `OPENAI_API_KEY` present only in that relay environment. No unauthenticated endpoint, static Android token, APK key, browser key, or direct Android-to-OpenAI fallback was introduced. Task 15 remains closed; Guardian UI Gold Pass has not started.
+
 ## Progress checkpoint — Task 15 V1 Definition of Done and release closure
 
 2026-08-25 Task 15 is complete. It closes the technical V1 Definition of Done

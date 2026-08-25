@@ -22,6 +22,23 @@ import kotlin.test.assertTrue
 class DeepAnalyzeServiceTest {
 
     @Test
+    fun `deep analysis retains deterministic result when reasoning provider is unavailable`() =
+        kotlinx.coroutines.test.runTest {
+            val service = DeepAnalyzeService(
+                retriever = HybridRetriever(facts = emptyList()),
+                reasoningProvider = object : ReasoningProvider {
+                    override suspend fun analyze(packet: ReasoningPacket): KairoAnswer =
+                        error("relay_unavailable")
+                },
+            )
+
+            val result = service.deepAnalyzeWithReasoning("Why might studies fail to route?")
+
+            assertTrue(result.failureDomains.isNotEmpty())
+            assertTrue(result.modelEnrichment == null)
+        }
+
+    @Test
     fun `deep analysis ranks a failure domain and next verification`() {
         val anchor = SourceAnchor(
             sourceId = SourceId("incident-source"),
