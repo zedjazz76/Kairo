@@ -5,7 +5,7 @@ import test from "node:test";
 test("repository excludes known PHI fixture markers outside synthetic fixture boundaries", () => {
   const result = spawnSync(
     "git",
-    ["grep", "-n", "patientMrnTestValue", "--", ":!validation/fixtures/synthetic/**"],
+    ["grep", "-n", "patient" + "MrnTestValue", "--", ":!validation/fixtures/synthetic/**"],
     { encoding: "utf8" },
   );
 
