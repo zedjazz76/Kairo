@@ -3,6 +3,7 @@ package kairo.android
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import kairo.android.auth.AuthenticationState
 import kairo.android.offline.ConnectivityCapability
 import kairo.android.shell.KairoShell
@@ -27,5 +28,17 @@ class GuardianIdentityTest {
         composeRule
             .onNodeWithContentDescription("Kairo Guardian wordmark")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun locked_screen_exposes_the_full_guardian_unlock_hero() {
+        composeRule.setContent {
+            KairoShell(
+                connectivity = ConnectivityCapability.Offline,
+                authenticationState = AuthenticationState.Locked,
+            )
+        }
+
+        composeRule.onNodeWithTag("guardian_unlock_full_hero", useUnmergedTree = true).assertIsDisplayed()
     }
 }

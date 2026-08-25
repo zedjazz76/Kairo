@@ -84,12 +84,15 @@ fun GuardianEmblem(modifier: Modifier = Modifier, dark: Boolean = true) {
 }
 
 @Composable
-fun GuardianHero(modifier: Modifier = Modifier) {
+fun GuardianHero(
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+) {
     Image(
         painter = painterResource(R.drawable.guardian_hero),
         contentDescription = "Kairo Guardian",
         modifier = modifier,
-        contentScale = ContentScale.Crop,
+        contentScale = contentScale,
     )
 }
 

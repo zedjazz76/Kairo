@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import kairo.android.guardian.GuardianCard
 import kairo.android.guardian.GuardianEmblem
 import kairo.android.guardian.GuardianHero
@@ -236,7 +238,10 @@ private fun LockedDestination(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
         ) {
-            GuardianHero(Modifier.fillMaxWidth().height(260.dp))
+            GuardianHero(
+                modifier = Modifier.fillMaxWidth().height(320.dp).testTag("guardian_unlock_full_hero"),
+                contentScale = ContentScale.Fit,
+            )
             Spacer(Modifier.height(10.dp))
             GuardianWordmark(dark = true)
             Spacer(Modifier.height(14.dp))
