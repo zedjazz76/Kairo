@@ -873,7 +873,7 @@ Expected: all commands exit 0; the Definition of Done report shows every locked 
 - [ ] **Step 5: Perform the final scope and secret review**
 
 Run: `git diff --check`  
-Run: `git grep -n -E "(sk-[A-Za-z0-9_-]{20,}|BEGIN (RSA|EC|OPENSSH) PRIVATE KEY|patientMrnTestValue)" -- ':!validation/fixtures/synthetic/**'`  
+Run: `git grep -n -E "(sk-[A-Za-z0-9_-]{20,}|BEGIN (RSA|EC|OPENSSH) PRIVATE KEY|patient[M]rnTestValue)" -- ':!validation/fixtures/synthetic/**'`
 Expected: no whitespace errors, credentials, real identifiers, or unapproved V1 features.
 
 - [ ] **Step 6: Commit the verified V1 gate**

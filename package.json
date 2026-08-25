@@ -4,6 +4,7 @@
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "contracts:generate": "node scripts/generate-contract-types.mjs",
-    "test": "node scripts/run-contract-tests.mjs"
+    "test": "node scripts/run-contract-tests.mjs && node --test validation/security/*.spec.ts",
+    "security:test": "node --test validation/security/*.spec.ts"
   }
 }

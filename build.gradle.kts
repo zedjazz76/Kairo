@@ -23,4 +23,5 @@ val verifyContracts = tasks.register<Exec>("verifyContracts") {
 
 tasks.named("check") {
     dependsOn(verifyContracts)
+    dependsOn(":validation:e2e:test")
 }

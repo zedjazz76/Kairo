@@ -3,11 +3,11 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, kairo-v1]
 
 jobs:
   contracts:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -15,7 +15,29 @@ jobs:
           version: 11.19.0
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test --filter @kairo/contracts
+      - run: pnpm test -r
+
+  v1-release-gate:
+    needs: contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @kairo/desktop-web exec playwright install --with-deps chromium
+      - run: pnpm --filter @kairo/desktop-web e2e
+      - run: ./gradlew --no-daemon check :apps:android:assembleDebug
+      - run: pnpm audit --prod

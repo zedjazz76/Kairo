@@ -25,3 +25,4 @@ include(":platform:android")
 include(":core:retrieval")
 
 include(":apps:android")
+include(":validation:e2e")
