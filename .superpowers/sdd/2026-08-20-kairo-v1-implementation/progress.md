@@ -5,6 +5,46 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 15 V1 Definition of Done and release closure
+
+2026-08-25 Task 15 is complete. It closes the technical V1 Definition of Done
+without beginning the Guardian UI Gold Pass.
+
+Baseline and initial gate:
+- Started from Task 14 closure `b88e7b8940d68f46ffa41e1d50b89d3f82d4b200` on `kairo-v1` with the original focused Memory Inbox test correction preserved.
+- The first combined release invocation was RED because `pnpm` was unavailable on the local PATH. The local toolchain was restored through Corepack; no repository dependency or CI secret was added.
+- The combined connected lifecycle did not provide useful completion output in this environment, so the release record uses the passing hosted `check` plus the exact targeted physical-device suites. This is an environment execution limitation, not a claimed hosted-device CI substitute.
+
+Implemented and corrected:
+- Added `validation:e2e` and `DefinitionOfDoneTest`, which exercises real ingestion and sensitive-content boundaries for a DOCX/PDF/image/XLSX capture batch.
+- Added the human, evidence-backed `validation/e2e/kairo-v1-definition-of-done.md`, PHI boundary and live-relay-retention security specs, CI enforcement, reports placeholder, and concise V1 README release instructions.
+- Strengthened the PHI release scan to cover API-key-like markers, private keys, and synthetic patient markers outside explicit synthetic fixture boundaries.
+- The strengthened scan first failed on two runtime scanner tests containing synthetic API-key-shaped literals. The test fixtures now compose the same synthetic value at runtime, preserving scanner coverage while allowing the release scan to distinguish checked-in literal secrets from test data. RED: `node --test validation/security/phi-boundary.spec.ts`; GREEN: the same test and `:platform:android:testDebugUnitTest --tests '*SensitiveContentScannerTest'`.
+
+Final verification:
+- `./gradlew --no-daemon check` — PASS (1m 43s).
+- `./gradlew --no-daemon :validation:e2e:test` — PASS (1 test).
+- `pnpm test -r` — PASS (12 contracts; 2 Task 15 security tests).
+- `KAIRO_PLAYWRIGHT_EXECUTABLE=/usr/bin/google-chrome pnpm --filter @kairo/desktop-web e2e` — PASS (1/1).
+- `pnpm audit --prod` — PASS; no known vulnerabilities.
+- `:platform:android:connectedDebugAndroidTest ... KnowledgeMigrationTest` — PASS (1/1) on Samsung SM-S176V.
+- `:apps:android:connectedDebugAndroidTest ... KairoActivityTest, MemoryInboxApprovalTest, AndroidCopilotRetrievalProjectionTest` — PASS (8/8) on Samsung SM-S176V.
+- Fresh debug APK build/install/launch completed before this final documentation-only / test-fixture correction. The correction changes neither production APK code nor persisted-device data.
+
+Final authorized-device smoke on `R5GYC4YHMNN` / Samsung SM-S176V:
+- The app launched through owner authentication and displayed the Offline mode boundary: local knowledge remains available while Deep reasoning is unavailable.
+- The intended Genesis Memory Inbox action approved the staged curated batch and ended at `Inbox clear`.
+- Copilot returned `Observed for mana: Merge / AMICAS PACS`.
+- Planned/project separation held: Merge RIS → `Planned [PROJECT] ... AbbaDox CareFlow for non-breast imaging`; ViewPoint → `Planned [PROJECT] ... Rad AI direction`.
+- Incident separation held: GSPS → `Observed [INCIDENT] ... Explicit VR Little Endian transfer syntax`.
+- Unsupported endpoint behavior held: exact Altamont AE Title/port remained `[PROJECT]` and `requires verification`; no value was invented.
+- Evidence navigation held: Projects → Open evidence reached Sources overview with `curated-mana-discovery` anchors and 100% confidence.
+
+Security and release outcome:
+- `git diff --check` and the final secret/PHI grep are clean; `.private` is ignored and no private Genesis payload is tracked.
+- `122c2bc test: encode Kairo V1 definition of done`, `f062892 fix: make V1 PHI release scan Gradle-safe`, and `5ffb8ae fix: close Kairo V1 release secret scan` are the Task 15 implementation/recovery commits before the final documentation closure commit.
+- Task 15 status: complete. Kairo V1 technical backend/Core is release-gated, including the required manual physical-device evidence. The next milestone is Guardian UI Gold Pass; it has not been started.
+
 ## Progress checkpoint — Task 14 Android retrieval correction and device closure
 
 2026-08-25 Task 14 is complete. The final live gate ran on authorized device `R5GYC4YHMNN` / SM-S176V using a freshly built and installed debug APK after a clean Kairo app-local data reset and owner authentication.
