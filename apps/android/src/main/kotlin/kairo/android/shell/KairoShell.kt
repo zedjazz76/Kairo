@@ -239,14 +239,28 @@ private fun HomeDestination(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            GuardianWordmark()
-            GuardianEmblem(Modifier.size(58.dp), dark = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                GuardianEmblem(Modifier.size(42.dp), dark = false)
+                GuardianWordmark()
+            }
+            Text("♧", style = MaterialTheme.typography.headlineSmall, color = GuardianColors.ClinicalBlue)
         }
         Text(
-            "Clinical systems intelligence, grounded in your approved evidence.",
-            style = MaterialTheme.typography.titleMedium,
+            "Good morning, Robert",
+            style = MaterialTheme.typography.headlineMedium,
+            color = GuardianColors.Ink,
+        )
+        Text(
+            "Clinical Systems Copilot",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        GuardianCard(modifier = Modifier.fillMaxWidth()) {
+            Text("Ask KAIRO anything…                                      ♫", color = GuardianColors.MutedInk)
+            Text("✦  Example: Why is today's imaging workflow delayed?", style = MaterialTheme.typography.bodyMedium, color = GuardianColors.ClinicalBlue)
+            TextButton(onClick = onCopilot) { Text("Open assistant") }
+        }
 
         if (offline) {
             StatusCard(
@@ -255,11 +269,24 @@ private fun HomeDestination(
             )
         }
 
-        GuardianCard(dark = true) {
-            Text("ASK KAIRO", style = MaterialTheme.typography.labelLarge, color = GuardianColors.Cyan)
-            Text("Evidence-first clinical systems reasoning.", style = MaterialTheme.typography.headlineSmall)
-            Text("Quick answers stay local. Deep Analyze uses the live relay when available.", color = GuardianColors.SteelMist)
-            Button(onClick = onCopilot) { Text("Ask Kairo") }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            CompactAction(Modifier.weight(1f), "Trace Workflow", onWorkflows)
+            CompactAction(Modifier.weight(1f), "Capture", onCapture)
+            CompactAction(Modifier.weight(1f), "Analyze", onDeepAnalyze)
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            CompactAction(Modifier.weight(1f), "Search Knowledge", onKnowledge)
+            CompactAction(Modifier.weight(1f), "Recent Incidents", onSources)
+            CompactAction(Modifier.weight(1f), "Systems Map", onSystems)
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text("TODAY'S FOCUS", style = MaterialTheme.typography.labelLarge)
+            TextButton(onClick = onSources) { Text("View all") }
+        }
+        GuardianCard(modifier = Modifier.fillMaxWidth()) {
+            Text("Evidence and incident focus", style = MaterialTheme.typography.titleMedium)
+            Text("Open local evidence and review scoped workflow context.", color = GuardianColors.MutedInk)
+            GuardianStatusChip(if (offline) "LOCAL OFFLINE" else "LIVE REASONING AVAILABLE")
         }
 
         Row(
@@ -270,11 +297,7 @@ private fun HomeDestination(
             CompactAction(Modifier.weight(1f), "Memory Inbox", onMemoryInbox)
         }
 
-        Text(
-            "Knowledge workspace",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Text("Knowledge workspace", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -494,10 +517,10 @@ private fun WorkflowsDestination(
     onBack: () -> Unit,
 ) {
     FactsDestination(
-        title = "Workflows overview",
-        subtitle = "Inspect approved workflow facts from Kairo's current knowledge model.",
-        emptyTitle = "No approved workflow facts",
-        emptyBody = "Approved workflow knowledge will appear here after Memory Inbox review.",
+        title = "Trace Workflow",
+        subtitle = "Follow approved workflow evidence from order through result.",
+        emptyTitle = "No approved trace evidence",
+        emptyBody = "Workflow evidence will appear here after Memory Inbox review.",
         facts = knowledgeFacts,
         onOpenEvidence = onOpenEvidence,
         onBack = onBack,
@@ -527,15 +550,15 @@ private fun KnowledgeDestination(
     onOpenEvidence: (String) -> Unit,
     onBack: () -> Unit,
 ) {
-    FactsDestination(
-        title = "Knowledge overview",
-        subtitle = "Inspect Kairo's current approved understanding.",
-        emptyTitle = "No approved knowledge",
-        emptyBody = "Approved facts will appear here after Memory Inbox review.",
-        facts = knowledgeFacts,
-        onOpenEvidence = onOpenEvidence,
-        onBack = onBack,
-    )
+    var query by remember { mutableStateOf("") }
+    ScreenScaffold(title = "Knowledge", subtitle = "Approved evidence vault", onBack = onBack) {
+        OutlinedTextField(modifier = Modifier.fillMaxWidth(), value = query, onValueChange = { query = it }, label = { Text("Search knowledge vault…") }, singleLine = true)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("All", "Observed", "Confirmed", "Planned", "VERIFY").forEach { GuardianStatusChip(it) }
+        }
+        if (knowledgeFacts.isEmpty()) StatusCard("No approved knowledge", "Approved facts will appear here after Memory Inbox review.")
+        knowledgeFacts.filter { query.isBlank() || it.toString().contains(query, ignoreCase = true) }.forEach { FactCard(it, onOpenEvidence) }
+    }
 }
 
 @Composable

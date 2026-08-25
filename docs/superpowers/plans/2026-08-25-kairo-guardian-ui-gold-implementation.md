@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- The immutable reference is `docs/branding/kairo-guardian-brand-identity-board.png` at baseline `49cbb7c`.
+- `docs/branding/kairo-guardian-ui-layout-board.png` controls Home, Trace, and Knowledge composition; `docs/branding/kairo-guardian-brand-identity-board.png` controls material identity.
 - Use exact Guardian palette values `#F7FAFC`, `#E6ECF1`, `#B8C7D3`, `#6CA0B7`, `#22D3C5`, and `#0E141B`.
 - Use only exact board-derived Guardian artwork; do not generate or redraw a mascot.
 - Keep APIs, persistence, Core, relay, auth behavior, PHI boundary, and Task 15 semantics unchanged.

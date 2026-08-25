@@ -24,6 +24,13 @@ inspiration. Derived assets use exact, non-destructive crops of this board:
 The board was validated as a decodable 1536×1024 RGBA PNG at the baseline.
 No Guardian artwork is redrawn, generated, stretched, or substituted.
 
+`docs/branding/kairo-guardian-ui-layout-board.png` is the coequal immutable
+layout source: it controls Home / Assistant, Trace Workflow, and Knowledge /
+Memory composition, spacing, density, action placement, and bottom navigation.
+Where the boards differ, this layout board controls screen composition; the
+identity board controls Guardian artwork, materials, wordmark, palette, and
+type.
+
 ## Product expression
 
 Kairo is a quiet, premium clinical-systems intelligence product: protective,
