@@ -9,11 +9,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
+import kairo.android.BuildConfig
 import kairo.android.auth.AndroidAuthenticator
 import kairo.android.auth.Authenticator
 import kairo.android.capture.KnowledgeCapture
 import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.offline.ConnectivityCapability
+import kairo.android.reasoning.LocalRelayReasoningProvider
 import kairo.android.shell.KairoShell
 import kairo.android.theme.KairoTheme
 import kairo.application.MemoryInboxService
@@ -63,10 +65,16 @@ class KairoActivity : FragmentActivity() {
                 database = database,
             )
 
+        val reasoningProvider =
+            BuildConfig.LOCAL_RELAY_URL
+                .takeIf { it.isNotBlank() }
+                ?.let(::LocalRelayReasoningProvider)
+
         val session =
             KairoKnowledgeSession(
                 repository = repository,
                 assets = assets,
+                reasoningProvider = reasoningProvider,
             )
 
         memoryInbox = session.memoryInbox
@@ -130,7 +138,11 @@ class KairoActivity : FragmentActivity() {
 
                 KairoShell(
                     connectivity =
-                        ConnectivityCapability.Offline,
+                        if (reasoningProvider == null) {
+                            ConnectivityCapability.Offline
+                        } else {
+                            ConnectivityCapability.Online
+                        },
                     authenticator = authenticator,
                     copilot = activeCopilot,
                     knowledgeCapture =

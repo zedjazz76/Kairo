@@ -68,8 +68,17 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
+    buildTypes {
+        debug {
+            buildConfigField("String", "LOCAL_RELAY_URL", "\"http://127.0.0.1:8787\"")
+        }
+        release {
+            buildConfigField("String", "LOCAL_RELAY_URL", "\"\"")
+        }
+    }
 }
 
 androidComponents {

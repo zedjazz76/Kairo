@@ -31,6 +31,34 @@ Status: **BLOCKED**. Completing the requested live Android → relay → OpenAI 
 - `pnpm --filter @kairo/relay test` — PASS (19/19). This change keeps credentials and model choice relay-only; it does not introduce a local endpoint, static Android secret, or direct Android→OpenAI path.
 - Live local relay runtime, ADB reverse, Android adapter/device smoke, and the single live OpenAI request remain blocked until the USB device is authorized and a relay-only API key is supplied. Guardian UI Gold Pass remains unstarted.
 
+## Progress checkpoint — Live Deep Analyze local activation
+
+2026-08-25 resumed from `62dd5da` with the inherited relay environment
+present and authorized device `R5GYC4YHMNN` connected.
+
+- Added a loopback-only local relay runtime at `127.0.0.1:8787` with a
+  bounded `/v1/deep-analyze` endpoint. It keeps no request/response state,
+  binds only to host loopback, uses the relay-only OpenAI provider, and emits
+  only safe failure class/code metadata (never prompt bodies or credentials).
+- Responses requests remain `store: false` and now use strict JSON Schema
+  output. Android debug builds access only `http://127.0.0.1:8787` through a
+  localhost-only cleartext rule; release builds have no local relay URL.
+- The Android adapter sends the current evidence packet only through that
+  local relay, maps structured claims through the existing answer validator,
+  and preserves the deterministic Deep Analyze result on every relay/provider
+  failure. The manual instrumentation gate uses a non-PHI, evidence-free
+  request and requires an explicit `kairo.live=true` runner argument.
+- `pnpm --filter @kairo/relay test` — PASS (22/22), including bounded input,
+  no retained request state, and safe upstream failure telemetry.
+- `:apps:android:testDebugUnitTest` focused adapter/root coverage — PASS, and
+  `:apps:android:assembleDebug` — PASS. Fresh debug APK installed on the
+  authorized device; `adb reverse tcp:8787 tcp:8787` was verified.
+- The physical Android gate reached the local relay and the relay reached the
+  Responses API. The safe upstream result was
+  `upstream_rate_or_quota_limited` / `billing_not_active`; no prompt or secret
+  was printed. The live gate cannot pass until billing is activated for the
+  configured API project. Guardian UI Gold Pass remains unstarted.
+
 ## Progress checkpoint — Task 15 V1 Definition of Done and release closure
 
 2026-08-25 Task 15 is complete. It closes the technical V1 Definition of Done

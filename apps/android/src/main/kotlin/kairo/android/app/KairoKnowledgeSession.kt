@@ -9,6 +9,7 @@ import kairo.application.KnowledgeRepository
 import kairo.application.MemoryCandidateId
 import kairo.application.MemoryInboxService
 import kairo.application.FactQuery
+import kairo.application.ReasoningProvider
 import kairo.domain.EvidenceRef
 import kairo.domain.FactVersion
 import kairo.retrieval.HybridRetriever
@@ -17,6 +18,7 @@ import kairo.platform.db.RoomKnowledgeRepository
 class KairoKnowledgeSession(
     private val repository: RoomKnowledgeRepository,
     assets: AssetManager? = null,
+    private val reasoningProvider: ReasoningProvider? = null,
 ) {
 
     private var currentCopilot: Copilot =
@@ -88,7 +90,8 @@ class KairoKnowledgeSession(
                     HybridRetriever(
                         facts = facts,
                     ),
-            ).deepAnalyze(question)
+                reasoningProvider = reasoningProvider,
+            ).deepAnalyzeWithReasoning(question)
 
         val topDomain =
             result.failureDomains
@@ -102,6 +105,14 @@ class KairoKnowledgeSession(
                 append("\n")
                 append(it)
             }
+            (result.modelEnrichment as? kairo.application.ValidatedAnswer.Accepted)
+                ?.answer
+                ?.text
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    append("\n")
+                    append(it)
+                }
         }
     }
 

@@ -29,6 +29,44 @@ export class OpenAIResponsesTransport
       await client.responses.create({
         model: request.model,
         store: false,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "kairo_deep_analyze_response",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              required: ["text", "claims"],
+              properties: {
+                text: { type: "string" },
+                claims: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    required: ["text", "scope", "evidenceRefs", "action"],
+                    properties: {
+                      text: { type: "string" },
+                      scope: {
+                        type: "string",
+                        enum: ["MANA_PRODUCTION", "PRODUCT", "PROJECT", "INCIDENT", "EXTERNAL_RESEARCH"],
+                      },
+                      evidenceRefs: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      action: {
+                        type: "string",
+                        enum: ["NONE", "ADVISORY", "PRODUCTION_WRITE"],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         instructions: [
           "You are Kairo, an evidence-bound clinical systems reasoning engine.",
           "Use only the supplied evidence when making MANA-specific claims.",
