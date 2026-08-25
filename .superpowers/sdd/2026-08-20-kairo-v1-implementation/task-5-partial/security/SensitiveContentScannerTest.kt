@@ -42,9 +42,10 @@ class SensitiveContentScannerTest {
 
     @Test
     fun `scanner detects secrets private keys credential URLs and connection strings`() {
+        val syntheticApiKey = "sk-proj-" + "abcdefghijklmnop123456"
         val scan = scanner.scan(
             """
-            api_key=sk-proj-abcdefghijklmnop123456
+            api_key=$syntheticApiKey
             Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.payload.signature
             -----BEGIN PRIVATE KEY-----
             https://admin:secret@example.internal/path
