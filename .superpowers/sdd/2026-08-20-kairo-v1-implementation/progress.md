@@ -5,6 +5,35 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 14 Genesis corpus import and private benchmark
+
+2026-08-24 Task 14 implementation is complete; literal private-corpus execution is **BLOCKED** pending the approved private Genesis source payloads.
+
+Implemented:
+- `validation/corpus/manifest.schema.json` and strict Kotlin manifest loading for stable identities, safe logical references, SHA-256 hashes, source type/classification, categorical authority, intended scope/state, temporal disposition, sensitivity disposition, domains, and project tags.
+- `GenesisImporter` composes the existing `IngestionPipeline` with Source and Memory Inbox candidate ports. It verifies payload hashes, preserves source authority/provenance and anchors, routes sensitive findings to the existing PHI review boundary, and has no fact/repository promotion shortcut.
+- `MemoryCandidateDraft` now carries backward-compatible `proposedScope`/`proposedState` defaults (`MANA_PRODUCTION`/`OBSERVED`); `MemoryInboxService.approve` and edit-and-approve append those reviewed values exactly. Raw conversation sources are rejected if they propose `CONFIRMED` and remain `PROPOSED` candidates.
+- Room v5/v6 migrations persist candidate proposal metadata and source authority; legacy rows safely receive the old defaults / `UNSPECIFIED` authority.
+- The checked-in Genesis manifest is deliberately `AWAITING_PRIVATE_SOURCES` with all required domains listed and zero entries. No private payload, hash, MANA document, screenshot, or fabricated fact is committed.
+- Versioned benchmark questions/expectations cover current-vs-planned breast architecture, AbbaDox migration, PACS/DMWL evidence, product-versus-MANA boundaries, Baxter project scope, and qualified unknown behavior. A synthetic test fixture exercises the existing `HybridRetriever`; it is explicitly not a substitute for the private benchmark corpus.
+
+Fresh verification:
+- `./gradlew --no-daemon :core:ingestion:test --tests '*GenesisImporterTest'` — PASS.
+- `./gradlew --no-daemon :core:application:test --tests '*MemoryInboxServiceTest'` — PASS.
+- `./gradlew --no-daemon :core:retrieval:test --tests '*GenesisBenchmarkEvaluationTest'` — PASS.
+- `./gradlew --no-daemon :platform:android:testDebugUnitTest --tests '*RoomMemoryInboxStoreTest' --tests '*MemoryInboxMigrationJvmTest' --tests '*RoomKnowledgeRepositoryTest'` — PASS.
+- `./gradlew --no-daemon :core:ingestion:test :core:retrieval:test` — PASS.
+- `adb devices` found `R5GYC4YHMNN`; `./gradlew --no-daemon :platform:android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=kairo.platform.db.KnowledgeMigrationTest` — PASS on SM-S176V.
+
+Commits:
+- `36b2585 feat: add review-gated Genesis importer`
+- `348d8d0 data: define Genesis corpus benchmark boundary`
+- `7cf4fd1 test: cover Genesis metadata migration on device`
+
+Remaining external blocker: approved private Genesis source payloads are absent locally. Populate ignored/private source material, compute real SHA-256 values, change the manifest to `READY`, and execute the private benchmark before claiming Task 14 fully complete.
+
+Next task: Task 15 is not started. It is ready only after the private-corpus execution blocker is resolved (or Robert explicitly narrows the release gate).
+
 ## Progress checkpoint — Task 13 browser host, E2E gate, and closure
 
 2026-08-24 Task 13 is complete for the approved browser-desktop scope.
