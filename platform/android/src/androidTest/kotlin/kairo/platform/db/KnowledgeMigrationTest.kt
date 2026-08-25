@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kairo.domain.FactLineageId
+import kairo.domain.SourceAuthority
+import kairo.domain.SourceId
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -50,11 +52,21 @@ class KnowledgeMigrationTest {
         }
 
         val database = Room.databaseBuilder(context, KairoDatabase::class.java, databaseName)
-            .addMigrations(KairoDatabase.MIGRATION_1_2)
+            .addMigrations(
+                KairoDatabase.MIGRATION_1_2,
+                KairoDatabase.MIGRATION_2_3,
+                KairoDatabase.MIGRATION_3_4,
+                KairoDatabase.MIGRATION_4_5,
+                KairoDatabase.MIGRATION_5_6,
+            )
             .build()
 
         val history = RoomKnowledgeRepository(database).history(FactLineageId("lineage-device"))
         assertEquals(listOf("fact-device"), history.map { it.id.value })
+        assertEquals(
+            SourceAuthority.UNSPECIFIED,
+            RoomKnowledgeRepository(database).source(SourceId("source-device"))?.authority,
+        )
         database.close()
     }
 
