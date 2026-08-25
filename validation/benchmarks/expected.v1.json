@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "kairo-private-benchmark-expectations/v1",
+  "corpusStatus": "AWAITING_PRIVATE_SOURCES",
+  "expectations": [
+    {
+      "caseId": "current-breast-architecture",
+      "outcome": "EVIDENCE_REQUIRED",
+      "requiredScopes": ["MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["CONFIRMED", "OBSERVED", "PLANNED", "VERIFY"],
+      "requiredEvidenceDomains": ["Breast-imaging architecture changes", "Merge RIS", "Merge / AMICAS PACS"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "planned-non-breast-abbadox-transition",
+      "outcome": "CURRENT_AND_PLANNED_MUST_BE_DISTINGUISHED",
+      "requiredScopes": ["MANA_PRODUCTION", "PROJECT"],
+      "allowedEvidenceStates": ["OBSERVED", "PLANNED", "PROPOSED", "VERIFY"],
+      "requiredEvidenceDomains": ["AbbaDox CareFlow", "AbbaDox migration", "Breast-imaging architecture changes"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "pacs-dmwl-evidence",
+      "outcome": "EVIDENCE_REQUIRED",
+      "requiredScopes": ["MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["CONFIRMED", "OBSERVED", "VERIFY"],
+      "requiredEvidenceDomains": ["Merge / AMICAS PACS"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "product-versus-mana-merge-capability",
+      "outcome": "PRODUCT_DOES_NOT_PROVE_MANA_PRODUCTION",
+      "requiredScopes": ["PRODUCT", "MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["CONFIRMED", "OBSERVED", "VERIFY"],
+      "requiredEvidenceDomains": ["Merge / AMICAS PACS"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "abbadox-migration-routing",
+      "outcome": "PLANNED_OR_VERIFY_UNLESS_PRODUCTION_EVIDENCE_EXISTS",
+      "requiredScopes": ["PROJECT", "MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["PLANNED", "PROPOSED", "VERIFY", "OBSERVED"],
+      "requiredEvidenceDomains": ["AbbaDox CareFlow", "AbbaDox migration"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "baxter-project-boundary",
+      "outcome": "PROJECT_SCOPE_MUST_NOT_BECOME_UNIVERSAL_MANA_TRUTH",
+      "requiredScopes": ["PROJECT"],
+      "allowedEvidenceStates": ["PLANNED", "PROPOSED", "OBSERVED", "VERIFY"],
+      "requiredEvidenceDomains": ["Baxter project/integration"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "unsupported-mana-question",
+      "outcome": "QUALIFIED_UNKNOWN",
+      "requiredScopes": [],
+      "allowedEvidenceStates": [],
+      "requiredEvidenceDomains": [],
+      "requiresEvidenceLinkage": false
+    }
+  ]
+}

@@ -2,6 +2,8 @@ package kairo.ingestion
 
 import java.security.MessageDigest
 import java.time.Instant
+import java.nio.file.Files
+import java.nio.file.Path
 import kairo.domain.EvidenceState
 import kairo.domain.KnowledgeScope
 import kairo.domain.Source
@@ -23,6 +25,16 @@ class GenesisImporterTest {
 
         assertEquals("genesis-corpus-manifest/v1", manifest.schemaVersion)
         assertEquals("synthetic-merge-pacs", manifest.entries.single().id)
+    }
+
+    @Test
+    fun `checked in Genesis manifest is transparent when private sources are unavailable`() {
+        val manifest = loader.load(Files.readString(corpusFile("genesis-manifest.json")))
+
+        assertEquals(GenesisCorpusStatus.AWAITING_PRIVATE_SOURCES, manifest.corpusStatus)
+        assertTrue(manifest.entries.isEmpty())
+        assertTrue(manifest.requiredDomainCoverage.contains("AbbaDox CareFlow"))
+        assertTrue(manifest.requiredDomainCoverage.contains("Breast-imaging architecture changes"))
     }
 
     @Test
@@ -253,6 +265,12 @@ class GenesisImporterTest {
         MessageDigest.getInstance("SHA-256")
             .digest(value.encodeToByteArray())
             .joinToString("") { byte -> "%02x".format(byte) }
+
+    private fun corpusFile(name: String): Path =
+        generateSequence(Path.of("").toAbsolutePath().normalize()) { it.parent }
+            .map { it.resolve("validation/corpus/$name") }
+            .firstOrNull(Files::isRegularFile)
+            ?: error("Unable to locate Genesis corpus manifest $name")
 }
 
 private class GenesisPlainTextExtractor : ArtifactExtractor {

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "kairo-private-benchmark-questions/v1",
+  "corpusStatus": "AWAITING_PRIVATE_SOURCES",
+  "cases": [
+    {
+      "id": "current-breast-architecture",
+      "question": "What is the current breast-imaging RIS and PACS workflow?",
+      "requiredDomains": ["Breast-imaging architecture changes", "Merge RIS", "Merge / AMICAS PACS"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "planned-non-breast-abbadox-transition",
+      "question": "How does the planned non-breast AbbaDox transition differ from the current breast workflow?",
+      "requiredDomains": ["AbbaDox CareFlow", "AbbaDox migration", "Breast-imaging architecture changes"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "pacs-dmwl-evidence",
+      "question": "What evidence supports the current PACS and DMWL routing architecture?",
+      "requiredDomains": ["Merge / AMICAS PACS"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "product-versus-mana-merge-capability",
+      "question": "Does product documentation prove that MANA enabled this Merge capability?",
+      "requiredDomains": ["Merge / AMICAS PACS"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "abbadox-migration-routing",
+      "question": "What is known and still unverified about AbbaDox migration routing?",
+      "requiredDomains": ["AbbaDox CareFlow", "AbbaDox migration"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "baxter-project-boundary",
+      "question": "What does the Baxter integration project establish, and what remains project-scoped?",
+      "requiredDomains": ["Baxter project/integration"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "unsupported-mana-question",
+      "question": "Which production server currently runs the unsupported MANA service?",
+      "requiredDomains": [],
+      "requiresPrivateCorpus": false
+    }
+  ]
+}
