@@ -1,6 +1,6 @@
 {
   "schemaVersion": "kairo-private-benchmark-expectations/v1",
-  "corpusStatus": "AWAITING_PRIVATE_SOURCES",
+  "corpusStatus": "READY",
   "expectations": [
     {
       "caseId": "current-breast-architecture",
@@ -57,6 +57,62 @@
       "allowedEvidenceStates": [],
       "requiredEvidenceDomains": [],
       "requiresEvidenceLinkage": false
+    },
+    {
+      "caseId": "mana-current-pacs",
+      "outcome": "EVIDENCE_REQUIRED",
+      "requiredScopes": ["MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["OBSERVED"],
+      "requiredEvidenceDomains": ["Merge / AMICAS PACS"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "mana-pacs-monitoring",
+      "outcome": "EVIDENCE_REQUIRED",
+      "requiredScopes": ["MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["OBSERVED"],
+      "requiredEvidenceDomains": ["Merge / AMICAS PACS"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "mana-dmwl-host",
+      "outcome": "EVIDENCE_REQUIRED",
+      "requiredScopes": ["MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["OBSERVED"],
+      "requiredEvidenceDomains": ["Merge / AMICAS PACS"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "mana-breast-dictation",
+      "outcome": "CURRENT_MANA_EVIDENCE_REQUIRED",
+      "requiredScopes": ["MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["OBSERVED"],
+      "requiredEvidenceDomains": ["Breast-imaging architecture changes", "PowerScribe"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "viewpoint-radai-direction",
+      "outcome": "PLANNED_OR_VERIFY_UNLESS_PRODUCTION_EVIDENCE_EXISTS",
+      "requiredScopes": ["PROJECT"],
+      "allowedEvidenceStates": ["PLANNED", "VERIFY"],
+      "requiredEvidenceDomains": ["Rad AI", "Altamont", "Rad AI / ViewPoint retirement direction"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "gsps-forwarding-incident",
+      "outcome": "INCIDENT_HYPOTHESIS_MUST_NOT_BECOME_UNIVERSAL_ARCHITECTURE",
+      "requiredScopes": ["INCIDENT"],
+      "allowedEvidenceStates": ["OBSERVED", "HYPOTHESIS"],
+      "requiredEvidenceDomains": ["Merge / AMICAS PACS"],
+      "requiresEvidenceLinkage": true
+    },
+    {
+      "caseId": "unknown-abbadox-routing",
+      "outcome": "QUALIFIED_UNKNOWN",
+      "requiredScopes": ["PROJECT", "MANA_PRODUCTION"],
+      "allowedEvidenceStates": ["VERIFY", "PLANNED"],
+      "requiredEvidenceDomains": ["AbbaDox CareFlow", "AbbaDox migration"],
+      "requiresEvidenceLinkage": true
     }
   ]
 }

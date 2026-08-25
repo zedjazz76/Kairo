@@ -43,6 +43,7 @@ import kairo.application.MemoryInboxService
 import kairo.domain.EvidenceRef
 import kairo.domain.FactObject
 import kairo.domain.FactVersion
+import kairo.domain.SourceId
 import kairo.security.UserSensitiveChoice
 import kotlinx.coroutines.launch
 
@@ -55,6 +56,8 @@ fun KairoShell(
     knowledgeCapture: KnowledgeCapture? = null,
     memoryInbox: MemoryInboxService? = null,
     onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)? = null,
+    genesisSourceIds: Set<SourceId> = emptySet(),
+    onApproveGenesis: (suspend () -> Unit)? = null,
     deepAnalyze: (suspend (String) -> String)? = null,
     evidenceSources: List<EvidenceRef> = emptyList(),
     knowledgeFacts: List<FactVersion> = emptyList(),
@@ -159,6 +162,8 @@ fun KairoShell(
                 MemoryInboxDestination(
                     memoryInbox = memoryInbox,
                     onApproveMemory = onApproveMemory,
+                    genesisSourceIds = genesisSourceIds,
+                    onApproveGenesis = onApproveGenesis,
                     onBack = ::backHome,
                 )
             KairoDestination.Copilot ->
@@ -655,6 +660,8 @@ private fun SourcesDestination(
 private fun MemoryInboxDestination(
     memoryInbox: MemoryInboxService?,
     onApproveMemory: (suspend (MemoryCandidateId, String) -> Unit)?,
+    genesisSourceIds: Set<SourceId>,
+    onApproveGenesis: (suspend () -> Unit)?,
     onBack: () -> Unit,
 ) {
     var refreshToken by remember { mutableStateOf(0) }
@@ -667,6 +674,23 @@ private fun MemoryInboxDestination(
     ) {
         refreshToken
         val pending = memoryInbox?.pending().orEmpty()
+        val hasCuratedGenesisPending = pending.any { candidate ->
+            candidate.draft.evidenceAnchors.any { anchor -> anchor.sourceId in genesisSourceIds }
+        }
+
+        if (hasCuratedGenesisPending && onApproveGenesis != null) {
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    scope.launch {
+                        onApproveGenesis()
+                        refreshToken += 1
+                    }
+                },
+            ) {
+                Text("Approve curated Genesis knowledge")
+            }
+        }
 
         if (pending.isEmpty()) {
             StatusCard(

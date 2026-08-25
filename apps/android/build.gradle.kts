@@ -1,7 +1,49 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+abstract class PrepareGenesisAssets : DefaultTask() {
+    @get:InputFile
+    abstract val manifest: RegularFileProperty
+
+    @get:Optional
+    @get:InputFile
+    abstract val privateSeed: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun prepare() {
+        val seed = privateSeed.orNull?.asFile ?: return
+        if (!seed.isFile) return
+        val target = outputDirectory.dir("genesis").get().asFile
+        project.copy {
+            from(manifest)
+            into(target)
+            rename { "manifest.json" }
+        }
+        project.copy {
+            from(seed)
+            into(target)
+        }
+    }
+}
+
+val prepareDebugGenesisAssets = tasks.register<PrepareGenesisAssets>("prepareDebugGenesisAssets") {
+    manifest.fileValue(rootProject.file("validation/corpus/genesis-manifest.json"))
+    privateSeed.fileValue(rootProject.file(".private/genesis/curated-mana-discovery.v1.json"))
+    outputDirectory.set(layout.buildDirectory.dir("generated/kairo/genesis/debug"))
 }
 
 android {
@@ -26,6 +68,16 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(
+            prepareDebugGenesisAssets,
+            PrepareGenesisAssets::outputDirectory,
+        )
     }
 }
 

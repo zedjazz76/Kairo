@@ -2,6 +2,7 @@ package kairo.ingestion
 
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.UUID
 import kairo.domain.CaptureSessionId
 import kairo.domain.ExtractionStatus
 import kairo.domain.EvidenceState
@@ -269,10 +270,27 @@ fun interface GenesisCandidateReceiver {
     fun receive(candidate: MemoryCandidateDraft)
 }
 
+fun interface GenesisCandidateFactory {
+    fun create(entry: GenesisManifestEntry, result: IngestionResult): List<MemoryCandidateDraft>
+}
+
+private object ManifestGenesisCandidateFactory : GenesisCandidateFactory {
+    override fun create(
+        entry: GenesisManifestEntry,
+        result: IngestionResult,
+    ): List<MemoryCandidateDraft> = result.candidates.map { candidate ->
+        candidate.copy(
+            proposedScope = entry.expectedScope,
+            proposedState = entry.expectedEvidenceState,
+        )
+    }
+}
+
 data class GenesisImportEntryResult(
     val entryId: String,
     val stage: IngestionStage,
     val candidates: List<MemoryCandidateDraft>,
+    val source: Source? = null,
 )
 
 data class GenesisImportResult(
@@ -291,6 +309,7 @@ class GenesisImporter(
     private val payloadResolver: GenesisPayloadResolver,
     private val sourceRecorder: GenesisSourceRecorder,
     private val candidateReceiver: GenesisCandidateReceiver,
+    private val candidateFactory: GenesisCandidateFactory = ManifestGenesisCandidateFactory,
     private val now: () -> Instant = Instant::now,
 ) {
     fun import(manifest: GenesisManifest): GenesisImportResult = GenesisImportResult(
@@ -309,7 +328,10 @@ class GenesisImporter(
         val variantId = SourceVariantId("${entry.id}-v1")
         val result = pipeline.run(
             IngestionRequest(
-                sessionId = CaptureSessionId("genesis-${entry.id}-${entry.contentHash.take(12)}"),
+                // Pipeline payloads are intentionally cleared on completion, so each
+                // repeatable import attempt needs its own transient ingestion session.
+                // Source identity remains the stable manifest entry ID and hash.
+                sessionId = CaptureSessionId("genesis-${entry.id}-${entry.contentHash.take(12)}-${UUID.randomUUID()}"),
                 artifacts = listOf(
                     IngestionArtifact(
                         sourceId = sourceId,
@@ -328,39 +350,34 @@ class GenesisImporter(
         }
 
         val anchors = result.artifacts.flatMap { it.extracted.anchors }.toSet()
-        sourceRecorder.record(
-            Source(
-                id = sourceId,
-                origin = SourceOrigin.IMPORT,
-                type = entry.sourceType,
-                contentHash = entry.contentHash,
-                importedAt = now(),
-                classification = entry.sourceClassification,
-                variants = listOf(
-                    SourceVariant(
-                        id = variantId,
-                        sourceId = sourceId,
-                        version = 1,
-                        contentHash = entry.contentHash,
-                        importedAt = now(),
-                        parentVariantId = null,
-                        extractionStatus = ExtractionStatus.EXTRACTED,
-                        anchors = anchors,
-                    ),
+        val importedAt = now()
+        val source = Source(
+            id = sourceId,
+            origin = SourceOrigin.IMPORT,
+            type = entry.sourceType,
+            contentHash = entry.contentHash,
+            importedAt = importedAt,
+            classification = entry.sourceClassification,
+            variants = listOf(
+                SourceVariant(
+                    id = variantId,
+                    sourceId = sourceId,
+                    version = 1,
+                    contentHash = entry.contentHash,
+                    importedAt = importedAt,
+                    parentVariantId = null,
+                    extractionStatus = ExtractionStatus.EXTRACTED,
+                    anchors = anchors,
                 ),
-                anchors = anchors,
-                authority = entry.authority,
             ),
+            anchors = anchors,
+            authority = entry.authority,
         )
+        sourceRecorder.record(source)
 
-        val candidates = result.candidates.map { candidate ->
-            candidate.copy(
-                proposedScope = entry.expectedScope,
-                proposedState = entry.expectedEvidenceState,
-            )
-        }
+        val candidates = candidateFactory.create(entry, result)
         candidates.forEach(candidateReceiver::receive)
-        return GenesisImportEntryResult(entry.id, result.stage, candidates)
+        return GenesisImportEntryResult(entry.id, result.stage, candidates, source)
     }
 }
 

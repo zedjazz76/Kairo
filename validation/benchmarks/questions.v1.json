@@ -1,6 +1,6 @@
 {
   "schemaVersion": "kairo-private-benchmark-questions/v1",
-  "corpusStatus": "AWAITING_PRIVATE_SOURCES",
+  "corpusStatus": "READY",
   "cases": [
     {
       "id": "current-breast-architecture",
@@ -43,6 +43,48 @@
       "question": "Which production server currently runs the unsupported MANA service?",
       "requiredDomains": [],
       "requiresPrivateCorpus": false
+    },
+    {
+      "id": "mana-current-pacs",
+      "question": "What PACS does MANA use?",
+      "requiredDomains": ["Merge / AMICAS PACS"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "mana-pacs-monitoring",
+      "question": "What monitors PACS?",
+      "requiredDomains": ["Merge / AMICAS PACS"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "mana-dmwl-host",
+      "question": "Who hosts modality worklist?",
+      "requiredDomains": ["Merge / AMICAS PACS"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "mana-breast-dictation",
+      "question": "Does Breast use PowerScribe for dictation?",
+      "requiredDomains": ["Breast-imaging architecture changes", "PowerScribe"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "viewpoint-radai-direction",
+      "question": "What is the planned ViewPoint replacement direction?",
+      "requiredDomains": ["Rad AI", "Altamont", "Rad AI / ViewPoint retirement direction"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "gsps-forwarding-incident",
+      "question": "What do we know about the GSPS forwarding issue?",
+      "requiredDomains": ["Merge / AMICAS PACS"],
+      "requiresPrivateCorpus": true
+    },
+    {
+      "id": "unknown-abbadox-routing",
+      "question": "What is the exact AbbaDox routing endpoint and port?",
+      "requiredDomains": ["AbbaDox CareFlow", "AbbaDox migration"],
+      "requiresPrivateCorpus": true
     }
   ]
 }

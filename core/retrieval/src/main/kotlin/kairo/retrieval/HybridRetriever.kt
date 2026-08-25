@@ -23,6 +23,7 @@ data class RankedFact(
     val fact: FactVersion,
     val score: Int,
     val lexicalMatches: Int = 0,
+    val queryTokenCount: Int = 0,
 )
 
 data class RetrievedEntity(
@@ -89,6 +90,7 @@ class HybridRetriever(
                         ),
                     lexicalMatches =
                         lexicalMatches,
+                    queryTokenCount = tokenize(query.text).size,
                 )
             }
             .sortedWith(
@@ -127,6 +129,17 @@ class HybridRetriever(
             score += 100
         }
 
+        if (fact.state.name.lowercase() in tokenize(query.text)) {
+            score += 120
+        }
+
+        if (
+            fact.scope == KnowledgeScope.INCIDENT &&
+            tokenize(query.text).any { token -> token in incidentIntentTerms }
+        ) {
+            score += 130
+        }
+
         score += temporalScore(
             fact = fact,
             at = query.at,
@@ -155,10 +168,14 @@ private fun lexicalMatches(
     fact: FactVersion,
     query: RetrievalQuery,
 ): Int {
-    val searchableText = buildString {
+    val searchableTokens = tokenize(buildString {
         append(fact.subject.value)
         append(' ')
         append(fact.predicate)
+        append(' ')
+        append(fact.scope.name)
+        append(' ')
+        append(fact.state.name)
         append(' ')
 
         when (val value = fact.objectValue) {
@@ -168,12 +185,29 @@ private fun lexicalMatches(
             is FactObject.Literal ->
                 append(value.value)
         }
-    }.lowercase()
+    })
 
     return tokenize(query.text).count { token ->
-        searchableText.contains(token)
+        searchableTokens.any { searchableToken ->
+            tokenVariants(token)
+                .intersect(tokenVariants(searchableToken))
+                .isNotEmpty()
+        }
     }
 }
+
+private fun tokenVariants(token: String): Set<String> =
+    buildSet {
+        add(token)
+
+        if (token.length > 3 && token.endsWith('s')) {
+            add(token.dropLast(1))
+        }
+
+        if (token.length > 4 && token.endsWith("ed")) {
+            add(token.dropLast(2))
+        }
+    }
 
 
 private fun sourceExcerpt(
@@ -320,6 +354,7 @@ private fun concepts(text: String): Set<String> {
 private val stopWords =
     setOf(
         "a",
+        "about",
         "an",
         "and",
         "are",
@@ -336,6 +371,7 @@ private val stopWords =
         "in",
         "is",
         "it",
+        "know",
         "of",
         "on",
         "or",
@@ -349,6 +385,16 @@ private val stopWords =
         "who",
         "why",
         "with",
+    )
+
+private val incidentIntentTerms =
+    setOf(
+        "error",
+        "failure",
+        "incident",
+        "issue",
+        "troubleshoot",
+        "troubleshooting",
     )
 
 private fun tokenize(text: String): Set<String> =

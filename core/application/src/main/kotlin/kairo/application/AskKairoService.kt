@@ -44,7 +44,8 @@ class AskKairoService(
         val best =
             bundle.rankedClaims
                 .firstOrNull {
-                    it.lexicalMatches > 0
+                    it.lexicalMatches > 0 &&
+                        it.lexicalMatches * 2 >= it.queryTokenCount
                 }
 
         if (best == null) {
@@ -53,7 +54,7 @@ class AskKairoService(
             )
         }
 
-        val text = when (
+        val value = when (
             val value = best.fact.objectValue
         ) {
             is FactObject.Literal ->
@@ -64,7 +65,11 @@ class AskKairoService(
         }
 
         return KairoAnswer(
-            text = text,
+            text = quickAnswerText(
+                value = value,
+                state = best.fact.state,
+                subject = best.fact.subject.value,
+            ),
         )
     }
 
@@ -145,4 +150,23 @@ class AskKairoService(
                 )
         }
     }
+
+    private fun quickAnswerText(
+        value: String,
+        state: EvidenceState,
+        subject: String,
+    ): String =
+        when (state) {
+            EvidenceState.CONFIRMED -> value
+            EvidenceState.OBSERVED -> "Observed for ${subjectLabel(subject)}: $value"
+            EvidenceState.PLANNED -> "Planned for ${subjectLabel(subject)}: $value"
+            EvidenceState.PROPOSED -> "Proposed for ${subjectLabel(subject)}: $value"
+            EvidenceState.HYPOTHESIS -> "Hypothesis for ${subjectLabel(subject)}: $value"
+            EvidenceState.VERIFY -> "${subjectLabel(subject)}: $value — requires verification."
+            EvidenceState.DEPRECATED -> "Deprecated for ${subjectLabel(subject)}: $value"
+            EvidenceState.CONTRADICTED -> "Contradicted for ${subjectLabel(subject)}: $value"
+        }
+
+    private fun subjectLabel(subject: String): String =
+        subject.replace('-', ' ')
 }

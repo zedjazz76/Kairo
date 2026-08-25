@@ -16,5 +16,6 @@ local.properties
 .env
 .env.*
 !.env.example
+.private/
 validation/reports/*
 !validation/reports/.gitkeep

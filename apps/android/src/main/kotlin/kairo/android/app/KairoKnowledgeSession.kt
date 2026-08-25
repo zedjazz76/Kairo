@@ -1,5 +1,6 @@
 package kairo.android.app
 
+import android.content.res.AssetManager
 import kairo.android.capture.KnowledgeCapture
 import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.copilot.Copilot
@@ -14,7 +15,8 @@ import kairo.retrieval.HybridRetriever
 import kairo.platform.db.RoomKnowledgeRepository
 
 class KairoKnowledgeSession(
-    private val repository: KnowledgeRepository,
+    private val repository: RoomKnowledgeRepository,
+    assets: AssetManager? = null,
 ) {
 
     private var currentCopilot: Copilot =
@@ -27,6 +29,15 @@ class KairoKnowledgeSession(
             repository = repository,
         )
 
+    private val genesisBootstrapper =
+        assets?.let {
+            AndroidGenesisBootstrapper(
+                assets = it,
+                repository = repository,
+                memoryInbox = memoryInbox,
+            )
+        }
+
     var revision: Int = 0
         private set
 
@@ -38,7 +49,7 @@ class KairoKnowledgeSession(
             private val delegate =
                 RoomKnowledgeCapture(
                     repository =
-                        repository as RoomKnowledgeRepository,
+                        repository,
                     memoryInbox = memoryInbox,
                 )
 
@@ -105,6 +116,17 @@ class KairoKnowledgeSession(
         repository.currentUnderstanding(
             FactQuery(),
         )
+
+    suspend fun stageGenesis() = genesisBootstrapper?.stage()
+
+    suspend fun approveGenesis(
+        sourceIds: Set<kairo.domain.SourceId>,
+        reviewer: String,
+    ): Int {
+        val approved = genesisBootstrapper?.approveStaged(sourceIds, reviewer) ?: 0
+        if (approved > 0) refreshCopilot()
+        return approved
+    }
 
     suspend fun load() {
         currentCopilot =

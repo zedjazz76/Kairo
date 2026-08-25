@@ -1,6 +1,6 @@
 {
   "schemaVersion": "genesis-corpus-manifest/v1",
-  "corpusStatus": "AWAITING_PRIVATE_SOURCES",
+  "corpusStatus": "READY",
   "requiredDomainCoverage": [
     "Merge / AMICAS PACS",
     "Merge RIS",
@@ -17,5 +17,41 @@
     "Rad AI / ViewPoint retirement direction",
     "Breast-imaging architecture changes"
   ],
-  "entries": []
+  "entries": [
+    {
+      "id": "curated-mana-discovery",
+      "sourceReference": "private://genesis/curated-mana-discovery.v1.json",
+      "contentHash": "98c60bb12336046acf3c0ef072eb43e8ee8d15849175f415aa4602cd476ef20a",
+      "sourceType": "TEXT",
+      "sourceClassification": "CONFIDENTIAL",
+      "authority": "MANA_OBSERVED_HISTORY",
+      "expectedScope": "MANA_PRODUCTION",
+      "expectedEvidenceState": "OBSERVED",
+      "temporalDisposition": "CURRENT",
+      "sensitivityDisposition": "CLEARED_FOR_DURABLE_IMPORT",
+      "materialKind": "CURATED_MANA_KNOWLEDGE",
+      "domains": [
+        "Merge / AMICAS PACS",
+        "Merge RIS",
+        "AbbaDox CareFlow",
+        "MagView",
+        "eClinicalWorks / eCW",
+        "Hologic",
+        "PowerScribe",
+        "Rad AI",
+        "Altamont",
+        "DynaCAD",
+        "AbbaDox migration",
+        "Baxter project/integration",
+        "Rad AI / ViewPoint retirement direction",
+        "Breast-imaging architecture changes"
+      ],
+      "projectIds": [
+        "abbadox-transition",
+        "baxter-integration",
+        "rad-ai-viewpoint-retirement",
+        "altamont-direction"
+      ]
+    }
+  ]
 }

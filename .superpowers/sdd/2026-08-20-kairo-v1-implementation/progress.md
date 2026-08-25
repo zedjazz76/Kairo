@@ -5,6 +5,31 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 14 Genesis load and first real APK
+
+2026-08-24 Task 14 has a local private-curated Genesis seed wired into the single Android-hosted Core for debug builds. The ignored seed remains untracked and is copied into the debug APK only when it exists locally; its checked-in manifest has the real content hash and no corpus payload.
+
+Implemented / corrected:
+- A 41-statement curated seed is decoded into structured, source-anchored Memory Inbox candidates. Every activation still requires explicit local Memory Inbox approval; the bootstrap has no repository/fact-promotion shortcut.
+- The Android session stages the local package after Core load and exposes a single explicit “Approve curated Genesis knowledge” action. Non-asset test sessions keep Genesis unavailable rather than creating a second store or relaxing review semantics.
+- The private benchmark now consumes all 14 checked-in question/expectation cases after approval. It verifies evidence linkage, required scope/state boundaries, product-versus-MANA separation, project/incident semantics, planned/VERIFY treatment, and qualified unknown behavior.
+- Fixed two integration defects exposed by the final gates: root source and root variant now share the same import timestamp; the JVM version-1 migration fixture registers the authoritative 1→7 migration chain.
+
+Fresh verification:
+- `./gradlew --no-daemon :core:application:test --tests 'kairo.application.GenesisPrivateBenchmarkTest'` — PASS (the private benchmark executes all 14 cases).
+- `./gradlew --no-daemon --rerun-tasks :core:ingestion:test :core:application:test :core:retrieval:test :apps:android:testDebugUnitTest :platform:android:testDebugUnitTest` initially exposed the stale JVM migration fixture; core ingestion/application/retrieval passed before that failure.
+- `./gradlew --no-daemon :platform:android:testDebugUnitTest --tests 'kairo.platform.db.KnowledgeMigrationJvmTest' --rerun-tasks` — PASS after aligning the 1→7 fixture.
+- `./gradlew --no-daemon --rerun-tasks :apps:android:testDebugUnitTest :platform:android:testDebugUnitTest` — PASS.
+- `./gradlew --no-daemon :platform:android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=kairo.platform.db.KnowledgeMigrationTest` — PASS (1 test) on `R5GYC4YHMNN` / SM-S176V.
+- `./gradlew --no-daemon :core:ingestion:test --tests 'kairo.ingestion.GenesisImporterTest'` — PASS after the source-identity correction.
+- `./gradlew --no-daemon :apps:android:clean :apps:android:assembleDebug` — PASS; fresh APK: `apps/android/build/outputs/apk/debug/android-debug.apk`.
+- The fresh APK was installed with `adb install -r` and `KairoActivity` was launched; its process and resumed activity were confirmed on `R5GYC4YHMNN`.
+
+Device boundary:
+- The connected phone is currently at the system PIN screen. The app remains running but Android hides its window behind that lock, which makes Compose hierarchy tests and manual on-screen question verification unavailable. No credential was entered or bypassed. After the owner unlocks the phone, rerun the targeted KairoActivity/Memory Inbox instrumentation tests and ask the benchmark MANA questions in the app before claiming the device UI gate complete.
+
+Task 14 status: implementation, private benchmark, migration, source provenance, and fresh APK build are complete. Final on-screen device retrieval verification is pending the user unlocking the connected device. Task 15 remains unstarted.
+
 ## Progress checkpoint — Task 14 Genesis corpus import and private benchmark
 
 2026-08-24 Task 14 implementation is complete; literal private-corpus execution is **BLOCKED** pending the approved private Genesis source payloads.

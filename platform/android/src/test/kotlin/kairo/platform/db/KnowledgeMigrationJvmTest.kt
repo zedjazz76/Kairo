@@ -32,7 +32,14 @@ class KnowledgeMigrationJvmTest {
         createVersionOneFixture()
 
         val database = Room.databaseBuilder(context, KairoDatabase::class.java, databaseName)
-            .addMigrations(KairoDatabase.MIGRATION_1_2, KairoDatabase.MIGRATION_2_3)
+            .addMigrations(
+                KairoDatabase.MIGRATION_1_2,
+                KairoDatabase.MIGRATION_2_3,
+                KairoDatabase.MIGRATION_3_4,
+                KairoDatabase.MIGRATION_4_5,
+                KairoDatabase.MIGRATION_5_6,
+                KairoDatabase.MIGRATION_6_7,
+            )
             .allowMainThreadQueries()
             .build()
         val repository = RoomKnowledgeRepository(database)

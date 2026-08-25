@@ -73,6 +73,170 @@ class HybridRetrieverTest {
         )
     }
 
+    @Test
+    fun `plural query terms match structured relationship predicates`() {
+        val monitored = FactVersion(
+            id = FactId("fact-monitored-by"),
+            subject = EntityId("merge-pacs"),
+            predicate = "MONITORED_BY",
+            objectValue = FactObject.Literal("AMICAS Watch"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-monitoring")),
+        )
+        val version = FactVersion(
+            id = FactId("fact-pacs-version"),
+            subject = EntityId("merge-pacs"),
+            predicate = "RUNS_VERSION",
+            objectValue = FactObject.Literal("Importer 8.1.6.7"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-version")),
+        )
+
+        val result = HybridRetriever(facts = listOf(version, monitored)).retrieve(
+            RetrievalQuery(
+                text = "What monitors PACS?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+            ),
+        )
+
+        assertEquals(monitored.id, result.rankedClaims.first().fact.id)
+        assertTrue(result.rankedClaims.first().lexicalMatches > result.rankedClaims[1].lexicalMatches)
+    }
+
+    @Test
+    fun `planned query language favors planned evidence over current evidence`() {
+        val current = FactVersion(
+            id = FactId("fact-current-viewpoint"),
+            subject = EntityId("ultrasound-workflow"),
+            predicate = "USES_REPORTING_WORKFLOW",
+            objectValue = FactObject.Literal("GE ViewPoint then PowerScribe 360"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-current")),
+        )
+        val planned = FactVersion(
+            id = FactId("fact-planned-viewpoint"),
+            subject = EntityId("ge-viewpoint"),
+            predicate = "REPLACED_BY",
+            objectValue = FactObject.Literal("Rad AI direction"),
+            scope = KnowledgeScope.PROJECT,
+            state = EvidenceState.PLANNED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-planned")),
+        )
+
+        val result = HybridRetriever(facts = listOf(current, planned)).retrieve(
+            RetrievalQuery(
+                text = "What is the planned ViewPoint replacement direction?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+            ),
+        )
+
+        assertEquals(
+            planned.id,
+            result.rankedClaims.first().fact.id,
+            result.rankedClaims.joinToString { ranked ->
+                "${ranked.fact.id.value}:${ranked.score}/${ranked.lexicalMatches}"
+            },
+        )
+    }
+
+    @Test
+    fun `incident query language favors incident-scoped knowledge`() {
+        val current = FactVersion(
+            id = FactId("fact-current-reporting"),
+            subject = EntityId("powerscribe-360"),
+            predicate = "PARTICIPATES_IN",
+            objectValue = FactObject.Literal("known radiology reporting workflow"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-current")),
+        )
+        val incident = FactVersion(
+            id = FactId("fact-gsps-incident"),
+            subject = EntityId("gsps-forwarding"),
+            predicate = "LIKELY_CAUSED_BY",
+            objectValue = FactObject.Literal("GSPS SOP Class compatibility"),
+            scope = KnowledgeScope.INCIDENT,
+            state = EvidenceState.HYPOTHESIS,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-incident")),
+        )
+
+        val result = HybridRetriever(facts = listOf(current, incident)).retrieve(
+            RetrievalQuery(
+                text = "What do we know about the GSPS forwarding issue?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+            ),
+        )
+
+        assertEquals(incident.id, result.rankedClaims.first().fact.id)
+    }
+
+    @Test
+    fun `query terms do not match inside unrelated words`() {
+        val queue = FactVersion(
+            id = FactId("fact-image-import"),
+            subject = EntityId("merge-pacs"),
+            predicate = "HAS_QUEUE",
+            objectValue = FactObject.Literal("Image Import queue"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.OBSERVED,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-queue")),
+        )
+        val endpoint = FactVersion(
+            id = FactId("fact-altamont-endpoint"),
+            subject = EntityId("altamont"),
+            predicate = "USES_ENDPOINT",
+            objectValue = FactObject.Literal("Exact endpoint and port require verification"),
+            scope = KnowledgeScope.MANA_PRODUCTION,
+            state = EvidenceState.VERIFY,
+            effectiveFrom = null,
+            effectiveTo = null,
+            recordedAt = Instant.parse("2026-08-22T13:00:00Z"),
+            lastValidatedAt = null,
+            evidence = setOf(EvidenceRef("source-altamont")),
+        )
+
+        val result = HybridRetriever(facts = listOf(queue, endpoint)).retrieve(
+            RetrievalQuery(
+                text = "What is the exact Altamont endpoint and port?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+            ),
+        )
+
+        assertEquals(endpoint.id, result.rankedClaims.first().fact.id)
+        assertEquals(0, result.rankedClaims.last().lexicalMatches)
+    }
+
 
     @Test
     fun `semantic query retrieves routing incident without exact phrase`() {

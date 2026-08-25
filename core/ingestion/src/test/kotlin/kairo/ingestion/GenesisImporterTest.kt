@@ -28,11 +28,19 @@ class GenesisImporterTest {
     }
 
     @Test
-    fun `checked in Genesis manifest is transparent when private sources are unavailable`() {
+    fun `checked in Genesis manifest identifies the curated private source without its payload`() {
         val manifest = loader.load(Files.readString(corpusFile("genesis-manifest.json")))
 
-        assertEquals(GenesisCorpusStatus.AWAITING_PRIVATE_SOURCES, manifest.corpusStatus)
-        assertTrue(manifest.entries.isEmpty())
+        assertEquals(GenesisCorpusStatus.READY, manifest.corpusStatus)
+        assertEquals("curated-mana-discovery", manifest.entries.single().id)
+        assertEquals(
+            "private://genesis/curated-mana-discovery.v1.json",
+            manifest.entries.single().sourceReference,
+        )
+        assertEquals(
+            "98c60bb12336046acf3c0ef072eb43e8ee8d15849175f415aa4602cd476ef20a",
+            manifest.entries.single().contentHash,
+        )
         assertTrue(manifest.requiredDomainCoverage.contains("AbbaDox CareFlow"))
         assertTrue(manifest.requiredDomainCoverage.contains("Breast-imaging architecture changes"))
     }
@@ -160,6 +168,77 @@ class GenesisImporterTest {
     }
 
     @Test
+    fun `curated seed retains each structured fact relation scope state and exact evidence span`() {
+        val payload = curatedSeed(
+            """
+            {
+              "id": "current-pacs",
+              "subjectLabel": "MANA",
+              "predicate": "USES",
+              "objectValue": "Merge / AMICAS PACS",
+              "statement": "MANA's observed PACS is Merge / AMICAS PACS.",
+              "scope": "MANA_PRODUCTION",
+              "evidenceState": "OBSERVED"
+            },
+            {
+              "id": "abbadox-transition",
+              "subjectLabel": "Merge RIS",
+              "predicate": "REPLACED_BY",
+              "objectValue": "AbbaDox CareFlow for non-breast imaging",
+              "statement": "Non-breast imaging is planned to move from Merge RIS to AbbaDox CareFlow.",
+              "scope": "PROJECT",
+              "evidenceState": "PLANNED"
+            }
+            """.trimIndent(),
+        )
+        val candidates = mutableListOf<MemoryCandidateDraft>()
+        val importer = GenesisImporter(
+            pipeline = IngestionPipeline(
+                extractors = listOf(CuratedGenesisSeedExtractor()),
+                scanner = { SensitiveContentScan(emptyList()) },
+            ),
+            payloadResolver = GenesisPayloadResolver { entry ->
+                GenesisSourcePayload(
+                    fileName = "${entry.id}.txt",
+                    bytes = payload.encodeToByteArray(),
+                    mediaType = "text/plain",
+                )
+            },
+            sourceRecorder = GenesisSourceRecorder { Unit },
+            candidateReceiver = GenesisCandidateReceiver(candidates::add),
+            candidateFactory = CuratedGenesisCandidateFactory(),
+            now = { Instant.parse("2026-08-24T12:00:00Z") },
+        )
+
+        importer.import(
+            loader.load(
+                manifest(
+                    validEntry(
+                        id = "synthetic-curated-seed",
+                        sourceReference = "synthetic://curated-seed",
+                        contentHash = sha256(payload),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(2, candidates.size)
+        assertEquals("USES", candidates[0].proposedPredicate)
+        assertEquals("Merge / AMICAS PACS", candidates[0].proposedObjectValue)
+        assertEquals(KnowledgeScope.MANA_PRODUCTION, candidates[0].proposedScope)
+        assertEquals(EvidenceState.OBSERVED, candidates[0].proposedState)
+        assertEquals("REPLACED_BY", candidates[1].proposedPredicate)
+        assertEquals(KnowledgeScope.PROJECT, candidates[1].proposedScope)
+        assertEquals(EvidenceState.PLANNED, candidates[1].proposedState)
+        assertTrue(candidates.all { candidate ->
+            candidate.evidenceAnchors.single().locator is kairo.domain.AnchorLocator.TextSpan
+        })
+        assertTrue(candidates.all { candidate ->
+            candidate.evidenceAnchors.single().sourceId.value == "synthetic-curated-seed"
+        })
+    }
+
+    @Test
     fun `sensitive source is held at existing policy boundary rather than imported`() {
         val payload = "Synthetic sensitive-looking payload"
         val sources = mutableListOf<Source>()
@@ -192,11 +271,41 @@ class GenesisImporterTest {
         assertTrue(candidates.isEmpty())
     }
 
+    @Test
+    fun `root source and variant share one Genesis import timestamp`() {
+        val payload = "Synthetic root identity"
+        val sources = mutableListOf<Source>()
+        var invocation = 0
+        val importer = importer(
+            payloads = mapOf("synthetic://root-identity" to payload),
+            sources = sources,
+            now = {
+                invocation += 1
+                Instant.parse("2026-08-24T12:00:0${invocation}Z")
+            },
+        )
+
+        importer.import(
+            loader.load(
+                manifest(
+                    validEntry(
+                        id = "synthetic-root-identity",
+                        sourceReference = "synthetic://root-identity",
+                        contentHash = sha256(payload),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(sources.single().importedAt, sources.single().variants.single().importedAt)
+    }
+
     private fun importer(
         payloads: Map<String, String>,
         sources: MutableList<Source> = mutableListOf(),
         candidates: MutableList<MemoryCandidateDraft> = mutableListOf(),
         scanner: (String) -> SensitiveContentScan = { SensitiveContentScan(emptyList()) },
+        now: () -> Instant = { Instant.parse("2026-08-24T12:00:00Z") },
     ): GenesisImporter = GenesisImporter(
         pipeline = IngestionPipeline(
             extractors = listOf(GenesisPlainTextExtractor()),
@@ -213,7 +322,7 @@ class GenesisImporterTest {
         },
         sourceRecorder = GenesisSourceRecorder { source -> sources.add(source); Unit },
         candidateReceiver = GenesisCandidateReceiver { candidate -> candidates.add(candidate); Unit },
-        now = { Instant.parse("2026-08-24T12:00:00Z") },
+        now = now,
     )
 
     private fun assertManifestRejected(json: String, expectedMessage: String) {
@@ -265,6 +374,14 @@ class GenesisImporterTest {
         MessageDigest.getInstance("SHA-256")
             .digest(value.encodeToByteArray())
             .joinToString("") { byte -> "%02x".format(byte) }
+
+    private fun curatedSeed(facts: String): String =
+        """
+        {
+          "schemaVersion": "kairo-curated-genesis-seed/v1",
+          "facts": [$facts]
+        }
+        """.trimIndent()
 
     private fun corpusFile(name: String): Path =
         generateSequence(Path.of("").toAbsolutePath().normalize()) { it.parent }

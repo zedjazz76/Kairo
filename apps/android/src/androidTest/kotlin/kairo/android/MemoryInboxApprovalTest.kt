@@ -24,6 +24,7 @@ import kairo.domain.SourceId
 import kairo.domain.SourceVariantId
 import kairo.ingestion.MemoryCandidateDraft
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
 import org.junit.Rule
 import org.junit.Test
 
@@ -83,6 +84,34 @@ class MemoryInboxApprovalTest {
                 .fetchSemanticsNodes()
                 .isEmpty()
         }
+    }
+
+    @Test
+    fun curated_genesis_candidates_can_be_explicitly_approved_from_memory_inbox() {
+        var approved = false
+
+        composeRule.setContent {
+            KairoShell(
+                connectivity = ConnectivityCapability.Offline,
+                authenticationState = AuthenticationState.Unlocked,
+                genesisSourceIds = setOf(SourceId("curated-mana-discovery")),
+                onApproveGenesis = {
+                    delay(1)
+                    approved = true
+                },
+            )
+        }
+
+        composeRule
+            .onNodeWithText("Memory Inbox")
+            .performClick()
+
+        composeRule
+            .onNodeWithText("Approve curated Genesis knowledge")
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) { approved }
     }
 
     private class FakeKnowledgeRepository : KnowledgeRepository {
