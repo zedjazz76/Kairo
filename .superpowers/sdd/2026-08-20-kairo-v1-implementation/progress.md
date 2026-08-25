@@ -5,6 +5,41 @@ Branch: kairo-v1
 Merge base: 84075ac
 Remote: https://github.com/zedjazz76/Kairo.git
 
+## Progress checkpoint — Task 14 Android retrieval correction and device closure
+
+2026-08-25 Task 14 is complete. The final live gate ran on authorized device `R5GYC4YHMNN` / SM-S176V using a freshly built and installed debug APK after a clean Kairo app-local data reset and owner authentication.
+
+Defect and root cause:
+- The private benchmark exercised a fake repository that returned all approved facts directly to `HybridRetriever`. Android instead composed Copilot from `RoomKnowledgeRepository.currentUnderstanding(...)`.
+- That existing current-production projection deliberately retained only current `CONFIRMED`/`OBSERVED` facts and grouped them by `(subject, predicate)`. It therefore hid `PLANNED`, `VERIFY`, and incident evidence from Copilot, and could collapse independent MANA `USES` facts such as PACS and RIS.
+
+Bounded correction:
+- Added `KnowledgeRepository.retrievalUnderstanding(...)` and the Room implementation's retrieval-specific projection. It reads the same fact history and preserves independent facts, temporal applicability, `KnowledgeScope`, `EvidenceState`, project/incident context, and `EvidenceRef` provenance; it includes durable `CONFIRMED`, `OBSERVED`, `PLANNED`, `VERIFY`, and `HYPOTHESIS` facts without a schema/database migration or a second store.
+- Kept `currentUnderstanding(...)` and its current-production UI projection unchanged. Android uses the retrieval projection only for Copilot reasoning; Systems/Projects/Knowledge/Sources continue to use the current-production view.
+- Quick-answer composition now renders non-production scope explicitly (for example `Planned [PROJECT]` and `Observed [INCIDENT]`) without promoting those facts to current MANA production truth.
+- Preserved the required focused `MemoryInboxApprovalTest.kt` correction, which constructs the real inbox service for the passing Genesis UI path.
+
+TDD and verification:
+- Added `AndroidCopilotRetrievalProjectionTest`, a real Room database → `KairoCompositionRoot` → Copilot instrumentation regression suite. It covers independent MANA PACS/RIS facts, planned PROJECT AbbaDox and ViewPoint direction, VERIFY endpoint behavior, and INCIDENT GSPS evidence.
+- The new scope assertions were first run RED (4 expected assertion failures) and then GREEN (5/5 on SM-S176V).
+- `./gradlew --no-daemon --rerun-tasks :core:domain:test :core:ingestion:test :core:application:test :core:retrieval:test :platform:android:testDebugUnitTest :apps:android:testDebugUnitTest` — PASS.
+- `./gradlew --no-daemon :core:domain:test :core:ingestion:test :core:application:test :core:retrieval:test :platform:android:testDebugUnitTest :apps:android:testDebugUnitTest :apps:android:assembleDebug` — PASS.
+- `./gradlew --no-daemon :core:application:test --tests 'kairo.application.GenesisPrivateBenchmarkTest'` — PASS; all 14 private benchmark cases remain green.
+- `./gradlew --no-daemon :apps:android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=kairo.android.app.AndroidCopilotRetrievalProjectionTest` — PASS (5/5). Earlier targeted `KairoActivityTest`, `MemoryInboxApprovalTest`, and retrieval tests passed 8/8 before the final scope-label-only composition correction.
+
+Final on-device gate:
+- Memory Inbox staged and approved the 41 local curated Genesis statements through the intended UI; the screen reported `Inbox clear`.
+- Offline/local smoke PASS: the home screen states that local knowledge remains available while deep reasoning is unavailable; the listed Copilot answers were returned on that device-local path.
+- PACS resolves to `Merge / AMICAS PACS`; PACS monitoring resolves to `AMICAS Watch`; DMWL is returned for `merge amicas pacs`.
+- Current breast imaging resolves to `Merge RIS`; breast dictation resolves to `Dragon One` when asked about PowerScribe.
+- AbbaDox returns `Planned [PROJECT] for merge ris: AbbaDox CareFlow for non-breast imaging`; ViewPoint returns `Planned [PROJECT] ... Rad AI direction`.
+- The broad Baxter project wording remains unknown rather than promoted into MANA production truth.
+- The GSPS forwarding question returns incident-scoped evidence (`Observed [INCIDENT] ... Explicit VR Little Endian transfer syntax ...`).
+- The exact Altamont AE Title/port remains explicitly PROJECT-scoped `requires verification`; no endpoint, AE Title, or port was invented.
+- Evidence navigation PASS: `Open evidence` routes to Sources and displays `curated-mana-discovery` with local source anchors and confidence.
+
+Task 14 status: closed. Task 15 remains unstarted and is ready to begin only as the next separately authorized task.
+
 ## Progress checkpoint — Task 14 Genesis load and first real APK
 
 2026-08-24 Task 14 has a local private-curated Genesis seed wired into the single Android-hosted Core for debug builds. The ignored seed remains untracked and is copied into the debug APK only when it exists locally; its checked-in manifest has the real content hash and no corpus payload.

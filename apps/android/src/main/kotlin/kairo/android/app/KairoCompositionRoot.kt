@@ -26,7 +26,7 @@ class KairoCompositionRoot private constructor(
             repository: KnowledgeRepository,
         ): KairoCompositionRoot {
             val facts =
-                repository.currentUnderstanding(
+                repository.retrievalUnderstanding(
                     FactQuery(),
                 )
 

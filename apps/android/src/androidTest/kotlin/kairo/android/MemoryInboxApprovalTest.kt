@@ -89,11 +89,31 @@ class MemoryInboxApprovalTest {
     @Test
     fun curated_genesis_candidates_can_be_explicitly_approved_from_memory_inbox() {
         var approved = false
+        val memoryInbox =
+            MemoryInboxService(
+                repository = FakeKnowledgeRepository(),
+                store = InMemoryMemoryInboxStore(),
+            )
+        memoryInbox.receive(
+            MemoryCandidateDraft(
+                sessionId = CaptureSessionId("genesis-session"),
+                subjectLabel = "MANA",
+                text = "Curated Genesis candidate.",
+                evidenceAnchors = setOf(
+                    SourceAnchor(
+                        sourceId = SourceId("curated-mana-discovery"),
+                        variantId = SourceVariantId("curated-mana-discovery-v1"),
+                        locator = AnchorLocator.TextSpan(0, 26),
+                    ),
+                ),
+            ),
+        )
 
         composeRule.setContent {
             KairoShell(
                 connectivity = ConnectivityCapability.Offline,
                 authenticationState = AuthenticationState.Unlocked,
+                memoryInbox = memoryInbox,
                 genesisSourceIds = setOf(SourceId("curated-mana-discovery")),
                 onApproveGenesis = {
                     delay(1)

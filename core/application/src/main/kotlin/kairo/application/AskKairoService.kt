@@ -69,6 +69,7 @@ class AskKairoService(
                 value = value,
                 state = best.fact.state,
                 subject = best.fact.subject.value,
+                scope = best.fact.scope,
             ),
         )
     }
@@ -155,17 +156,21 @@ class AskKairoService(
         value: String,
         state: EvidenceState,
         subject: String,
+        scope: KnowledgeScope,
     ): String =
         when (state) {
             EvidenceState.CONFIRMED -> value
-            EvidenceState.OBSERVED -> "Observed for ${subjectLabel(subject)}: $value"
-            EvidenceState.PLANNED -> "Planned for ${subjectLabel(subject)}: $value"
-            EvidenceState.PROPOSED -> "Proposed for ${subjectLabel(subject)}: $value"
-            EvidenceState.HYPOTHESIS -> "Hypothesis for ${subjectLabel(subject)}: $value"
-            EvidenceState.VERIFY -> "${subjectLabel(subject)}: $value — requires verification."
-            EvidenceState.DEPRECATED -> "Deprecated for ${subjectLabel(subject)}: $value"
-            EvidenceState.CONTRADICTED -> "Contradicted for ${subjectLabel(subject)}: $value"
+            EvidenceState.OBSERVED -> "Observed${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
+            EvidenceState.PLANNED -> "Planned${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
+            EvidenceState.PROPOSED -> "Proposed${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
+            EvidenceState.HYPOTHESIS -> "Hypothesis${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
+            EvidenceState.VERIFY -> "${subjectLabel(subject)}${scopeLabel(scope)}: $value — requires verification."
+            EvidenceState.DEPRECATED -> "Deprecated${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
+            EvidenceState.CONTRADICTED -> "Contradicted${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
         }
+
+    private fun scopeLabel(scope: KnowledgeScope): String =
+        if (scope == KnowledgeScope.MANA_PRODUCTION) "" else " [${scope.name}]"
 
     private fun subjectLabel(subject: String): String =
         subject.replace('-', ' ')

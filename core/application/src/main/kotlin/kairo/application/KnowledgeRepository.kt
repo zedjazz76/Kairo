@@ -39,6 +39,14 @@ interface KnowledgeRepository {
 
     suspend fun currentUnderstanding(query: FactQuery): List<FactVersion>
 
+    /**
+     * Evidence available to retrieval. Implementations may include durable,
+     * temporally-applicable planned, verification, and incident evidence that
+     * is intentionally excluded from current-production displays.
+     */
+    suspend fun retrievalUnderstanding(query: FactQuery): List<FactVersion> =
+        currentUnderstanding(query)
+
     suspend fun history(lineageId: FactLineageId): List<FactVersion>
 
     suspend fun saveSource(source: Source, audit: AuditEvent)

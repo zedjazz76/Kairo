@@ -55,9 +55,7 @@ class RoomKnowledgeRepository(
     }
 
     override suspend fun currentUnderstanding(query: FactQuery): List<FactVersion> {
-        val versions = database.withTransaction {
-            dao.factsForProjection().map { it.toDomain() }
-        }
+        val versions = factsForProjection()
         return immutableList(
             CurrentBestUnderstanding.project(versions, query.at).current.filter { fact ->
                 (query.subject == null || fact.subject == query.subject) &&
@@ -65,6 +63,14 @@ class RoomKnowledgeRepository(
             },
         )
     }
+
+    override suspend fun retrievalUnderstanding(query: FactQuery): List<FactVersion> =
+        immutableList(
+            CurrentBestUnderstanding.retrieval(factsForProjection(), query.at).filter { fact ->
+                (query.subject == null || fact.subject == query.subject) &&
+                    (query.predicate == null || fact.predicate == query.predicate)
+            },
+        )
 
     override suspend fun history(lineageId: FactLineageId): List<FactVersion> = database.withTransaction {
         immutableList(
@@ -111,6 +117,10 @@ class RoomKnowledgeRepository(
     suspend fun captureSession(id: CaptureSessionId): CaptureSession? = database.withTransaction {
         val session = dao.captureSession(id.value) ?: return@withTransaction null
         session.toDomain(dao.captureSessionAnchors(id.value).map { it.toDomain() }.toSet())
+    }
+
+    private suspend fun factsForProjection(): List<FactVersion> = database.withTransaction {
+        dao.factsForProjection().map { it.toDomain() }
     }
 
     private suspend fun FactVersionEntity.toDomain(): FactVersion = FactVersion(
