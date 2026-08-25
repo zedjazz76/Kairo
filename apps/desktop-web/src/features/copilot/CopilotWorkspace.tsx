@@ -61,6 +61,7 @@ export function CopilotWorkspace({
   return (
     <section data-testid="copilot-workspace" aria-label="Copilot">
       <h2>Copilot</h2>
+      <p>Quick/local evidence reasoning · Deep Analyze when the paired Core is available.</p>
       <form onSubmit={submitQuestion}>
         <label>
           Ask Kairo

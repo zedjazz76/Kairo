@@ -64,12 +64,18 @@ export function App({
   };
 
   return (
-    <main>
+    <main className="guardian-shell">
+      <aside className="guardian-rail">
+        <div className="guardian-brand" aria-label="Kairo Guardian wordmark">
+          <img src="/guardian/icon-dark.png" alt="Guardian emblem" />
+          <span>KAIRO</span>
+        </div>
       <nav aria-label="Desktop workspace">
         <button type="button" onClick={() => navigate("capture")}>Capture</button>
         <button type="button" onClick={() => navigate("memory")}>Memory</button>
         <button type="button" onClick={() => navigate("projects")}>Projects</button>
       </nav>
+      </aside>
       {workspace.activeWorkspace === "capture" ? (
         <CaptureWorkspace
           captureBatch={captureBatch}

@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -29,6 +31,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kairo.android.guardian.GuardianCard
+import kairo.android.guardian.GuardianEmblem
+import kairo.android.guardian.GuardianHero
+import kairo.android.guardian.GuardianStatusChip
+import kairo.android.guardian.GuardianWordmark
+import kairo.android.theme.GuardianColors
 import kairo.android.auth.AuthenticationState
 import kairo.android.auth.Authenticator
 import kairo.android.capture.KnowledgeCapture
@@ -186,33 +194,27 @@ private fun LockedDestination(
     onUnlocked: () -> Unit,
     scope: kotlinx.coroutines.CoroutineScope,
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "KAIRO",
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Clinical Systems Copilot",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(28.dp))
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = {
-                val auth = authenticator ?: return@Button
-                scope.launch {
-                    if (auth.authenticate()) onUnlocked()
-                }
-            },
-            enabled = authenticator != null,
+    Surface(modifier = Modifier.fillMaxSize(), color = GuardianColors.Black) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
         ) {
-            Text("Unlock Kairo")
+            GuardianHero(Modifier.fillMaxWidth().height(260.dp))
+            Spacer(Modifier.height(10.dp))
+            GuardianWordmark(dark = true)
+            Spacer(Modifier.height(14.dp))
+            Text("YOUR KNOWLEDGE. PROTECTED.", style = MaterialTheme.typography.labelLarge, color = GuardianColors.Cyan)
+            Text("Unlock your local clinical intelligence.", style = MaterialTheme.typography.bodyMedium, color = GuardianColors.SteelMist)
+            Spacer(Modifier.height(26.dp))
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    val auth = authenticator ?: return@Button
+                    scope.launch { if (auth.authenticate()) onUnlocked() }
+                },
+                enabled = authenticator != null,
+            ) { Text("Unlock Kairo") }
         }
     }
 }
@@ -233,12 +235,15 @@ private fun HomeDestination(
     val offline = connectivity == ConnectivityCapability.Offline
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("KAIRO", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            GuardianWordmark()
+            GuardianEmblem(Modifier.size(58.dp), dark = true)
+        }
         Text(
-            "Clinical Systems Copilot",
+            "Clinical systems intelligence, grounded in your approved evidence.",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -250,12 +255,12 @@ private fun HomeDestination(
             )
         }
 
-        FeatureCard(
-            title = "Copilot",
-            body = "Ask Kairo about approved local clinical-systems knowledge.",
-            action = "Ask Kairo",
-            onClick = onCopilot,
-        )
+        GuardianCard(dark = true) {
+            Text("ASK KAIRO", style = MaterialTheme.typography.labelLarge, color = GuardianColors.Cyan)
+            Text("Evidence-first clinical systems reasoning.", style = MaterialTheme.typography.headlineSmall)
+            Text("Quick answers stay local. Deep Analyze uses the live relay when available.", color = GuardianColors.SteelMist)
+            Button(onClick = onCopilot) { Text("Ask Kairo") }
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -304,18 +309,10 @@ private fun FeatureCard(
     action: String,
     onClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+    GuardianCard(modifier = Modifier.fillMaxWidth()) {
             Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
             Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick = onClick) { Text(action) }
-        }
     }
 }
 
@@ -336,21 +333,13 @@ private fun CompactAction(
 
 @Composable
 private fun StatusCard(title: String, body: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+    GuardianCard(modifier = Modifier.fillMaxWidth()) {
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(
                 body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
-        }
     }
 }
 
@@ -362,10 +351,10 @@ private fun ScreenScaffold(
     content: @Composable () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        TextButton(onClick = onBack) { Text("Back") }
+        TextButton(onClick = onBack) { Text("←  Back") }
         Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         subtitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         content()
@@ -381,6 +370,7 @@ private fun CopilotDestination(
     var answer by remember { mutableStateOf<KairoAnswer?>(null) }
     val scope = rememberCoroutineScope()
 
+    Surface(color = GuardianColors.Black, shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)) {
     ScreenScaffold(
         title = "Kairo Copilot",
         subtitle = "Ask against approved local knowledge.",
@@ -409,6 +399,7 @@ private fun CopilotDestination(
             StructuredAnswerCard(renderedAnswer)
         }
     }
+}
 }
 
 @Composable
@@ -474,7 +465,7 @@ private fun DeepAnalyzeDestination(
             Text("Analyze")
         }
         result?.lineSequence()?.filter { it.isNotBlank() }?.forEach { line ->
-            Text(line)
+            GuardianCard(dark = true) { Text(line, color = GuardianColors.White) }
         }
     }
 }
@@ -582,26 +573,21 @@ private fun FactCard(
     fact: FactVersion,
     onOpenEvidence: (String) -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+    GuardianCard(modifier = Modifier.fillMaxWidth()) {
             val value = when (val objectValue = fact.objectValue) {
                 is FactObject.Literal -> objectValue.value
                 is FactObject.Entity -> objectValue.value.value
             }
             Text(value, fontWeight = FontWeight.SemiBold)
-            Text(fact.state.name)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                GuardianStatusChip(fact.state.name)
+                GuardianStatusChip(fact.scope.name)
+            }
             fact.evidence.firstOrNull()?.let { evidence ->
                 TextButton(onClick = { onOpenEvidence(evidence.sourceId) }) {
                     Text("Open evidence")
                 }
             }
-        }
     }
 }
 
@@ -637,20 +623,12 @@ private fun SourcesDestination(
         }
 
         visibleSources.forEach { source ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+            GuardianCard(modifier = Modifier.fillMaxWidth()) {
                     Text(source.sourceId, fontWeight = FontWeight.SemiBold)
                     source.anchor?.let { Text(it) }
                     source.extractionConfidence?.let {
-                        Text("Confidence ${(it * 100).toInt()}%")
+                        GuardianStatusChip("Confidence ${(it * 100).toInt()}%")
                     }
-                }
             }
         }
     }
@@ -700,14 +678,7 @@ private fun MemoryInboxDestination(
         }
 
         pending.forEach { candidate ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+            GuardianCard(modifier = Modifier.fillMaxWidth()) {
                     Text(candidate.draft.text)
                     Button(
                         modifier = Modifier.fillMaxWidth(),
@@ -728,7 +699,6 @@ private fun MemoryInboxDestination(
                     ) {
                         Text("Approve")
                     }
-                }
             }
         }
     }

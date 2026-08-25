@@ -2,5 +2,11 @@
 <resources>
     <style name="Theme.Kairo" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F7FAFC</item>
+        <item name="android:navigationBarColor">#0E141B</item>
     </style>
+
+    <style name="Theme.Kairo.Starting" parent="Theme.Kairo" />
 </resources>

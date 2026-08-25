@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kairo.android.BuildConfig
 import kairo.android.auth.AndroidAuthenticator
 import kairo.android.auth.Authenticator
@@ -41,6 +42,7 @@ class KairoActivity : FragmentActivity() {
     override fun onCreate(
         savedInstanceState: Bundle?,
     ) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         relockTimer =
