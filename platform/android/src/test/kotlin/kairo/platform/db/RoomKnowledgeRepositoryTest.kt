@@ -21,6 +21,7 @@ import kairo.domain.FactVersion
 import kairo.domain.KnowledgeScope
 import kairo.domain.Source
 import kairo.domain.SourceAnchor
+import kairo.domain.SourceAuthority
 import kairo.domain.SourceClassification
 import kairo.domain.SourceId
 import kairo.domain.SourceOrigin
@@ -221,6 +222,7 @@ class RoomKnowledgeRepositoryTest {
         assertEquals(expectedSource.contentHash, restoredSource.contentHash)
         assertEquals(expectedSource.importedAt, restoredSource.importedAt)
         assertEquals(expectedSource.classification, restoredSource.classification)
+        assertEquals(expectedSource.authority, restoredSource.authority)
         assertEquals(expectedSource.anchors, restoredSource.anchors)
         assertEquals(expectedSource.variants.map { it.id }, restoredSource.variants.map { it.id })
         assertEquals(expectedSource.variants.map { it.parentVariantId }, restoredSource.variants.map { it.parentVariantId })
@@ -353,6 +355,7 @@ class RoomKnowledgeRepositoryTest {
             SourceClassification.CONFIDENTIAL,
             listOf(root, child),
             rootAnchors + childAnchors,
+            SourceAuthority.MANA_CONFIGURATION_EVIDENCE,
         )
     }
 

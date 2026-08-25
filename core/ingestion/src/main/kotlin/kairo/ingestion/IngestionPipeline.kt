@@ -3,6 +3,8 @@ package kairo.ingestion
 import java.time.Instant
 import java.util.UUID
 import kairo.domain.CaptureSessionId
+import kairo.domain.EvidenceState
+import kairo.domain.KnowledgeScope
 import kairo.domain.SourceAnchor
 import kairo.security.SensitiveContentDecision
 import kairo.security.SensitiveContentPolicy
@@ -44,6 +46,8 @@ data class MemoryCandidateDraft(
     val subjectLabel: String,
     val text: String,
     val evidenceAnchors: Set<SourceAnchor>,
+    val proposedScope: KnowledgeScope = KnowledgeScope.MANA_PRODUCTION,
+    val proposedState: EvidenceState = EvidenceState.OBSERVED,
 )
 
 data class IngestionResult(

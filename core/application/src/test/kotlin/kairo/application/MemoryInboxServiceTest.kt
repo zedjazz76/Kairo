@@ -17,6 +17,7 @@ import kairo.domain.EvidenceState
 import kairo.domain.FactLineageId
 import kairo.domain.FactObject
 import kairo.domain.FactVersion
+import kairo.domain.KnowledgeScope
 import kairo.domain.Source
 import kairo.domain.SourceAnchor
 import kairo.domain.SourceId
@@ -216,6 +217,95 @@ class MemoryInboxServiceTest {
             )
 
             assertTrue(service.pending().isEmpty())
+        }
+    }
+
+    @Test
+    fun `approval preserves candidate product scope and verify state`() {
+        runSuspend {
+            val repository = RecordingKnowledgeRepository()
+            val service = MemoryInboxService(repository)
+            val pending = service.receive(
+                MemoryCandidateDraft(
+                    sessionId = CaptureSessionId("session-product"),
+                    subjectLabel = "Merge PACS",
+                    text = "Vendor capability requires local verification.",
+                    evidenceAnchors = setOf(
+                        SourceAnchor(
+                            sourceId = SourceId("source-product"),
+                            variantId = SourceVariantId("variant-product"),
+                            locator = AnchorLocator.TextSpan(0, 43),
+                        ),
+                    ),
+                    proposedScope = KnowledgeScope.PRODUCT,
+                    proposedState = EvidenceState.VERIFY,
+                ),
+            )
+
+            service.approve(pending.id, reviewer = "LOCAL_OWNER")
+
+            val fact = repository.currentUnderstanding(FactQuery(subject = EntityId("merge-pacs"))).single()
+            assertEquals(KnowledgeScope.PRODUCT, fact.scope)
+            assertEquals(EvidenceState.VERIFY, fact.state)
+        }
+    }
+
+    @Test
+    fun `approval preserves planned project candidate without rewriting production truth`() {
+        runSuspend {
+            val repository = RecordingKnowledgeRepository()
+            val service = MemoryInboxService(repository)
+            val pending = service.receive(
+                MemoryCandidateDraft(
+                    sessionId = CaptureSessionId("session-project"),
+                    subjectLabel = "AbbaDox",
+                    text = "Synthetic project transition remains planned.",
+                    evidenceAnchors = setOf(
+                        SourceAnchor(
+                            sourceId = SourceId("source-project"),
+                            variantId = SourceVariantId("variant-project"),
+                            locator = AnchorLocator.TextSpan(0, 44),
+                        ),
+                    ),
+                    proposedScope = KnowledgeScope.PROJECT,
+                    proposedState = EvidenceState.PLANNED,
+                ),
+            )
+
+            service.approve(pending.id, reviewer = "LOCAL_OWNER")
+
+            val fact = repository.currentUnderstanding(FactQuery(subject = EntityId("abbadox"))).single()
+            assertEquals(KnowledgeScope.PROJECT, fact.scope)
+            assertEquals(EvidenceState.PLANNED, fact.state)
+        }
+    }
+
+    @Test
+    fun `review of raw conversation proposal does not rewrite it to confirmed`() {
+        runSuspend {
+            val repository = RecordingKnowledgeRepository()
+            val service = MemoryInboxService(repository)
+            val pending = service.receive(
+                MemoryCandidateDraft(
+                    sessionId = CaptureSessionId("session-raw-conversation"),
+                    subjectLabel = "MANA observation",
+                    text = "Synthetic raw conversation statement.",
+                    evidenceAnchors = setOf(
+                        SourceAnchor(
+                            sourceId = SourceId("source-raw-conversation"),
+                            variantId = SourceVariantId("variant-raw-conversation"),
+                            locator = AnchorLocator.ChatTurn("synthetic-conversation", 1),
+                        ),
+                    ),
+                    proposedScope = KnowledgeScope.MANA_PRODUCTION,
+                    proposedState = EvidenceState.PROPOSED,
+                ),
+            )
+
+            assertTrue(repository.currentUnderstanding(FactQuery()).isEmpty())
+            service.approve(pending.id, reviewer = "LOCAL_OWNER")
+
+            assertEquals(EvidenceState.PROPOSED, repository.currentUnderstanding(FactQuery()).single().state)
         }
     }
 

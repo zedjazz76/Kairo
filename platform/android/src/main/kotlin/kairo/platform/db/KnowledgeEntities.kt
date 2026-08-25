@@ -41,6 +41,8 @@ data class SourceEntity(
     @ColumnInfo(name = "imported_at")
     val importedAt: String,
     val classification: String,
+    @ColumnInfo(name = "authority", defaultValue = "'UNSPECIFIED'")
+    val authority: String,
 )
 
 @Entity(
@@ -349,6 +351,12 @@ data class MemoryCandidateEntity(
     val subjectLabel: String,
 
     val text: String,
+
+    @ColumnInfo(name = "proposed_scope", defaultValue = "'MANA_PRODUCTION'")
+    val proposedScope: String,
+
+    @ColumnInfo(name = "proposed_state", defaultValue = "'OBSERVED'")
+    val proposedState: String,
 )
 
 @Entity(tableName = "memory_decisions")

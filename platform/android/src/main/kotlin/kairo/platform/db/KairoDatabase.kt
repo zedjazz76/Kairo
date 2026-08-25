@@ -26,7 +26,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MemoryDecisionEntity::class,
         MemoryCandidateAnchorEntity::class,
     ],
-    version = 4,
+    version = 6,
     exportSchema = true,
 )
 abstract class KairoDatabase : RoomDatabase() {
@@ -205,6 +205,25 @@ abstract class KairoDatabase : RoomDatabase() {
                         PRIMARY KEY(candidate_id, ordinal)
                     )
                     """.trimIndent(),
+                )
+            }
+        }
+
+        @JvmField val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE memory_candidates ADD COLUMN proposed_scope TEXT NOT NULL DEFAULT 'MANA_PRODUCTION'",
+                )
+                db.execSQL(
+                    "ALTER TABLE memory_candidates ADD COLUMN proposed_state TEXT NOT NULL DEFAULT 'OBSERVED'",
+                )
+            }
+        }
+
+        @JvmField val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE sources ADD COLUMN authority TEXT NOT NULL DEFAULT 'UNSPECIFIED'",
                 )
             }
         }

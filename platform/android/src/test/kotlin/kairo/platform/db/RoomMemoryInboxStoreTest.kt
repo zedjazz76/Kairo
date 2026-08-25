@@ -9,6 +9,8 @@ import kairo.application.MemoryDecisionType
 import kairo.application.PendingMemoryCandidate
 import kairo.domain.AnchorLocator
 import kairo.domain.CaptureSessionId
+import kairo.domain.EvidenceState
+import kairo.domain.KnowledgeScope
 import kairo.domain.SourceAnchor
 import kairo.domain.SourceId
 import kairo.domain.SourceVariantId
@@ -58,6 +60,8 @@ class RoomMemoryInboxStoreTest {
                         locator = AnchorLocator.TextSpan(0, 22),
                     ),
                 ),
+                proposedScope = KnowledgeScope.PROJECT,
+                proposedState = EvidenceState.PLANNED,
             ),
         )
 
@@ -77,6 +81,14 @@ class RoomMemoryInboxStoreTest {
         assertEquals(
             candidate.id,
             recreatedStore.pending().single().id,
+        )
+        assertEquals(
+            KnowledgeScope.PROJECT,
+            recreatedStore.pending().single().draft.proposedScope,
+        )
+        assertEquals(
+            EvidenceState.PLANNED,
+            recreatedStore.pending().single().draft.proposedState,
         )
 
         assertEquals(

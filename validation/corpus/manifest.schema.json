@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kairo.local/validation/corpus/manifest.schema.json",
+  "title": "Kairo Genesis corpus manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "corpusStatus",
+    "requiredDomainCoverage",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "genesis-corpus-manifest/v1" },
+    "corpusStatus": {
+      "enum": ["READY", "AWAITING_PRIVATE_SOURCES"]
+    },
+    "requiredDomainCoverage": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "entries": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "corpusStatus": { "const": "READY" } },
+        "required": ["corpusStatus"]
+      },
+      "then": {
+        "properties": { "entries": { "minItems": 1 } }
+      }
+    }
+  ],
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sourceReference",
+        "contentHash",
+        "sourceType",
+        "sourceClassification",
+        "authority",
+        "expectedScope",
+        "expectedEvidenceState",
+        "temporalDisposition",
+        "sensitivityDisposition",
+        "materialKind",
+        "domains",
+        "projectIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{2,127}$"
+        },
+        "sourceReference": {
+          "type": "string",
+          "pattern": "^(private|synthetic)://[A-Za-z0-9._/-]+$"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceType": {
+          "enum": ["PDF", "IMAGE", "SPREADSHEET", "TEXT", "CHAT_TRANSCRIPT", "DOCUMENT", "CSV"]
+        },
+        "sourceClassification": {
+          "enum": ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]
+        },
+        "authority": {
+          "enum": [
+            "MANA_PRODUCTION_VALIDATION",
+            "MANA_CONFIGURATION_EVIDENCE",
+            "MANA_INTERNAL_DOCUMENTATION",
+            "MANA_OBSERVED_HISTORY",
+            "OFFICIAL_VENDOR_DOCUMENTATION",
+            "INTEROPERABILITY_STANDARD",
+            "EXTERNAL_TECHNICAL_RESEARCH",
+            "GENERAL_CLINICAL_IT_KNOWLEDGE",
+            "RAW_CONVERSATION"
+          ]
+        },
+        "expectedScope": {
+          "enum": ["MANA_PRODUCTION", "PRODUCT", "PROJECT", "INCIDENT", "EXTERNAL_RESEARCH"]
+        },
+        "expectedEvidenceState": {
+          "enum": ["CONFIRMED", "OBSERVED", "PLANNED", "PROPOSED", "HYPOTHESIS", "VERIFY", "DEPRECATED", "CONTRADICTED"]
+        },
+        "temporalDisposition": {
+          "enum": ["CURRENT", "PLANNED", "HISTORICAL", "UNSPECIFIED"]
+        },
+        "sensitivityDisposition": {
+          "enum": ["CLEARED_FOR_DURABLE_IMPORT", "REDACTED_FOR_DURABLE_IMPORT"]
+        },
+        "materialKind": {
+          "enum": ["CURATED_MANA_KNOWLEDGE", "MANA_PRODUCTION_EVIDENCE", "VENDOR_DOCUMENTATION", "EXTERNAL_RESEARCH", "RAW_CONVERSATION"]
+        },
+        "domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "projectIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{2,127}$"
+          }
+        }
+      }
+    }
+  }
+}

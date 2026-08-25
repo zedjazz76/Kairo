@@ -26,38 +26,8 @@ class MemoryInboxMigrationJvmTest {
     }
 
     @Test
-    fun `migrates v3 to memory inbox schema`() {
-        createVersionThreeFixture()
-
-        val database = Room.databaseBuilder(
-            context,
-            KairoDatabase::class.java,
-            databaseName,
-        )
-            .addMigrations(KairoDatabase.MIGRATION_3_4)
-            .allowMainThreadQueries()
-            .build()
-
-        assertEquals(
-            0,
-            count(database, "memory_candidates"),
-        )
-
-        assertEquals(
-            0,
-            count(database, "memory_decisions"),
-        )
-
-        assertEquals(
-            1,
-            count(database, "ingestion_checkpoints"),
-        )
-
-        database.close()
-    }
-
-    private fun createVersionThreeFixture() {
-        context.deleteDatabase(databaseName)
+    fun `migrates v4 memory candidates with backward compatible proposal defaults`() {
+        createVersionFourFixture()
 
         val database = Room.databaseBuilder(
             context,
@@ -65,26 +35,73 @@ class MemoryInboxMigrationJvmTest {
             databaseName,
         )
             .addMigrations(
-                KairoDatabase.MIGRATION_1_2,
-                KairoDatabase.MIGRATION_2_3,
+                KairoDatabase.MIGRATION_4_5,
+                KairoDatabase.MIGRATION_5_6,
             )
-            .fallbackToDestructiveMigrationOnDowngrade()
+            .allowMainThreadQueries()
+            .build()
+
+        val candidate = RoomMemoryInboxStore(database).pending().single().draft
+        assertEquals("session-existing", candidate.sessionId.value)
+        assertEquals(kairo.domain.KnowledgeScope.MANA_PRODUCTION, candidate.proposedScope)
+        assertEquals(kairo.domain.EvidenceState.OBSERVED, candidate.proposedState)
+
+        assertEquals(
+            0,
+            count(database, "memory_decisions"),
+        )
+
+        assertEquals(
+            setOf("proposed_scope", "proposed_state"),
+            candidateProposalColumns(database),
+        )
+        assertEquals(
+            setOf("authority"),
+            sourceAuthorityColumns(database),
+        )
+
+        database.close()
+    }
+
+    private fun createVersionFourFixture() {
+        context.deleteDatabase(databaseName)
+
+        val database = Room.databaseBuilder(
+            context,
+            KairoDatabase::class.java,
+            databaseName,
+        )
             .allowMainThreadQueries()
             .build()
 
         database.openHelper.writableDatabase.execSQL(
             """
-            INSERT OR REPLACE INTO ingestion_checkpoints(
+            ALTER TABLE memory_candidates DROP COLUMN proposed_scope
+            """.trimIndent(),
+        )
+        database.openHelper.writableDatabase.execSQL(
+            """
+            ALTER TABLE memory_candidates DROP COLUMN proposed_state
+            """.trimIndent(),
+        )
+        database.openHelper.writableDatabase.execSQL(
+            """
+            ALTER TABLE sources DROP COLUMN authority
+            """.trimIndent(),
+        )
+        database.openHelper.writableDatabase.execSQL(
+            """
+            INSERT INTO memory_candidates(
+                candidate_id,
                 session_id,
-                captured_at,
-                stage,
-                sensitive_choice
+                subject_label,
+                text
             )
             VALUES (
+                'candidate-existing',
                 'session-existing',
-                '2026-08-22T12:00:00Z',
-                'COMPLETE',
-                NULL
+                'Existing candidate',
+                'Existing candidate text'
             )
             """.trimIndent(),
         )
@@ -96,7 +113,7 @@ class MemoryInboxMigrationJvmTest {
             Context.MODE_PRIVATE,
             null,
         ).use { db ->
-            db.version = 3
+            db.version = 4
         }
     }
 
@@ -109,5 +126,23 @@ class MemoryInboxMigrationJvmTest {
             .use { cursor ->
                 cursor.moveToFirst()
                 cursor.getInt(0)
+            }
+
+    private fun candidateProposalColumns(database: KairoDatabase): Set<String> =
+        database.openHelper.readableDatabase
+            .query("PRAGMA table_info(memory_candidates)")
+            .use { cursor ->
+                generateSequence {
+                    if (cursor.moveToNext()) cursor.getString(cursor.getColumnIndexOrThrow("name")) else null
+                }.filter { it in setOf("proposed_scope", "proposed_state") }.toSet()
+            }
+
+    private fun sourceAuthorityColumns(database: KairoDatabase): Set<String> =
+        database.openHelper.readableDatabase
+            .query("PRAGMA table_info(sources)")
+            .use { cursor ->
+                generateSequence {
+                    if (cursor.moveToNext()) cursor.getString(cursor.getColumnIndexOrThrow("name")) else null
+                }.filter { it == "authority" }.toSet()
             }
 }

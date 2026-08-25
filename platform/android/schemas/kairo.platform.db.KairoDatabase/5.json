@@ -1,0 +1,1238 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "741c87070776760b9fabb9dd81167daf",
+    "entities": [
+      {
+        "tableName": "content_identities",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`content_hash` TEXT NOT NULL, PRIMARY KEY(`content_hash`))",
+        "fields": [
+          {
+            "fieldPath": "contentHash",
+            "columnName": "content_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "content_hash"
+          ]
+        }
+      },
+      {
+        "tableName": "sources",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`source_id` TEXT NOT NULL, `origin` TEXT NOT NULL, `source_type` TEXT NOT NULL, `content_hash` TEXT NOT NULL, `imported_at` TEXT NOT NULL, `classification` TEXT NOT NULL, PRIMARY KEY(`source_id`), FOREIGN KEY(`content_hash`) REFERENCES `content_identities`(`content_hash`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceType",
+            "columnName": "source_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentHash",
+            "columnName": "content_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importedAt",
+            "columnName": "imported_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "classification",
+            "columnName": "classification",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "source_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sources_content_hash",
+            "unique": false,
+            "columnNames": [
+              "content_hash"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sources_content_hash` ON `${TABLE_NAME}` (`content_hash`)"
+          },
+          {
+            "name": "index_sources_origin_source_type",
+            "unique": false,
+            "columnNames": [
+              "origin",
+              "source_type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sources_origin_source_type` ON `${TABLE_NAME}` (`origin`, `source_type`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "content_identities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "content_hash"
+            ],
+            "referencedColumns": [
+              "content_hash"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "source_variants",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`variant_id` TEXT NOT NULL, `source_id` TEXT NOT NULL, `version` INTEGER NOT NULL, `content_hash` TEXT NOT NULL, `imported_at` TEXT NOT NULL, `parent_variant_id` TEXT, `extraction_status` TEXT NOT NULL, PRIMARY KEY(`variant_id`), FOREIGN KEY(`source_id`) REFERENCES `sources`(`source_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`content_hash`) REFERENCES `content_identities`(`content_hash`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`parent_variant_id`) REFERENCES `source_variants`(`variant_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "variantId",
+            "columnName": "variant_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentHash",
+            "columnName": "content_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importedAt",
+            "columnName": "imported_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentVariantId",
+            "columnName": "parent_variant_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extractionStatus",
+            "columnName": "extraction_status",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "variant_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_source_variants_source_id_version",
+            "unique": true,
+            "columnNames": [
+              "source_id",
+              "version"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_source_variants_source_id_version` ON `${TABLE_NAME}` (`source_id`, `version`)"
+          },
+          {
+            "name": "index_source_variants_source_id_variant_id",
+            "unique": true,
+            "columnNames": [
+              "source_id",
+              "variant_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_source_variants_source_id_variant_id` ON `${TABLE_NAME}` (`source_id`, `variant_id`)"
+          },
+          {
+            "name": "index_source_variants_source_id",
+            "unique": false,
+            "columnNames": [
+              "source_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_source_variants_source_id` ON `${TABLE_NAME}` (`source_id`)"
+          },
+          {
+            "name": "index_source_variants_content_hash",
+            "unique": false,
+            "columnNames": [
+              "content_hash"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_source_variants_content_hash` ON `${TABLE_NAME}` (`content_hash`)"
+          },
+          {
+            "name": "index_source_variants_parent_variant_id",
+            "unique": false,
+            "columnNames": [
+              "parent_variant_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_source_variants_parent_variant_id` ON `${TABLE_NAME}` (`parent_variant_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "sources",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "source_id"
+            ],
+            "referencedColumns": [
+              "source_id"
+            ]
+          },
+          {
+            "table": "content_identities",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "content_hash"
+            ],
+            "referencedColumns": [
+              "content_hash"
+            ]
+          },
+          {
+            "table": "source_variants",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "parent_variant_id"
+            ],
+            "referencedColumns": [
+              "variant_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "source_anchors",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`source_id` TEXT NOT NULL, `variant_id` TEXT NOT NULL, `anchor_key` TEXT NOT NULL, `locator_type` TEXT NOT NULL, `page` INTEGER, `left` REAL, `top` REAL, `right` REAL, `bottom` REAL, `width` INTEGER, `height` INTEGER, `sheet` TEXT, `first_row` INTEGER, `first_column` INTEGER, `last_row` INTEGER, `last_column` INTEGER, `start_offset` INTEGER, `end_offset` INTEGER, `conversation_id` TEXT, `turn_number` INTEGER, PRIMARY KEY(`source_id`, `variant_id`, `anchor_key`), FOREIGN KEY(`source_id`, `variant_id`) REFERENCES `source_variants`(`source_id`, `variant_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "variantId",
+            "columnName": "variant_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorKey",
+            "columnName": "anchor_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "locatorType",
+            "columnName": "locator_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "page",
+            "columnName": "page",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "width",
+            "columnName": "width",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "height",
+            "columnName": "height",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sheet",
+            "columnName": "sheet",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "firstRow",
+            "columnName": "first_row",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "firstColumn",
+            "columnName": "first_column",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastRow",
+            "columnName": "last_row",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastColumn",
+            "columnName": "last_column",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startOffset",
+            "columnName": "start_offset",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "endOffset",
+            "columnName": "end_offset",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "turnNumber",
+            "columnName": "turn_number",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "source_id",
+            "variant_id",
+            "anchor_key"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_source_anchors_variant_id",
+            "unique": false,
+            "columnNames": [
+              "variant_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_source_anchors_variant_id` ON `${TABLE_NAME}` (`variant_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "source_variants",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "source_id",
+              "variant_id"
+            ],
+            "referencedColumns": [
+              "source_id",
+              "variant_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "fact_versions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`fact_id` TEXT NOT NULL, `lineage_id` TEXT NOT NULL, `subject` TEXT NOT NULL, `predicate` TEXT NOT NULL, `object_type` TEXT NOT NULL, `object_value` TEXT NOT NULL, `scope` TEXT NOT NULL, `evidence_state` TEXT NOT NULL, `effective_from` TEXT, `effective_to` TEXT, `recorded_at` TEXT NOT NULL, `last_validated_at` TEXT, `supersedes_fact_id` TEXT, PRIMARY KEY(`fact_id`), FOREIGN KEY(`supersedes_fact_id`) REFERENCES `fact_versions`(`fact_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "factId",
+            "columnName": "fact_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lineageId",
+            "columnName": "lineage_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subject",
+            "columnName": "subject",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "predicate",
+            "columnName": "predicate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "objectType",
+            "columnName": "object_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "objectValue",
+            "columnName": "object_value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scope",
+            "columnName": "scope",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evidenceState",
+            "columnName": "evidence_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "effectiveFrom",
+            "columnName": "effective_from",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "effectiveTo",
+            "columnName": "effective_to",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "recordedAt",
+            "columnName": "recorded_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastValidatedAt",
+            "columnName": "last_validated_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "supersedesFactId",
+            "columnName": "supersedes_fact_id",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "fact_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fact_versions_subject_predicate_object_type_object_value",
+            "unique": false,
+            "columnNames": [
+              "subject",
+              "predicate",
+              "object_type",
+              "object_value"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_versions_subject_predicate_object_type_object_value` ON `${TABLE_NAME}` (`subject`, `predicate`, `object_type`, `object_value`)"
+          },
+          {
+            "name": "index_fact_versions_scope",
+            "unique": false,
+            "columnNames": [
+              "scope"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_versions_scope` ON `${TABLE_NAME}` (`scope`)"
+          },
+          {
+            "name": "index_fact_versions_evidence_state",
+            "unique": false,
+            "columnNames": [
+              "evidence_state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_versions_evidence_state` ON `${TABLE_NAME}` (`evidence_state`)"
+          },
+          {
+            "name": "index_fact_versions_effective_from",
+            "unique": false,
+            "columnNames": [
+              "effective_from"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_versions_effective_from` ON `${TABLE_NAME}` (`effective_from`)"
+          },
+          {
+            "name": "index_fact_versions_recorded_at",
+            "unique": false,
+            "columnNames": [
+              "recorded_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_versions_recorded_at` ON `${TABLE_NAME}` (`recorded_at`)"
+          },
+          {
+            "name": "index_fact_versions_lineage_id",
+            "unique": false,
+            "columnNames": [
+              "lineage_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_versions_lineage_id` ON `${TABLE_NAME}` (`lineage_id`)"
+          },
+          {
+            "name": "index_fact_versions_supersedes_fact_id",
+            "unique": false,
+            "columnNames": [
+              "supersedes_fact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_versions_supersedes_fact_id` ON `${TABLE_NAME}` (`supersedes_fact_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "fact_versions",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "supersedes_fact_id"
+            ],
+            "referencedColumns": [
+              "fact_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "fact_evidence",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`fact_id` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `source_id` TEXT NOT NULL, `anchor` TEXT, `extraction_confidence` REAL, PRIMARY KEY(`fact_id`, `ordinal`), FOREIGN KEY(`fact_id`) REFERENCES `fact_versions`(`fact_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`source_id`) REFERENCES `sources`(`source_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "factId",
+            "columnName": "fact_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordinal",
+            "columnName": "ordinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchor",
+            "columnName": "anchor",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extractionConfidence",
+            "columnName": "extraction_confidence",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "fact_id",
+            "ordinal"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fact_evidence_source_id",
+            "unique": false,
+            "columnNames": [
+              "source_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fact_evidence_source_id` ON `${TABLE_NAME}` (`source_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "fact_versions",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "fact_id"
+            ],
+            "referencedColumns": [
+              "fact_id"
+            ]
+          },
+          {
+            "table": "sources",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "source_id"
+            ],
+            "referencedColumns": [
+              "source_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "capture_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`capture_session_id` TEXT NOT NULL, `captured_at` TEXT NOT NULL, `title` TEXT, PRIMARY KEY(`capture_session_id`))",
+        "fields": [
+          {
+            "fieldPath": "captureSessionId",
+            "columnName": "capture_session_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "captured_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "capture_session_id"
+          ]
+        }
+      },
+      {
+        "tableName": "capture_session_anchors",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`capture_session_id` TEXT NOT NULL, `source_id` TEXT NOT NULL, `variant_id` TEXT NOT NULL, `anchor_key` TEXT NOT NULL, `locator_type` TEXT NOT NULL, `page` INTEGER, `left` REAL, `top` REAL, `right` REAL, `bottom` REAL, `width` INTEGER, `height` INTEGER, `sheet` TEXT, `first_row` INTEGER, `first_column` INTEGER, `last_row` INTEGER, `last_column` INTEGER, `start_offset` INTEGER, `end_offset` INTEGER, `conversation_id` TEXT, `turn_number` INTEGER, PRIMARY KEY(`capture_session_id`, `source_id`, `variant_id`, `anchor_key`), FOREIGN KEY(`capture_session_id`) REFERENCES `capture_sessions`(`capture_session_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`source_id`, `variant_id`) REFERENCES `source_variants`(`source_id`, `variant_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "captureSessionId",
+            "columnName": "capture_session_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "variantId",
+            "columnName": "variant_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorKey",
+            "columnName": "anchor_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "locatorType",
+            "columnName": "locator_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "page",
+            "columnName": "page",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "width",
+            "columnName": "width",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "height",
+            "columnName": "height",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sheet",
+            "columnName": "sheet",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "firstRow",
+            "columnName": "first_row",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "firstColumn",
+            "columnName": "first_column",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastRow",
+            "columnName": "last_row",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastColumn",
+            "columnName": "last_column",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startOffset",
+            "columnName": "start_offset",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "endOffset",
+            "columnName": "end_offset",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "turnNumber",
+            "columnName": "turn_number",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "capture_session_id",
+            "source_id",
+            "variant_id",
+            "anchor_key"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_capture_session_anchors_source_id",
+            "unique": false,
+            "columnNames": [
+              "source_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_capture_session_anchors_source_id` ON `${TABLE_NAME}` (`source_id`)"
+          },
+          {
+            "name": "index_capture_session_anchors_variant_id",
+            "unique": false,
+            "columnNames": [
+              "variant_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_capture_session_anchors_variant_id` ON `${TABLE_NAME}` (`variant_id`)"
+          },
+          {
+            "name": "index_capture_session_anchors_source_id_variant_id",
+            "unique": false,
+            "columnNames": [
+              "source_id",
+              "variant_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_capture_session_anchors_source_id_variant_id` ON `${TABLE_NAME}` (`source_id`, `variant_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "capture_sessions",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "capture_session_id"
+            ],
+            "referencedColumns": [
+              "capture_session_id"
+            ]
+          },
+          {
+            "table": "source_variants",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "source_id",
+              "variant_id"
+            ],
+            "referencedColumns": [
+              "source_id",
+              "variant_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "audit_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`audit_id` TEXT NOT NULL, `action` TEXT NOT NULL, `target_type` TEXT NOT NULL, `target_id` TEXT NOT NULL, `occurred_at` TEXT NOT NULL, `correlation_id` TEXT NOT NULL, PRIMARY KEY(`audit_id`))",
+        "fields": [
+          {
+            "fieldPath": "auditId",
+            "columnName": "audit_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "action",
+            "columnName": "action",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetType",
+            "columnName": "target_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetId",
+            "columnName": "target_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAt",
+            "columnName": "occurred_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "correlationId",
+            "columnName": "correlation_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "audit_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_audit_events_correlation_id",
+            "unique": false,
+            "columnNames": [
+              "correlation_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_events_correlation_id` ON `${TABLE_NAME}` (`correlation_id`)"
+          },
+          {
+            "name": "index_audit_events_target_type_target_id",
+            "unique": false,
+            "columnNames": [
+              "target_type",
+              "target_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_events_target_type_target_id` ON `${TABLE_NAME}` (`target_type`, `target_id`)"
+          },
+          {
+            "name": "index_audit_events_occurred_at",
+            "unique": false,
+            "columnNames": [
+              "occurred_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_events_occurred_at` ON `${TABLE_NAME}` (`occurred_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "ingestion_checkpoints",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`session_id` TEXT NOT NULL, `captured_at` TEXT NOT NULL, `stage` TEXT NOT NULL, `sensitive_choice` TEXT, PRIMARY KEY(`session_id`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "captured_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stage",
+            "columnName": "stage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sensitiveChoice",
+            "columnName": "sensitive_choice",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "session_id"
+          ]
+        }
+      },
+      {
+        "tableName": "ingestion_checkpoint_artifacts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`session_id` TEXT NOT NULL, `source_id` TEXT NOT NULL, `variant_id` TEXT NOT NULL, `file_name` TEXT NOT NULL, `media_type` TEXT, `payload_ref` TEXT NOT NULL, `extraction_ref` TEXT, PRIMARY KEY(`session_id`, `variant_id`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "variantId",
+            "columnName": "variant_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileName",
+            "columnName": "file_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mediaType",
+            "columnName": "media_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "payloadRef",
+            "columnName": "payload_ref",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extractionRef",
+            "columnName": "extraction_ref",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "session_id",
+            "variant_id"
+          ]
+        }
+      },
+      {
+        "tableName": "memory_candidates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`candidate_id` TEXT NOT NULL, `session_id` TEXT NOT NULL, `subject_label` TEXT NOT NULL, `text` TEXT NOT NULL, `proposed_scope` TEXT NOT NULL DEFAULT 'MANA_PRODUCTION', `proposed_state` TEXT NOT NULL DEFAULT 'OBSERVED', PRIMARY KEY(`candidate_id`))",
+        "fields": [
+          {
+            "fieldPath": "candidateId",
+            "columnName": "candidate_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectLabel",
+            "columnName": "subject_label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "proposedScope",
+            "columnName": "proposed_scope",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'MANA_PRODUCTION'"
+          },
+          {
+            "fieldPath": "proposedState",
+            "columnName": "proposed_state",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'OBSERVED'"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "candidate_id"
+          ]
+        }
+      },
+      {
+        "tableName": "memory_decisions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`decision_id` TEXT NOT NULL, `candidate_id` TEXT NOT NULL, `decision_type` TEXT NOT NULL, `reviewer` TEXT NOT NULL, `decided_at` TEXT NOT NULL, `original_text` TEXT, `approved_text` TEXT, PRIMARY KEY(`decision_id`))",
+        "fields": [
+          {
+            "fieldPath": "decisionId",
+            "columnName": "decision_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "candidateId",
+            "columnName": "candidate_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decisionType",
+            "columnName": "decision_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reviewer",
+            "columnName": "reviewer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decidedAt",
+            "columnName": "decided_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalText",
+            "columnName": "original_text",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "approvedText",
+            "columnName": "approved_text",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "decision_id"
+          ]
+        }
+      },
+      {
+        "tableName": "memory_candidate_anchors",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`candidate_id` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `source_id` TEXT NOT NULL, `variant_id` TEXT NOT NULL, `locator_type` TEXT NOT NULL, `page` INTEGER, `left` REAL, `top` REAL, `right` REAL, `bottom` REAL, `width` INTEGER, `height` INTEGER, `sheet` TEXT, `first_row` INTEGER, `first_column` INTEGER, `last_row` INTEGER, `last_column` INTEGER, `start_offset` INTEGER, `end_offset` INTEGER, `conversation_id` TEXT, `turn_number` INTEGER, PRIMARY KEY(`candidate_id`, `ordinal`))",
+        "fields": [
+          {
+            "fieldPath": "candidateId",
+            "columnName": "candidate_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordinal",
+            "columnName": "ordinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "source_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "variantId",
+            "columnName": "variant_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "locatorType",
+            "columnName": "locator_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "page",
+            "columnName": "page",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "width",
+            "columnName": "width",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "height",
+            "columnName": "height",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sheet",
+            "columnName": "sheet",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "firstRow",
+            "columnName": "first_row",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "firstColumn",
+            "columnName": "first_column",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastRow",
+            "columnName": "last_row",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastColumn",
+            "columnName": "last_column",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startOffset",
+            "columnName": "start_offset",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "endOffset",
+            "columnName": "end_offset",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "turnNumber",
+            "columnName": "turn_number",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "candidate_id",
+            "ordinal"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '741c87070776760b9fabb9dd81167daf')"
+    ]
+  }
+}

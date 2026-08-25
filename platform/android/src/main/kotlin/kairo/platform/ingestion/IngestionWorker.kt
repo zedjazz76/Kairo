@@ -58,7 +58,13 @@ class AndroidIngestionRuntimeFactory(
     private val applicationContext = context.applicationContext
     private val database by lazy {
         Room.databaseBuilder(applicationContext, KairoDatabase::class.java, DATABASE_NAME)
-            .addMigrations(KairoDatabase.MIGRATION_1_2, KairoDatabase.MIGRATION_2_3)
+            .addMigrations(
+                KairoDatabase.MIGRATION_1_2,
+                KairoDatabase.MIGRATION_2_3,
+                KairoDatabase.MIGRATION_3_4,
+                KairoDatabase.MIGRATION_4_5,
+                KairoDatabase.MIGRATION_5_6,
+            )
             .build()
     }
 

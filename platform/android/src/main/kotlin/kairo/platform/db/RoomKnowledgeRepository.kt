@@ -22,6 +22,7 @@ import kairo.domain.FactVersion
 import kairo.domain.KnowledgeScope
 import kairo.domain.Source
 import kairo.domain.SourceAnchor
+import kairo.domain.SourceAuthority
 import kairo.domain.SourceClassification
 import kairo.domain.SourceId
 import kairo.domain.SourceOrigin
@@ -181,6 +182,7 @@ private fun Source.toEntity(): SourceEntity = SourceEntity(
     contentHash = contentHash,
     importedAt = importedAt.toString(),
     classification = classification.name,
+    authority = authority.name,
 )
 
 private fun SourceEntity.toDomain(
@@ -195,6 +197,7 @@ private fun SourceEntity.toDomain(
     classification = SourceClassification.valueOf(classification),
     variants = variants,
     anchors = anchors,
+    authority = SourceAuthority.valueOf(authority),
 )
 
 private fun SourceVariant.toEntity(): SourceVariantEntity = SourceVariantEntity(

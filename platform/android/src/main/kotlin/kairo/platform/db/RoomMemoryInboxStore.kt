@@ -9,6 +9,8 @@ import kairo.application.MemoryInboxStore
 import kairo.application.PendingMemoryCandidate
 import kairo.domain.AnchorLocator
 import kairo.domain.CaptureSessionId
+import kairo.domain.EvidenceState
+import kairo.domain.KnowledgeScope
 import kairo.domain.SourceAnchor
 import kairo.domain.SourceId
 import kairo.domain.SourceVariantId
@@ -28,6 +30,8 @@ class RoomMemoryInboxStore(
                     sessionId = CaptureSessionId(row.sessionId),
                     subjectLabel = row.subjectLabel,
                     text = row.text,
+                    proposedScope = KnowledgeScope.valueOf(row.proposedScope),
+                    proposedState = EvidenceState.valueOf(row.proposedState),
                     evidenceAnchors = dao.anchors(row.candidateId)
                         .map(::anchorFromEntity)
                         .toSet(),
@@ -54,6 +58,8 @@ class RoomMemoryInboxStore(
                 sessionId = candidate.draft.sessionId.value,
                 subjectLabel = candidate.draft.subjectLabel,
                 text = candidate.draft.text,
+                proposedScope = candidate.draft.proposedScope.name,
+                proposedState = candidate.draft.proposedState.name,
             ),
         )
 

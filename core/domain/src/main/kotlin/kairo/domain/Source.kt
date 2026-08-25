@@ -41,6 +41,24 @@ enum class SourceClassification {
     RESTRICTED,
 }
 
+/**
+ * Claim-context authority for a source. This is deliberately categorical rather
+ * than a global numeric rank: vendor material can support PRODUCT knowledge
+ * without establishing MANA production configuration.
+ */
+enum class SourceAuthority {
+    MANA_PRODUCTION_VALIDATION,
+    MANA_CONFIGURATION_EVIDENCE,
+    MANA_INTERNAL_DOCUMENTATION,
+    MANA_OBSERVED_HISTORY,
+    OFFICIAL_VENDOR_DOCUMENTATION,
+    INTEROPERABILITY_STANDARD,
+    EXTERNAL_TECHNICAL_RESEARCH,
+    GENERAL_CLINICAL_IT_KNOWLEDGE,
+    RAW_CONVERSATION,
+    UNSPECIFIED,
+}
+
 enum class ExtractionStatus {
     NOT_REQUESTED,
     PENDING,
@@ -159,6 +177,7 @@ class Source(
     val classification: SourceClassification,
     variants: List<SourceVariant>,
     anchors: Set<SourceAnchor>,
+    val authority: SourceAuthority = SourceAuthority.UNSPECIFIED,
 ) {
     val variants: List<SourceVariant> = contextListSnapshot(variants)
     val anchors: Set<SourceAnchor> = contextSetSnapshot(anchors)
