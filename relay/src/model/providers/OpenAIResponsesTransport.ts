@@ -28,6 +28,7 @@ export class OpenAIResponsesTransport
     const response =
       await client.responses.create({
         model: request.model,
+        store: false,
         instructions: [
           "You are Kairo, an evidence-bound clinical systems reasoning engine.",
           "Use only the supplied evidence when making MANA-specific claims.",

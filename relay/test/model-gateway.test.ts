@@ -108,6 +108,7 @@ test("OpenAIProvider uses relay environment credential and normalizes provider r
   const provider = new OpenAIProvider({
     env: {
       OPENAI_API_KEY: "relay-secret",
+      KAIRO_REASONING_MODEL: "test-model",
     },
     transport,
   });
@@ -132,6 +133,29 @@ test("OpenAIProvider uses relay environment credential and normalizes provider r
     text: "Merge PACS hosts DMWL.",
     claims: [],
   });
+});
+
+test("OpenAIProvider selects the reasoning model only from relay environment", async () => {
+  let capturedBody: unknown;
+  const provider = new OpenAIProvider({
+    env: {
+      OPENAI_API_KEY: "relay-secret",
+      KAIRO_REASONING_MODEL: "test-reasoning-model",
+    },
+    transport: {
+      async createResponse(_apiKey, body) {
+        capturedBody = body;
+        return { output_text: "bounded", claims: [] };
+      },
+    },
+  });
+
+  await provider.analyze({
+    question: "Non-PHI diagnostic question",
+    reasoningPacket: { confirmed: [], observed: [], planned: [], hypotheses: [], unknowns: [], prohibitedActions: [] },
+  });
+
+  assert.equal((capturedBody as { model: string }).model, "test-reasoning-model");
 });
 
 test("OpenAI provider remains transport injectable for cost-free tests", () => {

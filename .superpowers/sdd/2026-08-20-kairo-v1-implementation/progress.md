@@ -22,6 +22,15 @@ Focused TDD completed before the boundary:
 
 Status: **BLOCKED**. Completing the requested live Android → relay → OpenAI path requires a running relay deployment with an explicit Android-session authentication mechanism and an `OPENAI_API_KEY` present only in that relay environment. No unauthenticated endpoint, static Android token, APK key, browser key, or direct Android-to-OpenAI fallback was introduced. Task 15 remains closed; Guardian UI Gold Pass has not started.
 
+## Progress checkpoint — Local stateless relay direction
+
+2026-08-25 resumed from `e636082` for the approved USB/ADB-reverse local relay direction.
+
+- Recovery found no authorized ADB device and `OPENAI_API_KEY present: no`; no value was printed.
+- The focused relay model test was RED because `OpenAIProvider` defaulted to a hard-coded model. It is GREEN after making `KAIRO_REASONING_MODEL` relay-environment configuration mandatory (with an injectable test override) and setting Responses API `store: false`.
+- `pnpm --filter @kairo/relay test` — PASS (19/19). This change keeps credentials and model choice relay-only; it does not introduce a local endpoint, static Android secret, or direct Android→OpenAI path.
+- Live local relay runtime, ADB reverse, Android adapter/device smoke, and the single live OpenAI request remain blocked until the USB device is authorized and a relay-only API key is supplied. Guardian UI Gold Pass remains unstarted.
+
 ## Progress checkpoint — Task 15 V1 Definition of Done and release closure
 
 2026-08-25 Task 15 is complete. It closes the technical V1 Definition of Done

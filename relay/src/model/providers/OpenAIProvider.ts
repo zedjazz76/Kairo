@@ -6,6 +6,7 @@ import type {
 
 export type OpenAIEnvironment = {
   OPENAI_API_KEY?: string;
+  KAIRO_REASONING_MODEL?: string;
 };
 
 export type OpenAITransportResponse = {
@@ -29,12 +30,12 @@ export type OpenAIProviderOptions = {
 export class OpenAIProvider implements ModelProvider {
   private readonly env: OpenAIEnvironment;
   private readonly transport: OpenAITransport;
-  private readonly model: string;
+  private readonly model?: string;
 
   constructor(options: OpenAIProviderOptions) {
     this.env = options.env;
     this.transport = options.transport;
-    this.model = options.model ?? "gpt-5";
+    this.model = options.model ?? options.env.KAIRO_REASONING_MODEL;
   }
 
   async analyze(
@@ -46,6 +47,10 @@ export class OpenAIProvider implements ModelProvider {
       throw new Error(
         "OPENAI_API_KEY is required in the relay environment",
       );
+    }
+
+    if (!this.model) {
+      throw new Error("KAIRO_REASONING_MODEL is required in the relay environment");
     }
 
     const body = {
