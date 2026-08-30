@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   PairedTunnelClient,
   createEphemeralKeyPair,
+  decryptTunnelFrame,
   deriveSessionKey,
+  encryptTunnelFrame,
   type EncryptedTunnelFrame,
   type TunnelFrameTransport,
 } from "./pairedTunnel.ts";
@@ -73,4 +75,72 @@ test("expired or disconnected browser tunnel fails closed", async () => {
   await connected.disconnect();
   assert.equal(transport.disconnectCount, 1);
   await assert.rejects(connected.sendPlaintext("payload"), /tunnel_not_connected/);
+});
+
+test("paired browser client decrypts a correlated response on the same encrypted session", async () => {
+  const browser = await createEphemeralKeyPair();
+  const core = await createEphemeralKeyPair();
+  const salt = new Uint8Array(32).fill(12);
+  const browserKey = await deriveSessionKey(browser.privateKey, core.publicKey, salt);
+  const coreKey = await deriveSessionKey(core.privateKey, browser.publicKey, salt);
+  const expiresAt = now + 60_000;
+
+  const transport: TunnelFrameTransport = {
+    async send(): Promise<void> {},
+    async request(frame: EncryptedTunnelFrame): Promise<EncryptedTunnelFrame> {
+      assert.equal(
+        await decryptTunnelFrame(coreKey, frame),
+        '{"requestId":"request-1","type":"SearchKnowledge"}',
+      );
+      return encryptTunnelFrame(
+        coreKey,
+        { sessionId: "session-1", sequence: 1, expiresAt },
+        '{"requestId":"request-1","type":"SearchKnowledge","status":"SUCCESS"}',
+      );
+    },
+    async disconnect(): Promise<void> {},
+  };
+  const client = new PairedTunnelClient({
+    sessionId: "session-1",
+    expiresAt,
+    sessionKey: browserKey,
+    transport,
+    now: () => now,
+  });
+
+  assert.equal(
+    await client.requestPlaintext('{"requestId":"request-1","type":"SearchKnowledge"}'),
+    '{"requestId":"request-1","type":"SearchKnowledge","status":"SUCCESS"}',
+  );
+});
+
+test("paired browser client rejects a replayed encrypted response", async () => {
+  const browser = await createEphemeralKeyPair();
+  const core = await createEphemeralKeyPair();
+  const salt = new Uint8Array(32).fill(14);
+  const browserKey = await deriveSessionKey(browser.privateKey, core.publicKey, salt);
+  const coreKey = await deriveSessionKey(core.privateKey, browser.publicKey, salt);
+  const expiresAt = now + 60_000;
+  const response = await encryptTunnelFrame(
+    coreKey,
+    { sessionId: "session-replay", sequence: 1, expiresAt },
+    '{"requestId":"request-1","status":"SUCCESS"}',
+  );
+  const transport: TunnelFrameTransport = {
+    async send(): Promise<void> {},
+    async request(): Promise<EncryptedTunnelFrame> {
+      return response;
+    },
+    async disconnect(): Promise<void> {},
+  };
+  const client = new PairedTunnelClient({
+    sessionId: "session-replay",
+    expiresAt,
+    sessionKey: browserKey,
+    transport,
+    now: () => now,
+  });
+
+  await client.requestPlaintext("first");
+  await assert.rejects(client.requestPlaintext("second"), /replay_detected/);
 });

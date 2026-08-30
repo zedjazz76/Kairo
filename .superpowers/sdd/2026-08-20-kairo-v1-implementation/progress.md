@@ -436,3 +436,30 @@ Verification note:
 
 Next bounded desktop integration:
 - Hydrate live Core response payloads into the Search, dashboard, work, knowledge, and sources props over the paired tunnel. The present desktop slice sends typed commands through the authoritative boundary and renders host-supplied Core results; it does not introduce browser persistence or a second knowledge store.
+
+## Progress checkpoint — Encrypted desktop Core results and live Search hydration
+
+2026-08-30 completed the first typed result-return slice for the paired desktop client.
+
+Implemented:
+- `PairedTunnelClient` can perform an encrypted request/result exchange on the existing session, decrypting only a response with the expected session, expiry, and monotonic inbound sequence.
+- The relay tracks browser-to-Core and Core-to-browser replay sequences independently, so command sequence 1 and result sequence 1 are both valid while same-direction replays still fail closed.
+- `DesktopCommandSender.request(...)` parses and validates `CoreResultV1`, requires matching request ID and command type, and disconnects on malformed or mismatched results.
+- Search now publishes live `SearchKnowledge` result references returned through that paired request boundary, stores them in the single `DesktopWorkspace` state spine, and preserves them across navigation/rerender.
+- Because the v1 search result contract currently carries references only, the browser displays the authoritative reference IDs and classifies recognized prefixes. It does not invent titles, summaries, or facts.
+
+Focused TDD and verification:
+- RED: encrypted request test failed because `requestPlaintext` did not exist; GREEN: paired tunnel client tests passed.
+- RED: paired command result test failed because `DesktopCommandSender.request` did not exist; GREEN: correlated result and fail-closed mismatch tests passed.
+- RED: Search result publication test returned no results; GREEN: Search and workspace persistence tests passed.
+- RED: relay rejected result sequence 1 as a replay of command sequence 1; GREEN: directional replay suite passed.
+- `apps/desktop-web npm test` — PASS (38 tests).
+- `apps/desktop-web npm run build` — PASS (43 transformed modules).
+- Relay pairing/tunnel focused gate — PASS (11 tests).
+- Strict `tsc --noEmit` remains non-green only on the recorded baseline Node test typings, React test-element typing, and Web Crypto `BufferSource` typing; no new production-file errors from this slice remain.
+
+Boundary retained:
+- A deployed browser host transport must implement the new encrypted `request(frame)` exchange and Android Core must dispatch commands into `CoreResultV1`. The browser response boundary is production-ready and covered, but this checkpoint does not claim that the default unpaired browser bootstrap is a live Android session.
+
+Next:
+- Add the concrete paired host transport and Android Core command dispatcher for `SearchKnowledge`, then use the same validated result path for Copilot and the remaining dashboard collections.

@@ -1,5 +1,8 @@
 import type { FormEvent } from "react";
-import type { CoreCommandV1 } from "../../../../../shared/contracts/generated/contracts.v1.ts";
+import type {
+  CoreCommandV1,
+  CoreResultV1,
+} from "../../../../../shared/contracts/generated/contracts.v1.ts";
 
 export type SearchResultSummary = {
   id: string;
@@ -22,15 +25,32 @@ export type SearchWorkspaceProps = {
   results: readonly SearchResultSummary[];
   createRequestId: () => string;
   onSendCommand: (command: CoreCommandV1) => Promise<void>;
+  onRequestCommand?: (command: CoreCommandV1) => Promise<CoreResultV1>;
+  onResults?: (results: readonly SearchResultSummary[]) => void;
   onOpenEvidence?: (evidenceRef: string) => void;
 };
 
-export function SearchWorkspace({ results, createRequestId, onSendCommand, onOpenEvidence }: SearchWorkspaceProps) {
+export function SearchWorkspace({ results, createRequestId, onSendCommand, onRequestCommand, onResults, onOpenEvidence }: SearchWorkspaceProps) {
   const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     const field = event.currentTarget.elements.namedItem("query");
     const query = field && "value" in field ? String(field.value).trim() : "";
-    if (query) await onSendCommand(createSearchCommand(query, createRequestId()));
+    if (!query) return;
+
+    const command = createSearchCommand(query, createRequestId());
+    if (!onRequestCommand) {
+      await onSendCommand(command);
+      return;
+    }
+
+    const result = await onRequestCommand(command);
+    if (result.status === "ERROR") {
+      throw new Error(`core_${result.error.code.toLowerCase()}`);
+    }
+    if (result.type !== "SearchKnowledge") {
+      throw new Error("core_result_request_mismatch");
+    }
+    onResults?.(result.data.resultRefs.map(searchResultFromRef));
   };
 
   const grouped = results.reduce<Map<SearchResultSummary["kind"], SearchResultSummary[]>>(
@@ -61,4 +81,24 @@ export function SearchWorkspace({ results, createRequestId, onSendCommand, onOpe
       {results.length === 0 ? <div className="empty-state"><strong>Search the whole workspace</strong><p>Results stay backed by Kairo Core and preserve their evidence source.</p></div> : null}
     </section>
   );
+}
+
+function searchResultFromRef(resultRef: string): SearchResultSummary {
+  const kind: SearchResultSummary["kind"] = resultRef.startsWith("project-")
+    ? "Project"
+    : resultRef.startsWith("work-")
+      ? "Work"
+      : resultRef.startsWith("conversation-")
+        ? "Conversation"
+        : resultRef.startsWith("source-") || resultRef.startsWith("evidence-") || resultRef.startsWith("upload-")
+          ? "Source"
+          : "Knowledge";
+
+  return {
+    id: resultRef,
+    kind,
+    title: resultRef,
+    summary: "Returned by Kairo Core",
+    ...(kind === "Source" || kind === "Conversation" ? { evidenceRef: resultRef } : {}),
+  };
 }

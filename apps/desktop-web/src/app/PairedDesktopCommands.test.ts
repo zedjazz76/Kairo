@@ -6,6 +6,7 @@ import {
   createEphemeralKeyPair,
   decryptTunnelFrame,
   deriveSessionKey,
+  encryptTunnelFrame,
   type EncryptedTunnelFrame,
   type TunnelFrameTransport,
 } from "../security/pairedTunnel.ts";
@@ -122,4 +123,108 @@ test("unpaired and expired desktop command composition fails closed", async () =
 
   await assert.rejects(expired.send(command), /session_expired/);
   assert.equal(expired.connectionState, "EXPIRED");
+});
+
+test("paired desktop composition returns a correlated encrypted Core result", async () => {
+  const browser = await createEphemeralKeyPair();
+  const core = await createEphemeralKeyPair();
+  const salt = new Uint8Array(32).fill(31);
+  const browserKey = await deriveSessionKey(browser.privateKey, core.publicKey, salt);
+  const coreKey = await deriveSessionKey(core.privateKey, browser.publicKey, salt);
+  const expiresAt = now + 60_000;
+  const result = {
+    requestId: "81d0bab9-6025-42ef-bf74-7d9793822f78",
+    type: "SearchKnowledge",
+    contractVersion: "v1",
+    status: "SUCCESS",
+    data: { resultRefs: ["source-routing", "conversation-routing"] },
+  } as const;
+  const transport: TunnelFrameTransport = {
+    async send(): Promise<void> {},
+    async request(frame: EncryptedTunnelFrame): Promise<EncryptedTunnelFrame> {
+      const command = JSON.parse(await decryptTunnelFrame(coreKey, frame));
+      assert.equal(command.requestId, result.requestId);
+      return encryptTunnelFrame(
+        coreKey,
+        { sessionId: "desktop-session-results", sequence: 1, expiresAt },
+        JSON.stringify(result),
+      );
+    },
+    async disconnect(): Promise<void> {},
+  };
+  const commandSender = composePairedDesktopCommands(
+    new PairedTunnelClient({
+      sessionId: "desktop-session-results",
+      expiresAt,
+      sessionKey: browserKey,
+      transport,
+      now: () => now,
+    }),
+  );
+
+  assert.deepEqual(
+    await commandSender.request({
+      requestId: result.requestId,
+      type: "SearchKnowledge",
+      contractVersion: "v1",
+      payload: { query: "routing" },
+    }),
+    result,
+  );
+});
+
+test("paired desktop composition rejects a result for another request and disconnects", async () => {
+  const commandSender = composePairedDesktopCommands({
+    async sendCommand(): Promise<void> {},
+    async requestPlaintext(): Promise<string> {
+      return JSON.stringify({
+        requestId: "0c73993d-e996-459f-a0b0-befb41b96d9f",
+        type: "SearchKnowledge",
+        contractVersion: "v1",
+        status: "SUCCESS",
+        data: { resultRefs: ["source-routing"] },
+      });
+    },
+    async disconnect(): Promise<void> {},
+  });
+
+  await assert.rejects(
+    commandSender.request({
+      requestId: "81d0bab9-6025-42ef-bf74-7d9793822f78",
+      type: "SearchKnowledge",
+      contractVersion: "v1",
+      payload: { query: "routing" },
+    }),
+    /core_result_request_mismatch/,
+  );
+  assert.equal(commandSender.connectionState, "DISCONNECTED");
+});
+
+test("paired desktop composition rejects a result containing both success data and an error", async () => {
+  const requestId = "81d0bab9-6025-42ef-bf74-7d9793822f78";
+  const commandSender = composePairedDesktopCommands({
+    async sendCommand(): Promise<void> {},
+    async requestPlaintext(): Promise<string> {
+      return JSON.stringify({
+        requestId,
+        type: "SearchKnowledge",
+        contractVersion: "v1",
+        status: "SUCCESS",
+        data: { resultRefs: ["source-routing"] },
+        error: { code: "INTERNAL" },
+      });
+    },
+    async disconnect(): Promise<void> {},
+  });
+
+  await assert.rejects(
+    commandSender.request({
+      requestId,
+      type: "SearchKnowledge",
+      contractVersion: "v1",
+      payload: { query: "routing" },
+    }),
+    /invalid_core_result/,
+  );
+  assert.equal(commandSender.connectionState, "DISCONNECTED");
 });

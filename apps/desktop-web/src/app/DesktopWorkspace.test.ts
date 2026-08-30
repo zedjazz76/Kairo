@@ -34,3 +34,23 @@ test("desktop workspace exposes the website experience and original Kairo destin
   workspace.navigate("projects");
   assert.equal(workspace.activeWorkspace, "projects");
 });
+
+test("desktop workspace retains live Core search results across navigation", () => {
+  const workspace = new DesktopWorkspace();
+  const results = [
+    {
+      id: "conversation-routing",
+      kind: "Conversation" as const,
+      title: "conversation-routing",
+      summary: "Returned by Kairo Core",
+      evidenceRef: "conversation-routing",
+    },
+  ];
+
+  workspace.replaceSearchResults(results);
+  workspace.navigate("home");
+  workspace.navigate("search");
+
+  assert.equal(workspace.hasLiveSearchResults, true);
+  assert.deepEqual(workspace.searchResults, results);
+});

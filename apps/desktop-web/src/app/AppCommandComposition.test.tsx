@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ReactElement, ReactNode } from "react";
-import type { CoreCommandV1 } from "../../../../shared/contracts/generated/contracts.v1.ts";
+import type {
+  CoreCommandV1,
+  CoreResultV1,
+} from "../../../../shared/contracts/generated/contracts.v1.ts";
 import { CaptureBatch } from "../features/capture/CaptureBatch.ts";
 import { MemoryInbox } from "../features/memory/MemoryInbox.tsx";
 import { ProjectsWorkspace } from "../features/projects/ProjectsWorkspace.tsx";
+import { SearchWorkspace } from "../features/search/SearchWorkspace.tsx";
 import { App } from "./App.tsx";
 import { DesktopWorkspace } from "./DesktopWorkspace.ts";
 
@@ -20,6 +24,9 @@ test("desktop shell routes Memory and Projects through the same paired command s
     connectionState: "CONNECTED" as const,
     send: async (command: CoreCommandV1) => {
       sent.push(command);
+    },
+    request: async () => {
+      throw new Error("request_not_expected");
     },
     disconnect: async () => {},
   };
@@ -69,4 +76,68 @@ test("desktop shell routes Memory and Projects through the same paired command s
       payload: { projectId: "project-abbadox" },
     },
   ]);
+});
+
+test("desktop shell stores live Search results returned by the paired Core request path", async () => {
+  const requested: CoreCommandV1[] = [];
+  const result: CoreResultV1 = {
+    requestId: "81d0bab9-6025-42ef-bf74-7d9793822f78",
+    type: "SearchKnowledge",
+    contractVersion: "v1",
+    status: "SUCCESS",
+    data: { resultRefs: ["conversation-routing"] },
+  };
+  const commandSender = {
+    connectionState: "CONNECTED" as const,
+    send: async () => {},
+    request: async (command: CoreCommandV1) => {
+      requested.push(command);
+      return result;
+    },
+    disconnect: async () => {},
+  };
+  const workspace = new DesktopWorkspace();
+  workspace.navigate("search");
+  let refreshes = 0;
+  const app = App({
+    workspace,
+    captureBatch: new CaptureBatch({ captureSessionId: "capture-1" }),
+    commandSender,
+    createRequestId: () => result.requestId,
+    onWorkspaceChange: () => {
+      refreshes += 1;
+    },
+  }) as ReactElement;
+  const search = childOfType(app, SearchWorkspace);
+  assert.ok(search);
+  const command: CoreCommandV1 = {
+    requestId: result.requestId,
+    type: "SearchKnowledge",
+    contractVersion: "v1",
+    payload: { query: "routing" },
+  };
+
+  assert.deepEqual(await search.props.onRequestCommand(command), result);
+  search.props.onResults([
+    {
+      id: "conversation-routing",
+      kind: "Conversation",
+      title: "conversation-routing",
+      summary: "Returned by Kairo Core",
+      evidenceRef: "conversation-routing",
+    },
+  ]);
+
+  assert.deepEqual(requested, [command]);
+  assert.equal(workspace.hasLiveSearchResults, true);
+  assert.equal(refreshes, 1);
+
+  const refreshedApp = App({
+    workspace,
+    captureBatch: new CaptureBatch({ captureSessionId: "capture-1" }),
+    commandSender,
+    createRequestId: () => result.requestId,
+  }) as ReactElement;
+  const refreshedSearch = childOfType(refreshedApp, SearchWorkspace);
+  assert.deepEqual(refreshedSearch?.props.results, workspace.searchResults);
 });

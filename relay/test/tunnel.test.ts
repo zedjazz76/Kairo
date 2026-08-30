@@ -48,6 +48,19 @@ test("replayed sequence numbers are rejected", async () => {
   );
 });
 
+test("command and result frames use independent replay sequences", async () => {
+  const broker = new TunnelBroker({ now: () => now });
+  broker.openSession({ sessionId, expiresAt: now + 60_000 });
+
+  await broker.route(frame(1), "browser-to-core");
+  await broker.route(frame(1), "core-to-browser");
+
+  await assert.rejects(
+    broker.route(frame(1), "core-to-browser"),
+    /replay_detected/,
+  );
+});
+
 test("disconnect immediately removes live routing state", async () => {
   const broker = new TunnelBroker({ now: () => now });
   broker.openSession({ sessionId, expiresAt: now + 60_000 });

@@ -8,8 +8,10 @@ export type TunnelFrame = {
 
 type SessionState = {
   expiresAt: number;
-  lastSequence: number;
+  lastSequence: Record<TunnelDirection, number>;
 };
+
+export type TunnelDirection = "browser-to-core" | "core-to-browser";
 
 type TunnelBrokerOptions = {
   now?: () => number;
@@ -26,7 +28,10 @@ export class TunnelBroker {
   openSession(input: { sessionId: string; expiresAt: number }): void {
     this.sessions.set(input.sessionId, {
       expiresAt: input.expiresAt,
-      lastSequence: 0,
+      lastSequence: {
+        "browser-to-core": 0,
+        "core-to-browser": 0,
+      },
     });
   }
 
@@ -34,7 +39,10 @@ export class TunnelBroker {
     this.sessions.delete(sessionId);
   }
 
-  async route(frame: TunnelFrame): Promise<void> {
+  async route(
+    frame: TunnelFrame,
+    direction: TunnelDirection = "browser-to-core",
+  ): Promise<void> {
     const session = this.sessions.get(frame.sessionId);
     const currentTime = this.now();
 
@@ -42,11 +50,11 @@ export class TunnelBroker {
       throw new Error("session_expired");
     }
 
-    if (frame.sequence <= session.lastSequence) {
+    if (frame.sequence <= session.lastSequence[direction]) {
       throw new Error("replay_detected");
     }
 
-    session.lastSequence = frame.sequence;
+    session.lastSequence[direction] = frame.sequence;
   }
 
   async captureRoutedFrame(frame: TunnelFrame): Promise<TunnelFrame> {

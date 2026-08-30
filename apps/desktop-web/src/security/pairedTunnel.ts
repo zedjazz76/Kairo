@@ -18,6 +18,7 @@ export type EncryptedTunnelFrame = TunnelFrameMetadata & {
 
 export interface TunnelFrameTransport {
   send(frame: EncryptedTunnelFrame): Promise<void>;
+  request?(frame: EncryptedTunnelFrame): Promise<EncryptedTunnelFrame>;
   disconnect(): Promise<void>;
 }
 
@@ -36,6 +37,7 @@ export class PairedTunnelClient {
   private readonly transport: TunnelFrameTransport;
   private readonly now: () => number;
   private sequence = 0;
+  private receivedSequence = 0;
   private connected = true;
 
   constructor(options: PairedTunnelClientOptions) {
@@ -50,7 +52,37 @@ export class PairedTunnelClient {
     await this.sendPlaintext(JSON.stringify(command));
   }
 
+  async requestPlaintext(plaintext: string): Promise<string> {
+    if (!this.transport.request) {
+      throw new Error("tunnel_response_unavailable");
+    }
+
+    const frame = await this.encryptPlaintext(plaintext);
+    const response = await this.transport.request(frame);
+
+    if (response.sessionId !== this.sessionId) {
+      throw new Error("tunnel_session_mismatch");
+    }
+
+    if (response.expiresAt !== this.expiresAt || response.expiresAt <= this.now()) {
+      throw new Error("session_expired");
+    }
+
+    if (response.sequence <= this.receivedSequence) {
+      throw new Error("replay_detected");
+    }
+
+    const decrypted = await decryptTunnelFrame(this.sessionKey, response);
+    this.receivedSequence = response.sequence;
+    return decrypted;
+  }
+
   async sendPlaintext(plaintext: string): Promise<void> {
+    const frame = await this.encryptPlaintext(plaintext);
+    await this.transport.send(frame);
+  }
+
+  private async encryptPlaintext(plaintext: string): Promise<EncryptedTunnelFrame> {
     if (!this.connected) {
       throw new Error("tunnel_not_connected");
     }
@@ -62,7 +94,7 @@ export class PairedTunnelClient {
     const sequence = this.sequence + 1;
     this.sequence = sequence;
 
-    const frame = await encryptTunnelFrame(
+    return encryptTunnelFrame(
       this.sessionKey,
       {
         sessionId: this.sessionId,
@@ -71,8 +103,6 @@ export class PairedTunnelClient {
       },
       plaintext,
     );
-
-    await this.transport.send(frame);
   }
 
   async disconnect(): Promise<void> {

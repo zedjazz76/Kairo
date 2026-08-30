@@ -24,6 +24,9 @@ test("Open evidence sends the typed command before preserving Copilot beside the
       send: async (command: CoreCommandV1) => {
         sent.push(command);
       },
+      request: async () => {
+        throw new Error("request_not_expected");
+      },
       disconnect: async () => {},
     },
     createRequestId: () => "f0a36846-8b3c-479f-9d52-1b737f57a495",

@@ -58,6 +58,7 @@ export function App({
 }: AppProps) {
   const pairedCommands = commandSender ?? composePairedDesktopCommands();
   const sendCommand = pairedCommands.send.bind(pairedCommands);
+  const requestCommand = pairedCommands.request.bind(pairedCommands);
   const nextRequestId = createRequestId ?? (() => crypto.randomUUID());
 
   const openEvidence = async (evidenceRef: string): Promise<void> => {
@@ -142,9 +143,14 @@ export function App({
       ) : null}
       {workspace.activeWorkspace === "search" ? (
         <SearchWorkspace
-          results={searchResults}
+          results={workspace.hasLiveSearchResults ? workspace.searchResults : searchResults}
           createRequestId={nextRequestId}
           onSendCommand={sendCommand}
+          onRequestCommand={requestCommand}
+          onResults={(results) => {
+            workspace.replaceSearchResults(results);
+            onWorkspaceChange?.();
+          }}
           onOpenEvidence={openEvidence}
         />
       ) : null}
