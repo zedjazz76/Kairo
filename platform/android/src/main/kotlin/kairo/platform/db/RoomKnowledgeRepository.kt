@@ -6,6 +6,7 @@ import java.util.ArrayList
 import java.util.Collections
 import kairo.application.AuditEvent
 import kairo.application.FactQuery
+import kairo.application.EvidenceMemoryStore
 import kairo.application.KnowledgeRepository
 import kairo.domain.AnchorLocator
 import kairo.domain.CaptureSession
@@ -29,10 +30,12 @@ import kairo.domain.SourceOrigin
 import kairo.domain.SourceType
 import kairo.domain.SourceVariant
 import kairo.domain.SourceVariantId
+import kairo.retrieval.EvidenceMemoryKind
+import kairo.retrieval.EvidenceMemoryRecord
 
 class RoomKnowledgeRepository(
     private val database: KairoDatabase,
-) : KnowledgeRepository {
+) : KnowledgeRepository, EvidenceMemoryStore {
     private val dao: KnowledgeDao = database.knowledgeDao()
 
     override suspend fun appendFactVersion(fact: FactVersion, audit: AuditEvent) {
@@ -104,6 +107,13 @@ class RoomKnowledgeRepository(
         }
     }
 
+    override suspend fun save(record: EvidenceMemoryRecord) {
+        dao.saveEvidenceMemory(record.toEntity())
+    }
+
+    override suspend fun all(): List<EvidenceMemoryRecord> =
+        immutableList(dao.evidenceMemory().map { it.toDomain() })
+
     suspend fun source(id: SourceId): Source? = database.withTransaction {
         val source = dao.source(id.value) ?: return@withTransaction null
         val anchors = dao.sourceAnchors(id.value).map { it.toDomain() }
@@ -143,6 +153,28 @@ class RoomKnowledgeRepository(
         supersedes = supersedesFactId?.let(::FactId),
     )
 }
+
+private fun EvidenceMemoryRecord.toEntity(): EvidenceMemoryEntity =
+    EvidenceMemoryEntity(
+        memoryId = id,
+        sourceId = sourceId,
+        kind = kind.name,
+        text = text,
+        capturedAt = capturedAt.toString(),
+        conversationId = conversationId,
+        turnNumber = turnNumber,
+    )
+
+private fun EvidenceMemoryEntity.toDomain(): EvidenceMemoryRecord =
+    EvidenceMemoryRecord(
+        id = memoryId,
+        sourceId = sourceId,
+        kind = EvidenceMemoryKind.valueOf(kind),
+        text = text,
+        capturedAt = Instant.parse(capturedAt),
+        conversationId = conversationId,
+        turnNumber = turnNumber,
+    )
 
 private fun FactVersion.toEntity(): FactVersionEntity {
     val (objectType, persistedValue) = when (val value = objectValue) {

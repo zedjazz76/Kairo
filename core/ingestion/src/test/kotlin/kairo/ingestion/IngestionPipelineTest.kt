@@ -17,6 +17,31 @@ class IngestionPipelineTest {
     private val sessionId = CaptureSessionId("abbadox-cutover")
 
     @Test
+    fun `completed durable artifacts are published once for evidence capture`() {
+        var completion: IngestionResult? = null
+        var completionCalls = 0
+        val pipeline = IngestionPipeline(
+            extractors = listOf(PlainTextArtifactExtractor()),
+            scanner = { SensitiveContentScan(emptyList()) },
+            onCompleted = { result ->
+                completion = result
+                completionCalls += 1
+            },
+        )
+        val request = IngestionRequest(
+            sessionId = sessionId,
+            artifacts = listOf(artifact("workflow.txt", "PACS forwards studies to MagView.")),
+            capturedAt = Instant.parse("2026-08-20T10:00:00Z"),
+        )
+
+        pipeline.run(request)
+        pipeline.resume(sessionId)
+
+        assertEquals(1, completionCalls)
+        assertEquals("PACS forwards studies to MagView.", completion?.artifacts?.single()?.extracted?.text)
+    }
+
+    @Test
     fun `batch analysis preserves cross artifact context and source anchors`() {
         val pipeline = IngestionPipeline(
             extractors = listOf(PlainTextArtifactExtractor()),

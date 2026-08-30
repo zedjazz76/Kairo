@@ -21,6 +21,7 @@ object KairoDatabaseFactory {
                 KairoDatabase.MIGRATION_4_5,
                 KairoDatabase.MIGRATION_5_6,
                 KairoDatabase.MIGRATION_6_7,
+                KairoDatabase.MIGRATION_7_8,
             )
             .build()
 }

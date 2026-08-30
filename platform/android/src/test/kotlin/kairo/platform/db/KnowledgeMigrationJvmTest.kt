@@ -39,6 +39,7 @@ class KnowledgeMigrationJvmTest {
                 KairoDatabase.MIGRATION_4_5,
                 KairoDatabase.MIGRATION_5_6,
                 KairoDatabase.MIGRATION_6_7,
+                KairoDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -59,6 +60,9 @@ class KnowledgeMigrationJvmTest {
 
     private fun createVersionOneFixture() {
         context.deleteDatabase(databaseName)
+        context.getDatabasePath(databaseName).parentFile?.let { directory ->
+            check(directory.exists() || directory.mkdirs())
+        }
         context.openOrCreateDatabase(databaseName, Context.MODE_PRIVATE, null).use { db ->
             createVersionOneSchema(db)
             db.execSQL("INSERT INTO content_identities(content_hash) VALUES ('hash-migration')")

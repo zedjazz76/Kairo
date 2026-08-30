@@ -410,3 +410,29 @@ Next:
 - Add the Room evidence-memory adapter and schema migration with a runnable Android test environment.
 - Wire automatic user/assistant turn capture and ingestion excerpts into that store.
 - Feed stored evidence into Android and desktop Core composition, then port the finished website experience onto those Core commands without retaining its parallel knowledge store.
+
+## Progress checkpoint — Conversational continuity durable loop and website workspace merge
+
+2026-08-30 completed the smallest end-to-end Kairo Conversational Continuity slice and merged the finished website's workspace experience into the existing desktop Core-command shell.
+
+Implemented:
+- Room database v8 persists non-authoritative conversation turns and safe upload excerpts with source, conversation, turn, kind, and capture-time provenance. Both production database builders carry the complete v1-to-v8 migration chain.
+- Android Copilot automatically records each user and assistant turn in a shared conversation session; reopening the composition reconstructs persisted evidence into retrieval.
+- Successful ingestion automatically records only durable, non-sensitive extracted artifacts. Temporary-use content and unredacted sensitive content are excluded from durable evidence memory.
+- When no promoted fact answers a question, Ask Kairo may return related prior conversation/upload evidence with an explicit `not an approved MANA fact` boundary and no authoritative claims.
+- A real close/reopen Room acceptance test records a troubleshooting conversation and upload, closes the database, opens a new composition, asks with different wording, retrieves and cross-references both sources, and confirms that no fact was promoted.
+- The desktop shell now carries the finished website's Guardian dashboard and navigation model: Home, Knowledge, Projects, Work, Sources, Intake, Search, Memory Inbox, and persistent Copilot. Global search dispatches the typed `SearchKnowledge` Core command and renders grouped Core-provided results; Sources preserves provenance and the evidence-not-instructions boundary.
+- The website's independent D1/R2 knowledge implementation was intentionally not copied. Kairo Core and its evidence/promotion rules remain the sole knowledge authority.
+
+Focused TDD and verification:
+- `:core:retrieval:test :core:application:test :core:ingestion:test :apps:android:testDebugUnitTest` — PASS.
+- `:platform:android:testDebugUnitTest --tests "*KnowledgeMigrationJvmTest*" --tests "*MemoryInboxMigrationJvmTest*" --tests "*RoomKnowledgeRepositoryTest*"` — PASS, including the named-database close/reopen continuity acceptance test.
+- `apps/desktop-web npm test` — PASS (30 tests).
+- `apps/desktop-web npm run build` — PASS (43 transformed modules).
+- In-app browser inspection at desktop width confirmed the Guardian dashboard, persistent Copilot, Search, Sources, responsive layout, and no browser console errors.
+
+Verification note:
+- The unrestricted platform-wide Robolectric command also reached an unrelated pre-existing ingestion-checkpoint test whose generated Windows database path exceeds SQLite's path handling limit. The affected migration, repository, and close/reopen suites pass through the short-path test workspace.
+
+Next bounded desktop integration:
+- Hydrate live Core response payloads into the Search, dashboard, work, knowledge, and sources props over the paired tunnel. The present desktop slice sends typed commands through the authoritative boundary and renders host-supplied Core results; it does not introduce browser persistence or a second knowledge store.

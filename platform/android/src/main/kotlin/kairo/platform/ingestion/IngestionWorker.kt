@@ -16,10 +16,13 @@ import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import androidx.room.Room
 import kairo.platform.db.KairoDatabase
+import kairo.platform.db.RoomKnowledgeRepository
+import kairo.application.ConversationContinuityService
 import kairo.platform.ingestion.extractors.defaultAndroidExtractors
 import kairo.platform.security.LocalSensitiveContentScanner
 import kairo.platform.vault.AndroidKeystoreMasterKeyProvider
 import kairo.platform.vault.CacheBackedTemporarySessionStore
+import kotlinx.coroutines.runBlocking
 
 /** Android host adapter; WorkManager scheduling is supplied by the app host. */
 class IngestionWorker(private val pipeline: IngestionPipeline) {
@@ -64,8 +67,15 @@ class AndroidIngestionRuntimeFactory(
                 KairoDatabase.MIGRATION_3_4,
                 KairoDatabase.MIGRATION_4_5,
                 KairoDatabase.MIGRATION_5_6,
+                KairoDatabase.MIGRATION_6_7,
+                KairoDatabase.MIGRATION_7_8,
             )
             .build()
+    }
+    private val continuity by lazy {
+        ConversationContinuityService(
+            RoomKnowledgeRepository(database),
+        )
     }
 
     override fun create(): IngestionPipeline {
@@ -80,6 +90,11 @@ class AndroidIngestionRuntimeFactory(
                     AndroidKeystoreMasterKeyProvider(TEMPORARY_PAYLOAD_KEY_ALIAS),
                 ),
             ),
+            onCompleted = { result ->
+                runBlocking {
+                    continuity.rememberUploadArtifacts(result.artifacts)
+                }
+            },
         )
     }
 

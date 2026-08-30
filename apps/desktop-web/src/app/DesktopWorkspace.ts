@@ -1,18 +1,28 @@
 export type DesktopWorkspaceDestination =
+  | "home"
+  | "knowledge"
+  | "work"
+  | "sources"
   | "capture"
+  | "search"
   | "copilot"
   | "memory"
   | "projects";
 
 export class DesktopWorkspace {
   readonly destinations: DesktopWorkspaceDestination[] = [
+    "home",
+    "knowledge",
+    "projects",
+    "work",
+    "sources",
     "capture",
+    "search",
     "copilot",
     "memory",
-    "projects",
   ];
 
-  activeWorkspace: DesktopWorkspaceDestination = "capture";
+  activeWorkspace: DesktopWorkspaceDestination = "home";
   activeEvidenceRef: string | null = null;
   copilotVisible = true;
   evidencePaneVisible = false;

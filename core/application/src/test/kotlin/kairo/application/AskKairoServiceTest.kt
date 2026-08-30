@@ -9,6 +9,8 @@ import kairo.domain.FactVersion
 import kairo.domain.KnowledgeScope
 import kairo.domain.EntityId
 import kairo.retrieval.EvidenceBundle
+import kairo.retrieval.EvidenceMemoryKind
+import kairo.retrieval.EvidenceMemoryRecord
 import kairo.retrieval.RankedFact
 import kairo.retrieval.RetrievalQuery
 import kairo.retrieval.HybridRetriever
@@ -19,6 +21,43 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AskKairoServiceTest {
+
+    @Test
+    fun `quick cross references related chat and upload evidence without promoting facts`() = runTest {
+        val service = AskKairoService(
+            retriever = HybridRetriever(
+                facts = emptyList(),
+                evidenceMemory = listOf(
+                    EvidenceMemoryRecord(
+                        id = "conversation-1-turn-4",
+                        sourceId = "conversation-1",
+                        kind = EvidenceMemoryKind.CONVERSATION,
+                        text = "MagView delivery stopped because the PACS routing destination was wrong.",
+                        capturedAt = Instant.parse("2026-08-29T14:00:00Z"),
+                    ),
+                    EvidenceMemoryRecord(
+                        id = "upload-1-page-2",
+                        sourceId = "upload-1",
+                        kind = EvidenceMemoryKind.UPLOAD,
+                        text = "The breast workflow document says PACS forwards studies to MagView for interpretation.",
+                        capturedAt = Instant.parse("2026-08-29T14:05:00Z"),
+                    ),
+                ),
+            ),
+            reasoningProvider = CountingReasoningProvider(),
+        )
+
+        val answer = service.quick(
+            "What did we find when breast images disappeared from the viewer?",
+        )
+
+        assertTrue(answer.text.contains("prior conversation", ignoreCase = true))
+        assertTrue(answer.text.contains("uploaded evidence", ignoreCase = true))
+        assertTrue(answer.text.contains("not an approved MANA fact", ignoreCase = true))
+        assertTrue(answer.text.contains("routing destination", ignoreCase = true))
+        assertTrue(answer.text.contains("forwards studies", ignoreCase = true))
+        assertTrue(answer.claims.isEmpty())
+    }
 
     @Test
     fun `simple fact lookup does not require frontier model`() = runTest {

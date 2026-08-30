@@ -441,3 +441,27 @@ data class MemoryCandidateAnchorEntity(
     @ColumnInfo(name = "turn_number")
     val turnNumber: Int? = null,
 )
+
+@Entity(
+    tableName = "evidence_memory",
+    indices = [
+        Index(value = ["source_id"]),
+        Index(value = ["kind", "captured_at"]),
+        Index(value = ["conversation_id", "turn_number"]),
+    ],
+)
+data class EvidenceMemoryEntity(
+    @PrimaryKey
+    @ColumnInfo(name = "memory_id")
+    val memoryId: String,
+    @ColumnInfo(name = "source_id")
+    val sourceId: String,
+    val kind: String,
+    val text: String,
+    @ColumnInfo(name = "captured_at")
+    val capturedAt: String,
+    @ColumnInfo(name = "conversation_id")
+    val conversationId: String?,
+    @ColumnInfo(name = "turn_number")
+    val turnNumber: Int?,
+)

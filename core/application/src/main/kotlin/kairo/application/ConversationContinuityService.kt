@@ -3,6 +3,7 @@ package kairo.application
 import java.time.Instant
 import java.util.LinkedHashMap
 import kairo.domain.FactVersion
+import kairo.ingestion.IngestedArtifact
 import kairo.retrieval.EvidenceBundle
 import kairo.retrieval.EvidenceMemoryKind
 import kairo.retrieval.EvidenceMemoryRecord
@@ -63,6 +64,26 @@ class ConversationContinuityService(
                 capturedAt = capturedAt,
             ),
         )
+    }
+
+    suspend fun rememberUploadArtifacts(
+        artifacts: List<IngestedArtifact>,
+        capturedAt: Instant = Instant.now(),
+    ) {
+        artifacts
+            .filter { artifact ->
+                artifact.sensitiveDecision.mayEnterDurableVault &&
+                    !artifact.sensitiveDecision.scan.hasSensitiveContent &&
+                    artifact.extracted.text.isNotBlank()
+            }
+            .forEach { artifact ->
+                rememberUploadExcerpt(
+                    sourceId = artifact.extracted.artifact.sourceId.value,
+                    excerptId = artifact.extracted.artifact.variantId.value,
+                    text = artifact.extracted.text,
+                    capturedAt = capturedAt,
+                )
+            }
     }
 
     suspend fun retrieve(

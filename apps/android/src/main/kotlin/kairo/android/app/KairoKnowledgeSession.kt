@@ -4,6 +4,7 @@ import android.content.res.AssetManager
 import kairo.android.capture.KnowledgeCapture
 import kairo.android.capture.KnowledgeCaptureRequest
 import kairo.android.copilot.Copilot
+import kairo.android.copilot.ConversationCaptureSession
 import kairo.application.DeepAnalyzeService
 import kairo.application.KnowledgeRepository
 import kairo.application.MemoryCandidateId
@@ -20,6 +21,8 @@ class KairoKnowledgeSession(
     assets: AssetManager? = null,
     private val reasoningProvider: ReasoningProvider? = null,
 ) {
+
+    private val conversation = ConversationCaptureSession()
 
     private var currentCopilot: Copilot =
         KairoCompositionRoot
@@ -144,6 +147,7 @@ class KairoKnowledgeSession(
             KairoCompositionRoot
                 .fromRepository(
                     repository = repository,
+                    conversation = conversation,
                 )
                 .copilot
     }
@@ -153,6 +157,7 @@ class KairoKnowledgeSession(
             KairoCompositionRoot
                 .fromRepository(
                     repository = repository,
+                    conversation = conversation,
                 )
                 .copilot
 

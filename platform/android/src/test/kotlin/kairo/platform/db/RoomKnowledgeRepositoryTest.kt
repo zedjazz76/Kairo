@@ -6,7 +6,12 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import java.time.Instant
 import kairo.application.AuditEvent
+import kairo.application.AskKairoService
+import kairo.application.ConversationContinuityService
 import kairo.application.FactQuery
+import kairo.application.KairoAnswer
+import kairo.application.ReasoningPacket
+import kairo.application.ReasoningProvider
 import kairo.domain.AnchorLocator
 import kairo.domain.CaptureSession
 import kairo.domain.CaptureSessionId
@@ -28,6 +33,9 @@ import kairo.domain.SourceOrigin
 import kairo.domain.SourceType
 import kairo.domain.SourceVariant
 import kairo.domain.SourceVariantId
+import kairo.retrieval.EvidenceMemoryKind
+import kairo.retrieval.EvidenceMemoryRecord
+import kairo.retrieval.HybridRetriever
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -47,6 +55,64 @@ class RoomKnowledgeRepositoryTest {
     private lateinit var database: KairoDatabase
     private lateinit var repository: RoomKnowledgeRepository
 
+    @Test
+    fun continuity_survives_database_reopen() = runTest {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val databaseName = "continuity-reopen.db"
+        context.deleteDatabase(databaseName)
+        context.getDatabasePath(databaseName).parentFile?.let { directory ->
+            check(directory.exists() || directory.mkdirs())
+        }
+
+        val firstDatabase = Room.databaseBuilder(context, KairoDatabase::class.java, databaseName)
+            .allowMainThreadQueries()
+            .build()
+        val firstRepository = RoomKnowledgeRepository(firstDatabase)
+        val firstSession = ConversationContinuityService(firstRepository)
+        firstSession.rememberConversationTurn(
+            conversationId = "conversation-before-close",
+            turnNumber = 4,
+            text = "MagView delivery stopped because the PACS routing destination was wrong.",
+            capturedAt = Instant.parse("2026-08-29T14:00:00Z"),
+        )
+        firstSession.rememberUploadExcerpt(
+            sourceId = "upload-before-close",
+            excerptId = "page-2",
+            text = "The breast workflow document says PACS forwards studies to MagView for interpretation.",
+            capturedAt = Instant.parse("2026-08-29T14:05:00Z"),
+        )
+        firstDatabase.close()
+
+        val reopenedDatabase = Room.databaseBuilder(context, KairoDatabase::class.java, databaseName)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val reopenedRepository = RoomKnowledgeRepository(reopenedDatabase)
+            val service = AskKairoService(
+                retriever = HybridRetriever(
+                    facts = reopenedRepository.retrievalUnderstanding(FactQuery()),
+                    evidenceMemory = reopenedRepository.all(),
+                ),
+                reasoningProvider = object : ReasoningProvider {
+                    override suspend fun analyze(packet: ReasoningPacket): KairoAnswer =
+                        error("Quick continuity must not call cloud reasoning")
+                },
+            )
+
+            val answer = service.quick(
+                "What did we find when breast images disappeared from the viewer?",
+            )
+
+            assertTrue(answer.text.contains("routing destination", ignoreCase = true))
+            assertTrue(answer.text.contains("forwards studies", ignoreCase = true))
+            assertTrue(answer.text.contains("not an approved MANA fact", ignoreCase = true))
+            assertEquals(emptyList(), reopenedRepository.currentUnderstanding(FactQuery()))
+        } finally {
+            reopenedDatabase.close()
+            context.deleteDatabase(databaseName)
+        }
+    }
+
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -59,6 +125,33 @@ class RoomKnowledgeRepositoryTest {
     @After
     fun tearDown() {
         database.close()
+    }
+
+    @Test
+    fun `conversation and upload evidence survive repository reconstruction without becoming facts`() = runTest {
+        val conversation = EvidenceMemoryRecord(
+            id = "conversation-7-turn-2",
+            sourceId = "conversation-7",
+            kind = EvidenceMemoryKind.CONVERSATION,
+            text = "The PACS route to MagView failed after the destination changed.",
+            capturedAt = Instant.parse("2026-08-29T14:00:00Z"),
+            conversationId = "conversation-7",
+            turnNumber = 2,
+        )
+        val upload = EvidenceMemoryRecord(
+            id = "upload-3-page-1",
+            sourceId = "upload-3",
+            kind = EvidenceMemoryKind.UPLOAD,
+            text = "Breast workflow evidence: PACS forwards studies to MagView.",
+            capturedAt = Instant.parse("2026-08-29T14:05:00Z"),
+        )
+
+        repository.save(conversation)
+        repository.save(upload)
+
+        val reopened = RoomKnowledgeRepository(database)
+        assertEquals(listOf(conversation, upload), reopened.all())
+        assertEquals(emptyList(), reopened.currentUnderstanding(FactQuery()))
     }
 
     @Test

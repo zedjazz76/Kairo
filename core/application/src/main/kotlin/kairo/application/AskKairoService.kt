@@ -5,7 +5,9 @@ import kairo.domain.EvidenceState
 import kairo.domain.FactObject
 import kairo.domain.KnowledgeScope
 import kairo.retrieval.HybridRetriever
+import kairo.retrieval.EvidenceMemoryKind
 import kairo.retrieval.RetrievalQuery
+import kairo.retrieval.SourceExcerpt
 
 sealed interface ValidatedAnswer {
     data class Accepted(
@@ -49,6 +51,10 @@ class AskKairoService(
                 }
 
         if (best == null) {
+            rememberedEvidenceAnswer(bundle.sources)?.let { answer ->
+                return answer
+            }
+
             return KairoAnswer(
                 text = "I don't know from the available MANA evidence.",
             )
@@ -168,6 +174,36 @@ class AskKairoService(
             EvidenceState.DEPRECATED -> "Deprecated${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
             EvidenceState.CONTRADICTED -> "Contradicted${scopeLabel(scope)} for ${subjectLabel(subject)}: $value"
         }
+
+    private fun rememberedEvidenceAnswer(
+        sources: List<SourceExcerpt>,
+    ): KairoAnswer? {
+        val remembered = sources
+            .filter { source -> source.kind != null }
+            .take(4)
+
+        if (remembered.isEmpty()) return null
+
+        return KairoAnswer(
+            text = buildString {
+                append("Related prior evidence (not an approved MANA fact):")
+                remembered.forEach { source ->
+                    append("\n- ")
+                    append(
+                        when (source.kind) {
+                            EvidenceMemoryKind.CONVERSATION -> "Prior conversation"
+                            EvidenceMemoryKind.UPLOAD -> "Uploaded evidence"
+                            null -> error("Remembered evidence requires a kind")
+                        },
+                    )
+                    append(" [")
+                    append(source.sourceId)
+                    append("]: ")
+                    append(source.text)
+                }
+            },
+        )
+    }
 
     private fun scopeLabel(scope: KnowledgeScope): String =
         if (scope == KnowledgeScope.MANA_PRODUCTION) "" else " [${scope.name}]"

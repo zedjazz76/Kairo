@@ -5,8 +5,11 @@ import { App } from "./App.tsx";
 import { DesktopWorkspace } from "./DesktopWorkspace.ts";
 import { CaptureBatch } from "../features/capture/CaptureBatch.ts";
 
-function renderDesktop({ evidenceRef }: { evidenceRef?: string } = {}): string {
+function renderDesktop({ evidenceRef, destination }: { evidenceRef?: string; destination?: "capture" } = {}): string {
   const workspace = new DesktopWorkspace();
+  if (destination) {
+    workspace.navigate(destination);
+  }
   if (evidenceRef) {
     workspace.openEvidence(evidenceRef);
   }
@@ -24,8 +27,8 @@ function renderDesktop({ evidenceRef }: { evidenceRef?: string } = {}): string {
   );
 }
 
-test("desktop shell renders Capture as primary workspace with persistent Copilot", () => {
-  const html = renderDesktop();
+test("desktop shell renders Intake with persistent Copilot", () => {
+  const html = renderDesktop({ destination: "capture" });
 
   assert.match(html, /data-testid="capture-workspace"/);
   assert.match(html, /meeting-notes\.docx/);
@@ -40,6 +43,38 @@ test("opening evidence preserves Copilot beside the evidence pane", () => {
   assert.match(html, /data-testid="copilot-workspace"/);
   assert.match(html, /data-testid="evidence-pane"/);
   assert.match(html, /evidence-1/);
+});
+
+test("merged home dashboard keeps projects work knowledge sources and Copilot together", () => {
+  const html = renderToStaticMarkup(
+    App({
+      workspace: new DesktopWorkspace(),
+      captureBatch: new CaptureBatch({ captureSessionId: "capture-home" }),
+      projects: [{ id: "project-abbadox", name: "AbbaDox", summary: "RIS transition" }],
+      workItems: [{ id: "WORK-17", title: "Validate PACS route", status: "In Progress", priority: "High" }],
+      knowledgeEntries: [{ id: "knowledge-routing", title: "Breast image routing", summary: "Evidence-backed workflow", evidenceState: "OBSERVED" }],
+      evidenceRecords: [{
+        evidenceRef: "source-workflow",
+        sourceId: "source-workflow",
+        sourceName: "Breast workflow.pdf",
+        sourceType: "DOCUMENT",
+        mediaType: "application/pdf",
+        origin: "IMPORT",
+        classification: "INTERNAL",
+        importedAt: "2026-08-29T14:05:00Z",
+        contentHash: "sha256:workflow",
+        anchorDescription: "page 2",
+      }],
+    } as never),
+  );
+
+  assert.match(html, /data-testid="home-dashboard"/);
+  assert.match(html, /Operational focus/);
+  assert.match(html, /AbbaDox/);
+  assert.match(html, /Validate PACS route/);
+  assert.match(html, /Breast image routing/);
+  assert.match(html, /Breast workflow\.pdf/);
+  assert.match(html, /data-testid="copilot-workspace"/);
 });
 
 test("desktop shell injects the active evidence record into the evidence pane", () => {

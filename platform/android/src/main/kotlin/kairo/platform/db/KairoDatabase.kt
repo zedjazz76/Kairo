@@ -25,8 +25,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MemoryCandidateEntity::class,
         MemoryDecisionEntity::class,
         MemoryCandidateAnchorEntity::class,
+        EvidenceMemoryEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class KairoDatabase : RoomDatabase() {
@@ -238,6 +239,27 @@ abstract class KairoDatabase : RoomDatabase() {
                 )
             }
         }
+
+        @JvmField val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS evidence_memory (
+                        memory_id TEXT NOT NULL PRIMARY KEY,
+                        source_id TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        text TEXT NOT NULL,
+                        captured_at TEXT NOT NULL,
+                        conversation_id TEXT,
+                        turn_number INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_evidence_memory_source_id ON evidence_memory (source_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_evidence_memory_kind_captured_at ON evidence_memory (kind, captured_at)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_evidence_memory_conversation_id_turn_number ON evidence_memory (conversation_id, turn_number)")
+            }
+        }
     }
 }
 
@@ -296,6 +318,12 @@ interface KnowledgeDao {
 
     @Query("SELECT * FROM capture_session_anchors WHERE capture_session_id = :captureSessionId ORDER BY source_id, variant_id, anchor_key")
     suspend fun captureSessionAnchors(captureSessionId: String): List<CaptureSessionAnchorEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveEvidenceMemory(row: EvidenceMemoryEntity)
+
+    @Query("SELECT * FROM evidence_memory ORDER BY captured_at, memory_id")
+    suspend fun evidenceMemory(): List<EvidenceMemoryEntity>
 }
 
 @Dao

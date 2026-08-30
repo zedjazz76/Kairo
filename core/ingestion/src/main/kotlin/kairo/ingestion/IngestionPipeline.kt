@@ -139,6 +139,7 @@ class IngestionPipeline(
     private val policy: SensitiveContentPolicy = SensitiveContentPolicy(),
     private val checkpoints: IngestionCheckpointStore = InMemoryIngestionCheckpointStore(),
     private val payloads: IngestionPayloadStore = InMemoryIngestionPayloadStore(),
+    private val onCompleted: (IngestionResult) -> Unit = {},
 ) {
     fun enqueue(sessionId: CaptureSessionId): IngestionResult = resume(sessionId)
 
@@ -211,9 +212,11 @@ class IngestionPipeline(
         val durable = ingested.filter { it.sensitiveDecision.disposition != StorageDisposition.Rejected }
         val anchors = durable.flatMap { it.extracted.anchors }.toSet()
         val candidates = candidateFor(checkpoint.sessionId, durable, anchors)
+        val result = IngestionResult(checkpoint.sessionId, IngestionStage.COMPLETE, durable, candidates)
+        onCompleted(result)
         checkpoints.save(checkpoint.copy(stage = IngestionStage.COMPLETE, sensitiveChoice = choice))
         payloads.deleteTemporary(checkpoint.sessionId)
-        return IngestionResult(checkpoint.sessionId, IngestionStage.COMPLETE, durable, candidates)
+        return result
     }
 
     private fun candidateFor(
