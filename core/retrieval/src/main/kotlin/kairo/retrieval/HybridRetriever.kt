@@ -34,7 +34,32 @@ data class RetrievedEntity(
 data class SourceExcerpt(
     val sourceId: String,
     val text: String,
+    val memoryId: String? = null,
+    val kind: EvidenceMemoryKind? = null,
+    val score: Int = 0,
 )
+
+enum class EvidenceMemoryKind {
+    CONVERSATION,
+    UPLOAD,
+}
+
+data class EvidenceMemoryRecord(
+    val id: String,
+    val sourceId: String,
+    val kind: EvidenceMemoryKind,
+    val text: String,
+    val capturedAt: java.time.Instant,
+    val conversationId: String? = null,
+    val turnNumber: Int? = null,
+) {
+    init {
+        require(id.isNotBlank()) { "Evidence memory id must not be blank" }
+        require(sourceId.isNotBlank()) { "Evidence memory source id must not be blank" }
+        require(text.isNotBlank()) { "Evidence memory text must not be blank" }
+        require(turnNumber == null || turnNumber >= 0) { "Turn number must not be negative" }
+    }
+}
 
 data class RetrievedWorkflow(
     val id: String,
@@ -64,6 +89,7 @@ data class EvidenceBundle(
 class HybridRetriever(
     private val facts: List<FactVersion>,
     private val sources: List<Source> = emptyList(),
+    private val evidenceMemory: List<EvidenceMemoryRecord> = emptyList(),
     private val workflows: List<Workflow> = emptyList(),
     private val projects: List<Project> = emptyList(),
     private val incidents: List<IncidentPattern> = emptyList(),
@@ -100,7 +126,7 @@ class HybridRetriever(
 
         return EvidenceBundle(
             rankedClaims = ranked,
-            sources = sources.map(::sourceExcerpt),
+            sources = retrieveSources(query),
             workflows = workflows.map(::retrievedWorkflow),
             projects = projects.map(::retrievedProject),
             incidents = incidentSemanticIndex.search(
@@ -116,6 +142,29 @@ class HybridRetriever(
                 }
                 .distinct(),
         )
+    }
+
+    private fun retrieveSources(query: RetrievalQuery): List<SourceExcerpt> {
+        val remembered = evidenceMemory
+            .map { record -> record to conceptScore(concepts(query.text), concepts(record.text)) }
+            .filter { (_, score) -> score > 0 }
+            .sortedWith(
+                compareByDescending<Pair<EvidenceMemoryRecord, Int>> { (record, _) -> record.kind == EvidenceMemoryKind.CONVERSATION }
+                    .thenByDescending { (_, score) -> score }
+                    .thenByDescending { (record, _) -> record.capturedAt }
+                    .thenBy { (record, _) -> record.id },
+            )
+            .map { (record, score) ->
+                SourceExcerpt(
+                    sourceId = record.sourceId,
+                    text = record.text,
+                    memoryId = record.id,
+                    kind = record.kind,
+                    score = score,
+                )
+            }
+
+        return remembered + sources.map(::sourceExcerpt)
     }
 
     private fun score(
@@ -314,6 +363,8 @@ private fun concepts(text: String): Set<String> {
                 "fail",
                 "failing",
                 "failed",
+                "disappear",
+                "disappeared",
                 "missing",
                 "not",
             )
@@ -342,10 +393,15 @@ private fun concepts(text: String): Set<String> {
                 "interpret",
                 "interpretation",
                 "reading",
+                "viewer",
             )
         }
     ) {
         tokens += "interpretation"
+    }
+
+    if (tokens.any { it in setOf("image", "images", "study", "studies") }) {
+        tokens += "clinical-image"
     }
 
     return tokens

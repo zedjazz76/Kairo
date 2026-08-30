@@ -384,3 +384,29 @@ Task 11 status: implementation and local full-gate verification are reported com
 - Remaining non-blocking debt: rerun the single desktop Playwright workflow once the local Playwright Chromium runtime is available. Guardian UI Gold Pass closure is otherwise ready for documentation commit/push.
 
 The prior Task 1–10 work history remains in repository history; this checkpoint records the final Task 11 and Task 12 implementation states and the current Task 13 progress.
+
+## Progress checkpoint — Conversational continuity evidence foundation
+
+2026-08-30 began the newly locked Kairo Conversational Continuity priority from
+`fb3ef89280e6c7236379912ba24faba17dd95ccb` on `kairo-v1`.
+
+Implemented the first Core-only slice:
+- Added typed non-authoritative evidence-memory records for conversation turns and upload excerpts.
+- Hybrid retrieval now returns related conversation/upload excerpts for differently worded queries while leaving `rankedClaims` empty when no fact has passed Memory Inbox review.
+- Added `ConversationContinuityService` and its store boundary so chat and upload evidence can be captured automatically and reconstructed by a durable adapter without promoting it to authoritative knowledge.
+- Inspected the finished Sites-hosted Kairo website. Its dashboard, projects/work views, source library, global search, owner intake, and Guardian presentation are candidates for the desktop experience; its independent D1/R2 knowledge tables must not become a second authoritative Kairo brain.
+
+Focused TDD verification:
+- RED: the retrieval test failed to compile because evidence-memory types/inputs did not exist.
+- GREEN: `:core:retrieval:test --tests "*HybridRetrieverTest.related conversation and upload evidence are retrieved without becoming facts"` — PASS.
+- RED: the continuity-service test failed to compile because the service/store did not exist.
+- GREEN: `:core:application:test --tests "*ConversationContinuityServiceTest*"` — PASS.
+- Combined focused gate for both tests — PASS.
+
+Environment boundary:
+- The Room persistence test target cannot run on this host because no Android SDK is installed or configured. No unverified Room migration or Android wiring was added in this checkpoint.
+
+Next:
+- Add the Room evidence-memory adapter and schema migration with a runnable Android test environment.
+- Wire automatic user/assistant turn capture and ingestion excerpts into that store.
+- Feed stored evidence into Android and desktop Core composition, then port the finished website experience onto those Core commands without retaining its parallel knowledge store.

@@ -38,6 +38,45 @@ import kotlin.test.assertTrue
 class HybridRetrieverTest {
 
     @Test
+    fun `related conversation and upload evidence are retrieved without becoming facts`() {
+        val retriever = HybridRetriever(
+            facts = emptyList(),
+            evidenceMemory = listOf(
+                EvidenceMemoryRecord(
+                    id = "conversation-1-turn-4",
+                    sourceId = "conversation-1",
+                    kind = EvidenceMemoryKind.CONVERSATION,
+                    text = "MagView delivery stopped because the PACS routing destination was wrong.",
+                    capturedAt = Instant.parse("2026-08-29T14:00:00Z"),
+                    conversationId = "conversation-1",
+                    turnNumber = 4,
+                ),
+                EvidenceMemoryRecord(
+                    id = "upload-1-page-2",
+                    sourceId = "upload-1",
+                    kind = EvidenceMemoryKind.UPLOAD,
+                    text = "The breast workflow document confirms that PACS forwards studies to MagView for interpretation.",
+                    capturedAt = Instant.parse("2026-08-29T14:05:00Z"),
+                ),
+            ),
+        )
+
+        val result = retriever.retrieve(
+            RetrievalQuery(
+                text = "What did we find when breast images were missing from the viewer?",
+                scope = KnowledgeScope.MANA_PRODUCTION,
+            ),
+        )
+
+        assertEquals(emptyList(), result.rankedClaims)
+        assertEquals(
+            listOf("conversation-1-turn-4", "upload-1-page-2"),
+            result.sources.map { it.memoryId },
+        )
+        assertTrue(result.sources.all { it.score > 0 })
+    }
+
+    @Test
     fun `MANA production evidence outranks external vendor capability`() {
         val productionFact = fact(
             id = "fact-production",
