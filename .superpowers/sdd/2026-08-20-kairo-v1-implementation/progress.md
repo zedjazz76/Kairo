@@ -463,3 +463,34 @@ Boundary retained:
 
 Next:
 - Add the concrete paired host transport and Android Core command dispatcher for `SearchKnowledge`, then use the same validated result path for Copilot and the remaining dashboard collections.
+
+## Progress checkpoint — Concrete paired SearchKnowledge transport and Android dispatch
+
+2026-09-01 completed the next bounded encrypted desktop-to-Core result slice after
+`a8c26ac`.
+
+Implemented:
+- Added a transient relay exchange that correlates one opaque browser command with one opaque Core result, maintains independent directional replay checks, times out bounded pending work, and removes command/result state after completion or disconnect.
+- Added loopback relay HTTP routes for browser requests, Android command polling, correlated Android responses, and session disconnect. The relay validates only frame metadata and never receives the session key or plaintext.
+- Added the concrete browser `RelayTunnelFrameTransport`, which implements the existing encrypted request/response transport boundary without adding browser persistence.
+- Added the Android `SearchKnowledgeCoreCommandDispatcher`. It validates the exact v1 command envelope, retrieves relevant promoted facts and non-authoritative conversation/upload evidence through `HybridRetriever`, and returns a correlated `CoreResultV1` with reference IDs only. Empty retrieval returns `NOT_FOUND`; it does not fabricate search content or promote evidence memory.
+- Added `EncryptedCoreRequestProcessor` to enforce the paired session, expiry, monotonic inbound sequence, authenticated decryption, independent outbound sequence, and encrypted result return.
+- Wired the dispatcher into `KairoCompositionRoot`, so repository-reconstructed conversation/upload evidence and authoritative facts feed the same Android Core command boundary.
+- Kept the OpenAI relay transport lazy-loaded so tunnel-only integration tests and hosts do not require the optional model-provider package at module load time.
+
+Focused TDD and verification:
+- RED: relay exchange test failed because `TunnelExchangeBroker` did not exist; GREEN: opaque correlated exchange test passed.
+- RED: loopback relay integration returned `404`; GREEN: encrypted request/poll/response integration passed and retained no completed frames.
+- RED: browser transport test failed because `RelayTunnelFrameTransport` did not exist; GREEN: concrete request and disconnect paths passed.
+- RED: Android encrypted continuity test failed because the request processor and dispatcher did not exist; GREEN: differently worded `SearchKnowledge` returned both prior conversation and upload references through an encrypted result.
+- RED: composition test failed because Android Core did not expose the dispatcher; GREEN: production composition wiring passed.
+- `apps/desktop-web npm test` — PASS (39 tests).
+- `apps/desktop-web npm run build` — PASS (43 transformed modules).
+- Relay pairing/tunnel/runtime focused gate — PASS (12 tests).
+- `:apps:android:testDebugUnitTest` — PASS with Android SDK 36.
+
+Boundary retained:
+- Pairing confirmation/session-key acquisition and the Android background poll/post lifecycle remain host-bootstrap work. This checkpoint provides their concrete encrypted HTTP transport, transient relay exchange, Android processing boundary, and production dispatcher without claiming the default unpaired desktop bootstrap is already a live paired session.
+
+Next:
+- Wire the existing pairing confirmation into the loopback host lifecycle, then use the same validated encrypted result path for Ask Kairo and the remaining dashboard collections.

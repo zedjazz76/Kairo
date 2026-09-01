@@ -3,6 +3,8 @@ package kairo.android.app
 import kairo.android.copilot.AskKairoCopilot
 import kairo.android.copilot.Copilot
 import kairo.android.copilot.ConversationCaptureSession
+import kairo.android.tunnel.CoreCommandDispatcher
+import kairo.android.tunnel.SearchKnowledgeCoreCommandDispatcher
 import kairo.application.AskKairoService
 import kairo.application.ConversationContinuityService
 import kairo.application.EvidenceMemoryStore
@@ -17,6 +19,7 @@ import kairo.retrieval.EvidenceMemoryRecord
 
 class KairoCompositionRoot private constructor(
     val copilot: Copilot,
+    val coreCommandDispatcher: CoreCommandDispatcher,
 ) {
 
     companion object {
@@ -81,6 +84,7 @@ class KairoCompositionRoot private constructor(
                         continuity = continuity,
                         conversation = conversation,
                     ),
+                coreCommandDispatcher = SearchKnowledgeCoreCommandDispatcher(retriever),
             )
         }
     }

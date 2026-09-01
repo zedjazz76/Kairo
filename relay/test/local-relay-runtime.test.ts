@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { request } from "node:http";
 import test from "node:test";
 import { startLocalRelay } from "../src/runtime/LocalRelayRuntime.ts";
+import { TunnelBroker, type TunnelFrame } from "../src/tunnel/TunnelBroker.ts";
+import { TunnelExchangeBroker } from "../src/tunnel/TunnelExchangeBroker.ts";
 
 test("local relay accepts one bounded Deep Analyze request without retaining its body", async () => {
   const seen: unknown[] = [];
@@ -121,16 +123,84 @@ test("local relay records only a safe upstream failure class", async () => {
   }
 });
 
+test("local relay carries one paired encrypted command and correlated result without retaining either", async () => {
+  const now = 1_725_000_000_000;
+  const expiresAt = now + 60_000;
+  const sessions = new TunnelBroker({ now: () => now });
+  sessions.openSession({ sessionId: "paired-session", expiresAt });
+  const tunnelExchange = new TunnelExchangeBroker({ sessions, timeoutMs: 1_000 });
+  const relay = await startLocalRelay({
+    host: "127.0.0.1",
+    port: 0,
+    gateway: { async analyze() { throw new Error("unused"); } },
+    tunnelExchange,
+  });
+  const command: TunnelFrame = {
+    sessionId: "paired-session",
+    sequence: 1,
+    expiresAt,
+    nonce: "AAAAAAAAAAAAAAAA",
+    ciphertext: "encrypted-command",
+  };
+  const result: TunnelFrame = {
+    ...command,
+    ciphertext: "encrypted-result",
+  };
+
+  try {
+    const browserResponse = requestJson(
+      relay.port,
+      "POST",
+      "/v1/tunnel/paired-session/requests",
+      command,
+    );
+    await Promise.resolve();
+
+    const androidCommand = await requestJson(
+      relay.port,
+      "GET",
+      "/v1/tunnel/paired-session/commands",
+    );
+    assert.equal(androidCommand.statusCode, 200);
+    assert.deepEqual(JSON.parse(androidCommand.body), command);
+
+    const accepted = await requestJson(
+      relay.port,
+      "POST",
+      "/v1/tunnel/paired-session/responses/1",
+      result,
+    );
+    assert.equal(accepted.statusCode, 204);
+
+    assert.deepEqual(JSON.parse((await browserResponse).body), result);
+    assert.deepEqual(tunnelExchange.liveState(), {
+      queuedCommands: 0,
+      pendingResponses: 0,
+    });
+  } finally {
+    await relay.close();
+  }
+});
+
 function postJson(port: number, body: unknown): Promise<{ statusCode: number; body: string }> {
+  return requestJson(port, "POST", "/v1/deep-analyze", body);
+}
+
+function requestJson(
+  port: number,
+  method: "GET" | "POST" | "DELETE",
+  path: string,
+  body?: unknown,
+): Promise<{ statusCode: number; body: string }> {
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(body);
+    const payload = body === undefined ? "" : JSON.stringify(body);
     const req = request(
       {
         host: "127.0.0.1",
         port,
-        path: "/v1/deep-analyze",
-        method: "POST",
-        headers: {
+        path,
+        method,
+        headers: payload.length === 0 ? undefined : {
           "content-type": "application/json",
           "content-length": Buffer.byteLength(payload),
         },

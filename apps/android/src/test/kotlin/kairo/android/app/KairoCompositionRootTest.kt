@@ -11,9 +11,20 @@ import kairo.domain.FactVersion
 import kairo.domain.KnowledgeScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KairoCompositionRootTest {
+
+    @Test
+    fun root_exposes_the_core_command_dispatcher() {
+        val result = KairoCompositionRoot.empty().coreCommandDispatcher.dispatch(
+            """{"requestId":"8d9dc177-1966-4e4f-948a-e7562f8596d7","type":"SearchKnowledge","contractVersion":"v1","payload":{"query":"unknown system"}}""",
+        )
+
+        assertTrue(result.contains("\"type\":\"SearchKnowledge\""))
+        assertTrue(result.contains("\"code\":\"NOT_FOUND\""))
+    }
 
     @Test
     fun root_answers_from_loaded_authoritative_facts() =
