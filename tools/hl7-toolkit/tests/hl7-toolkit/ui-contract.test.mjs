@@ -31,3 +31,13 @@ test('interface exposes named workspaces, explicit copying, and a one-message se
   assert.match(css, /--text:\s*#f7fafc/i);
   assert.match(css, /:focus-visible/);
 });
+
+test('advanced catalog filtering exposes accessible apply, clear, and status controls', () => {
+  const html = readFileSync('hl7-toolkit/app/index.html', 'utf8');
+  for (const label of ['Advanced filters', 'Add condition', 'Apply filters', 'Clear filters']) {
+    assert.ok(html.includes(label), `Missing filter control: ${label}`);
+  }
+  assert.match(html, /id="filter-status"[^>]*aria-live="polite"/);
+  assert.match(html, /id="filter-error"[^>]*aria-live="assertive"/);
+  assert.match(html, /id="filter-conditions"/);
+});

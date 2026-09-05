@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { filterMessages, isDeepFilter, validateFilter } from '../../hl7-toolkit/app/scripts/search-filter.mjs';
+import { createFilterResultGate, filterMessages, isDeepFilter, validateFilter } from '../../hl7-toolkit/app/scripts/search-filter.mjs';
 
 const messages = [
   { id: 'one', family: 'ADT', type: 'ADT^A01', controlId: 'CTRL-1', version: '2.5.1', timestamp: '202609051000', sendingApplication: 'REG', receivingApplication: 'EHR', framing: 'unframed', length: 90, text: 'MSH|^~\\&|REG|A|EHR|B|202609051000||ADT^A01|CTRL-1|P|2.5.1\rPID|1||MRN-A~MRN-B||ALPHA^PATIENT' },
@@ -70,4 +70,16 @@ test('identifies deep filters and honors cancellation with safe progress', async
     onProgress: (event) => { progress.push(event); controller.abort(); },
   }), { name: 'AbortError' });
   assert.deepEqual(Object.keys(progress[0]).sort(), ['matched', 'processed', 'total']);
+});
+
+test('ignores a deep-filter result after clear or a newer request', () => {
+  const gate = createFilterResultGate();
+  const first = gate.begin();
+  assert.equal(gate.accept(first), true);
+  gate.invalidate();
+  assert.equal(gate.accept(first), false);
+  const second = gate.begin();
+  const third = gate.begin();
+  assert.equal(gate.accept(second), false);
+  assert.equal(gate.accept(third), true);
 });

@@ -177,6 +177,11 @@ main { min-width:0; padding:1.15rem 1.4rem 3rem; }
 .message-item[aria-pressed="true"] { background:#17404d; border:2px solid var(--accent); }
 .message-item strong,.message-item small { display:block; overflow-wrap:anywhere; }
 .message-item small { color:#c0d1da; font-size:.7rem; }
+.advanced-filters { margin-top:.8rem; border:1px solid #456575; border-radius:.4rem; padding:.45rem .6rem; }
+.filter-condition { display:grid; gap:.35rem; padding:.65rem 0; border-bottom:1px solid #365361; }
+.filter-condition label { font-size:.72rem; }
+.filter-condition .remove-filter { justify-self:start; }
+.filter-error { color:#ffd6d6; min-height:1.2em; font-size:.78rem; }
 .panel-heading { display:flex; justify-content:space-between; gap:.75rem; flex-wrap:wrap; }
 .panel-heading .button-row { margin-top:0; }
 .view-tabs { border-bottom:1px solid #456575; padding-bottom:.65rem; }

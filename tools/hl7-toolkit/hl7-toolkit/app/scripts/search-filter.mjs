@@ -40,6 +40,15 @@ export function isDeepFilter(filter) {
   return filter.conditions.some(({ target }) => target === 'path');
 }
 
+export function createFilterResultGate() {
+  let revision = 0;
+  return {
+    begin() { revision += 1; return revision; },
+    invalidate() { revision += 1; },
+    accept(candidate) { return candidate === revision; },
+  };
+}
+
 function pathValues(message, path) {
   const address = parsePath(path);
   const parsed = parseHl7(message.text);

@@ -6,9 +6,11 @@ import { historySafeText } from './sanitizer.mjs';
 import { hashMessage, summarizeSendPreflight, validateBasic } from './validator.mjs';
 import { createHistoryQueue } from './history-queue.mjs';
 import { createWorkerRequests } from './worker-requests.mjs';
+import { createFilterResultGate, filterMessages, isDeepFilter, validateFilter } from './search-filter.mjs';
 
 export function createWorkbenchState() {
-  return { messages: [], activeId: null, workspace: 'home', compareA: null, compareB: null, selectedPath: null, findings: [], acknowledgedFindingIds: [], intakeRunning: false, historyHealthy: true };
+  return { messages: [], activeId: null, workspace: 'home', compareA: null, compareB: null, selectedPath: null, findings: [], acknowledgedFindingIds: [], intakeRunning: false, historyHealthy: true,
+    catalogFilter: { conditions: [], matchingIds: null, running: false, error: '' } };
 }
 
 export function selectMessage(state, id) {
@@ -70,6 +72,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   let comparisonPair = null;
   let savedHistoryText = '';
   let renderScheduled = false;
+  const filterResultGate = createFilterResultGate();
   const node = (tag, text, className) => {
     const element = document.createElement(tag);
     if (text !== undefined) element.textContent = text;
@@ -128,8 +131,9 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   }
   function renderCatalog() {
     const query = $('#catalog-filter').value.toLowerCase();
-    const matching = state.messages.filter((message) => !query || (message.type + ' ' + message.controlId + ' ' + (message.index + 1)).toLowerCase().includes(query));
-    $('#message-count').textContent = state.messages.length.toLocaleString();
+    const allowed = state.catalogFilter.matchingIds && new Set(state.catalogFilter.matchingIds);
+    const matching = state.messages.filter((message) => (!allowed || allowed.has(message.id)) && (!query || (message.type + ' ' + message.controlId + ' ' + (message.index + 1)).toLowerCase().includes(query)));
+    $('#message-count').textContent = matching.length === state.messages.length ? state.messages.length.toLocaleString() : matching.length.toLocaleString() + ' of ' + state.messages.length.toLocaleString();
     const list = $('#message-list');
     list.replaceChildren();
     for (const message of matching.slice(0, visibleMessages)) {
@@ -140,6 +144,60 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
       list.append(button);
     }
     $('#more-messages').hidden = matching.length <= visibleMessages;
+  }
+  function addFilterCondition(condition = {}) {
+    const id = condition.id || crypto.randomUUID();
+    const row = node('div', undefined, 'filter-condition'); row.dataset.conditionId = id;
+    const targetLabel = node('label', 'Target'); const target = node('select'); target.dataset.filterTarget = 'true';
+    for (const [value, label] of [['metadata', 'Catalog metadata'], ['path', 'HL7 field path']]) { const option = node('option', label); option.value = value; target.append(option); }
+    target.value = condition.target || 'metadata'; targetLabel.append(target);
+    const fieldLabel = node('label', 'Field or path'); const field = node('input'); field.dataset.filterField = 'true'; field.autocomplete = 'off'; field.placeholder = 'type or PID-3.1'; field.value = condition.field || 'type'; fieldLabel.append(field);
+    const operatorLabel = node('label', 'Operator'); const operator = node('select'); operator.dataset.filterOperator = 'true';
+    for (const value of ['exists', 'missing', 'empty', 'equals', 'contains', 'regex', 'greater-than', 'less-than']) { const option = node('option', value.replace('-', ' ')); option.value = value; operator.append(option); }
+    operator.value = condition.operator || 'contains'; operatorLabel.append(operator);
+    const valueLabel = node('label', 'Value'); const value = node('input'); value.dataset.filterValue = 'true'; value.autocomplete = 'off'; value.maxLength = 256; value.value = condition.value || ''; valueLabel.append(value);
+    const remove = node('button', 'Remove condition', 'remove-filter'); remove.type = 'button'; remove.addEventListener('click', () => row.remove());
+    target.addEventListener('change', () => { if (target.value === 'path' && !field.value.includes('-')) field.value = 'PID-3.1'; });
+    row.append(targetLabel, fieldLabel, operatorLabel, valueLabel, remove); $('#filter-conditions').append(row);
+  }
+  function readFilterControls() {
+    return { conditions: [...$('#filter-conditions').children].map((row) => ({
+      id: row.dataset.conditionId, target: row.querySelector('[data-filter-target]').value,
+      field: row.querySelector('[data-filter-field]').value.trim(), operator: row.querySelector('[data-filter-operator]').value,
+      value: row.querySelector('[data-filter-value]').value,
+    })) };
+  }
+  function setFilterResult(result) {
+    state.catalogFilter.matchingIds = result.ids; state.catalogFilter.running = false; state.catalogFilter.error = '';
+    $('#filter-status').textContent = result.matched.toLocaleString() + ' of ' + result.total.toLocaleString() + ' messages match.';
+    $('#filter-error').textContent = ''; $('#apply-filters').disabled = false; visibleMessages = 200; renderCatalog();
+  }
+  async function applyAdvancedFilter() {
+    const revision = filterResultGate.begin();
+    const normalized = validateFilter(readFilterControls());
+    state.catalogFilter.conditions = normalized.conditions;
+    if (!normalized.conditions.length) { clearAdvancedFilters(); return; }
+    state.catalogFilter.running = true; $('#apply-filters').disabled = true; $('#filter-error').textContent = '';
+    try {
+      if (isDeepFilter(normalized)) {
+        const result = await workerRequests.filter(state.messages, normalized, ({ processed, total, matched }) => {
+          $('#filter-status').textContent = 'Filtering ' + processed.toLocaleString() + ' of ' + total.toLocaleString() + ' · ' + matched.toLocaleString() + ' matches';
+        });
+        if (filterResultGate.accept(revision)) setFilterResult(result);
+      } else {
+        const result = await filterMessages(state.messages, normalized, { chunkSize: state.messages.length || 1 });
+        if (filterResultGate.accept(revision)) setFilterResult(result);
+      }
+    } catch (error) {
+      if (!filterResultGate.accept(revision)) return;
+      state.catalogFilter.running = false; $('#apply-filters').disabled = false;
+      if (error.name !== 'AbortError') { state.catalogFilter.error = error.code || 'FILTER_INVALID'; $('#filter-error').textContent = 'Check the field, operator, and value in each condition.'; }
+    }
+  }
+  function clearAdvancedFilters() {
+    filterResultGate.invalidate(); state.catalogFilter = { conditions: [], matchingIds: null, running: false, error: '' };
+    $('#filter-conditions').replaceChildren(); addFilterCondition(); $('#filter-status').textContent = 'No advanced filters applied.';
+    $('#filter-error').textContent = ''; $('#apply-filters').disabled = false; visibleMessages = 200; renderCatalog();
   }
   function scheduleCatalogRender() {
     if (renderScheduled) return;
@@ -343,6 +401,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
     status('The background worker stopped. Raw messages remain only in this tab; sanitizing and sending are unavailable. Reopen the toolkit.', true);
   };
   worker.postMessage({ type: 'initialize', id: crypto.randomUUID(), rules });
+  addFilterCondition();
   all('[data-nav]').forEach((button) => button.addEventListener('click', () => showWorkspace(button.dataset.nav)));
   bind('#load-paste', 'click', () => load({ text: $('#paste-input').value }));
   bind('#file-input', 'change', (event) => { if (event.target.files[0]) load({ file: event.target.files[0] }); });
@@ -352,6 +411,9 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   });
   bind('#cancel-intake', 'click', () => worker.postMessage({ type: 'cancel' }));
   bind('#catalog-filter', 'input', () => { visibleMessages = 200; renderCatalog(); });
+  bind('#add-filter-condition', 'click', () => addFilterCondition());
+  bind('#apply-filters', 'click', applyAdvancedFilter);
+  bind('#clear-filters', 'click', clearAdvancedFilters);
   bind('#more-messages', 'click', () => { visibleMessages += 200; renderCatalog(); });
   for (const event of ['dragenter', 'dragover']) $('#drop-zone').addEventListener(event, (item) => { item.preventDefault(); $('#drop-zone').classList.add('dragging'); });
   $('#drop-zone').addEventListener('dragleave', () => $('#drop-zone').classList.remove('dragging'));

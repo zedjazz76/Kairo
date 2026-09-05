@@ -41,7 +41,18 @@
   <section data-workspace="inspect" hidden>
     <div class="page-heading compact"><p class="eyebrow">Inspect &amp; edit</p><h1>One message. Full visibility.</h1><p>Edits affect only the selected in-memory message. Use raw editing to change delimiters.</p></div>
     <div class="workbench-grid">
-      <aside class="card catalog"><h2>Messages <span id="message-count" class="count">0</span></h2><label for="catalog-filter">Find type or control ID</label><input id="catalog-filter" type="search" autocomplete="off"><div id="message-list" class="message-list" role="list"></div><button id="more-messages" hidden>Show 200 more</button></aside>
+      <aside class="card catalog">
+        <h2>Messages <span id="message-count" class="count">0</span></h2>
+        <label for="catalog-filter">Find type or control ID</label><input id="catalog-filter" type="search" autocomplete="off">
+        <details class="advanced-filters"><summary>Advanced filters</summary>
+          <p class="small">Conditions use AND logic. Search terms stay in memory and are not saved.</p>
+          <div id="filter-conditions"></div>
+          <div class="button-row"><button id="add-filter-condition">Add condition</button><button id="apply-filters" class="primary">Apply filters</button><button id="clear-filters">Clear filters</button></div>
+          <p id="filter-status" class="small" role="status" aria-live="polite">No advanced filters applied.</p>
+          <p id="filter-error" class="filter-error" role="alert" aria-live="assertive"></p>
+        </details>
+        <div id="message-list" class="message-list" role="list"></div><button id="more-messages" hidden>Show 200 more</button>
+      </aside>
       <section class="card message-workspace">
         <div class="panel-heading"><div><h2 id="active-title">Select a message</h2><span class="badge warning">Original · may contain PHI</span></div><div class="button-row"><button id="sanitize-active" class="primary" disabled>Sanitize selected</button><button id="use-compare-a" disabled>Set as A</button><button id="use-compare-b" disabled>Set as B</button></div></div>
         <div class="button-row view-tabs"><button id="raw-tab" aria-pressed="true">Raw</button><button id="tree-tab" aria-pressed="false">Structure tree</button><button id="undo-edit" disabled>Undo</button><button id="redo-edit" disabled>Redo</button></div>
