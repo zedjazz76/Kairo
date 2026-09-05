@@ -156,7 +156,7 @@ git add hl7-toolkit/app/workers/intake-worker.mjs hl7-toolkit/app/scripts/worker
 git commit -m "feat: filter HL7 paths in the intake worker"
 ```
 
-### Task 3: Advanced filter interface
+### Task 3: Advanced filter interface — completed September 5, 2026
 
 **Files:**
 - Modify: `hl7-toolkit/app/index.html`
@@ -168,7 +168,7 @@ git commit -m "feat: filter HL7 paths in the intake worker"
 - Consumes: `validateFilter`, `isDeepFilter`, `filterMessages`, and worker filter requests
 - Updates: `state.catalogFilter = { conditions, matchingIds, running, error }`
 
-- [ ] **Step 1: Add failing UI contract tests**
+- [x] **Step 1: Add failing UI contract tests**
 
 ```javascript
 for (const label of ['Advanced filters', 'Add condition', 'Apply filters', 'Clear filters']) {
@@ -178,12 +178,12 @@ assert.match(html, /id="filter-status"[^>]*aria-live="polite"/);
 assert.match(html, /id="filter-error"[^>]*aria-live="assertive"/);
 ```
 
-- [ ] **Step 2: Verify the UI test fails**
+- [x] **Step 2: Verify the UI test fails**
 
 Run: `node --test tests/hl7-toolkit/ui-contract.test.mjs`
 Expected: FAIL for missing Stage Two controls.
 
-- [ ] **Step 3: Add accessible controls and rendering**
+- [x] **Step 3: Add accessible controls and rendering**
 
 ```javascript
 async function applyAdvancedFilter() {
@@ -200,12 +200,12 @@ async function applyAdvancedFilter() {
 
 Render repeatable conditions, keep filter values out of URLs and history, disable Apply during deep evaluation, preserve the last valid result on error, and make Clear restore all message IDs.
 
-- [ ] **Step 4: Run UI and filter tests**
+- [x] **Step 4: Run UI and filter tests**
 
 Run: `node --test tests/hl7-toolkit/search-filter.test.mjs tests/hl7-toolkit/search-filter-worker.test.mjs tests/hl7-toolkit/ui-contract.test.mjs`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```text
 git add hl7-toolkit/app/index.html hl7-toolkit/app/styles/app.css hl7-toolkit/app/scripts/workbench.mjs tests/hl7-toolkit/ui-contract.test.mjs
