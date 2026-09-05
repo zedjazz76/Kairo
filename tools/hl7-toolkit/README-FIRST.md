@@ -13,7 +13,7 @@ The toolkit does not require installation, compilation, administrator privileges
 
 ## Continue development
 
-The `source` folder contains the Phase One tests, product and Phase One designs, and the implementation plan. Stage Two search and filter Task 1 (the pure filter engine) is complete and verified. Continue with the next unchecked task in `source/docs/plans/2026-09-05-stage-two-search-filter.md`.
+The `source` folder contains the Phase One tests, product and Phase One designs, and the implementation plan. Stage Two search and filter Tasks 1–2 (the pure filter engine and worker filtering) are complete and verified. Continue with the next unchecked task in `source/docs/plans/2026-09-05-stage-two-search-filter.md`.
 
 This ZIP is a clean source handoff, not a Git repository. The work-laptop Git branch remains the authoritative Git copy.
 

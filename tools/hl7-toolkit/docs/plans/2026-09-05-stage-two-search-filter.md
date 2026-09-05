@@ -98,7 +98,7 @@ git add hl7-toolkit/app/scripts/search-filter.mjs tests/hl7-toolkit/search-filte
 git commit -m "feat: add HL7 catalog filter engine"
 ```
 
-### Task 2: Worker filtering
+### Task 2: Worker filtering — completed September 5, 2026
 
 **Files:**
 - Modify: `hl7-toolkit/app/workers/intake-worker.mjs`
@@ -110,7 +110,7 @@ git commit -m "feat: add HL7 catalog filter engine"
 - Produces worker events: `filter-progress`, `filter-complete`, and `filter-error`
 - Produces: `workerRequests.filter(messages, filter, { signal, onProgress })`
 
-- [ ] **Step 1: Write failing worker tests**
+- [x] **Step 1: Write failing worker tests**
 
 ```javascript
 test('deep filtering reports safe progress and matching IDs', async () => {
@@ -124,12 +124,12 @@ test('deep filtering reports safe progress and matching IDs', async () => {
 });
 ```
 
-- [ ] **Step 2: Verify the tests fail**
+- [x] **Step 2: Verify the tests fail**
 
 Run: `node --test tests/hl7-toolkit/search-filter-worker.test.mjs`
 Expected: FAIL because `processFilter` is not exported.
 
-- [ ] **Step 3: Add filter request handling**
+- [x] **Step 3: Add filter request handling**
 
 ```javascript
 export async function processFilter(request, { emit, signal } = {}) {
@@ -144,12 +144,12 @@ export async function processFilter(request, { emit, signal } = {}) {
 
 The worker must cancel the prior filter controller when a newer filter request arrives and must omit raw values from errors.
 
-- [ ] **Step 4: Run focused worker tests**
+- [x] **Step 4: Run focused worker tests**
 
 Run: `node --test tests/hl7-toolkit/search-filter-worker.test.mjs tests/hl7-toolkit/worker-requests.test.mjs`
 Expected: PASS for progress, cancellation, stale result isolation, and safe events.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```text
 git add hl7-toolkit/app/workers/intake-worker.mjs hl7-toolkit/app/scripts/worker-requests.mjs tests/hl7-toolkit/search-filter-worker.test.mjs
