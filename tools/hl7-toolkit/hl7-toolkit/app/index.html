@@ -20,7 +20,7 @@
 <aside class="sidebar">
   <button id="quick-open" class="quick-button">Quick Sanitize <span>Paste → review → copy</span></button>
   <nav aria-label="Workspaces">
-    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="send">Send</button><button data-nav="history">History</button>
+    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="dicom">DICOM</button><button data-nav="send">Send</button><button data-nav="history">History</button>
   </nav>
   <div class="privacy-note"><strong>Raw content stays in memory.</strong><p>Automatic history uses sanitized snapshots. Content needing review is omitted from automatic logs.</p><p>Provider fields are preserved. Always inspect output before sharing.</p></div>
 </aside>
@@ -69,6 +69,10 @@
   </section>
   <section data-workspace="validate" hidden>
     <div class="page-heading compact"><p class="eyebrow">Validate</p><h1>Know what was checked.</h1><p>Basic checks and the Kairo baseline run locally. Load a licensed local profile for organization-specific rules.</p></div><div class="card"><label for="validation-profile-file">Load local validation profile</label><input id="validation-profile-file" type="file" accept="application/json,.json"><p id="validation-profile-status" class="small" role="status" aria-live="polite">Kairo baseline profile loaded. Local profiles stay in this browser session.</p><button id="run-validation" class="primary">Validate selected message</button><p id="validation-summary">Select a message in Inspect first.</p><div id="validation-results"></div></div>
+  </section>
+  <section data-workspace="dicom" hidden>
+    <div class="page-heading compact"><p class="eyebrow">DICOM metadata</p><h1>Inspect without rendering.</h1><p>Files stay on this device and remain in browser memory.</p></div>
+    <div class="card"><label for="dicom-file">Choose a local DICOM file</label><input id="dicom-file" type="file" accept=".dcm,application/dicom"><p id="dicom-status" role="status">Select a DICOM Part 10 file.</p><label for="dicom-search">Search tag number, keyword, or name</label><input id="dicom-search" placeholder="0010,0020 or PatientID"><p id="dicom-definition"></p><p id="dicom-uid"></p><p id="dicom-summary"></p><pre id="dicom-findings"></pre><div id="dicom-tags"></div></div>
   </section>
   <section data-workspace="send" hidden>
     <div class="page-heading compact"><p class="eyebrow">Outbound MLLP</p><h1>One message at a time.</h1><p>No queue, scheduled sending, or automatic retries. A connection check sends no HL7, but the destination may record the connection.</p></div>
