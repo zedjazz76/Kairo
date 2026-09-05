@@ -212,7 +212,7 @@ git add hl7-toolkit/app/index.html hl7-toolkit/app/styles/app.css hl7-toolkit/ap
 git commit -m "feat: add advanced HL7 catalog filters"
 ```
 
-### Task 4: Full regression and documentation
+### Task 4: Full regression and documentation — completed September 5, 2026
 
 **Files:**
 - Modify: `hl7-toolkit/README.md`
@@ -221,26 +221,26 @@ git commit -m "feat: add advanced HL7 catalog filters"
 **Interfaces:**
 - Documents the Stage Two search workflow, privacy boundary, and current limitations.
 
-- [ ] **Step 1: Document filtering**
+- [x] **Step 1: Document filtering**
 
 Add instructions covering instant metadata filtering, optional deep path filtering, AND logic, clearing filters, invalid regular expressions, and the rule that search terms are not saved.
 
-- [ ] **Step 2: Run the complete automated suite**
+- [x] **Step 2: Run the complete automated suite**
 
 Run: `node --test --test-isolation=none tests/hl7-toolkit/*.test.mjs`
 Expected: all tests pass with zero failures.
 
-- [ ] **Step 3: Run the PowerShell service probe**
+- [x] **Step 3: Run the PowerShell service probe**
 
 Run: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/hl7-toolkit/helpers/service-probe.ps1`
 Expected: `service probe passed`.
 
-- [ ] **Step 4: Inspect tracked data and diff**
+- [x] **Step 4: Inspect tracked data and diff**
 
 Run: `git status --short && git diff --check && git ls-files hl7-toolkit/data`
 Expected: only `hl7-toolkit/data/README.md` is tracked below the data path, and no runtime content appears.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```text
 git add hl7-toolkit/README.md hl7-toolkit/VERIFICATION.md docs/plans/2026-09-05-stage-two-search-filter.md
