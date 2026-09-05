@@ -19,8 +19,10 @@ Completed files: `app/scripts/profile-validator.mjs`, `app/definitions/kairo-val
 
 Completed files: `app/index.html`, `app/scripts/app.mjs`, `app/scripts/workbench.mjs`, `app/scripts/profile-validator.mjs`, and the focused profile/UI tests. Verification: 12 targeted tests passed. The loaded site pack is parsed from a browser-selected file and retained only in that tab's memory.
 
-## Task 3 — Final Stage Three verification and handoff
+## Task 3 — Final Stage Three verification and handoff — completed September 5, 2026
 
 - Document local profile loading, distribution boundaries, and the coverage limitation.
 - Run the Stage Three focused test set and the PowerShell service probe.
 - Update the existing handoff/readme with completed tasks and the next stage.
+
+Completed files: `README.md`, `VERIFICATION.md`, and `README-FIRST.md`. Final verification: `node --test tests/hl7-toolkit/profile-validator.test.mjs tests/hl7-toolkit/validator.test.mjs tests/hl7-toolkit/ui-contract.test.mjs` passed 12 tests with zero failures; `tests/hl7-toolkit/helpers/service-probe.ps1` passed. Stage Three is complete; the first future task is the documented Stage Four planning gate, which has not started.

@@ -6,6 +6,12 @@ Status: automated implementation verification completed. The final September 5 b
 
 The September 5 Stage Two search release adds instant catalog metadata filters and background HL7-path filters. Automated coverage includes all supported operators, repeated fields, combined conditions, validation without value disclosure, worker progress and cancellation, stale-result isolation, nonmutation, and accessible filter controls. The release verification passed 77 tests with zero failures, followed by a passing Windows PowerShell service probe.
 
+## Stage Three profile validation
+
+Stage Three adds a project-owned, limited baseline profile evaluator and a browser-memory-only loader for organization-licensed site profiles. Coverage verifies version/family selection, structural and value-set findings, Z-segment cardinality, safe suggestions, no source mutation, safe invalid-pack errors, safe collection duplicate counts, existing basic-validation compatibility, and accessible local-profile controls. It does not establish full HL7 conformance or validate the content, licensing, or clinical semantics of an organization-provided profile.
+
+The September 5 Stage Three final check passed 12 focused automated tests with zero failures, followed by a passing Windows PowerShell service probe.
+
 ## Verified so far
 
 - Core parser, selected-message edits, undo/redo, semantic/exact comparison, basic validation, sanitizer, and clipboard gates have automated coverage.
