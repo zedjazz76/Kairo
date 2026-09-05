@@ -1,6 +1,6 @@
 # Stage Four DICOM Implementation Plan
 
-1. **Definitions and pure DICOM core:** vendor attributed dictionary snapshot; add binary metadata parser, tag/UID lookup, summary, validation, and tests.
+1. **Definitions and pure DICOM core:** vendor attributed dictionary snapshot; add binary metadata parser, tag/UID lookup, summary, validation, and tests. **In progress:** explicit-VR metadata parsing, initial lookup/UID/summary/validation tests pass. Next: attributed dictionary snapshot and coverage expansion.
 2. **DICOM workspace:** add local-file metadata inspection, search, summary/findings, and redacted copy UI using existing patterns.
 3. **Diagnostic explainers:** add MWL JSON, association text, DIMSE, and workflow guidance with focused tests.
 4. **Cross-protocol tools:** add HL7/DICOM/MWL correlation, session-only mapping, and meaningful artifact comparison tests.
