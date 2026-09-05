@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0e141b">
+<title>KAIRO Guardian | HL7 Toolkit</title>
+<link rel="icon" type="image/png" href="/assets/kairo-guardian.png">
+<link rel="stylesheet" href="/styles/app.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to workspace</a>
+<header class="app-header">
+  <div class="brand" aria-label="KAIRO Guardian"><img class="brand-emblem" src="/assets/kairo-guardian.png" alt=""><div class="brand-copy"><strong class="kairo-wordmark">KAIRO</strong><small><span>Guardian</span> · HL7 Toolkit</small></div></div>
+  <p class="header-product">Clinical Systems Copilot</p>
+  <div class="header-actions"><span class="badge local">● Local only</span><span id="history-status" class="badge">History ready</span><button id="retry-history" hidden>Retry history</button><button id="end-session">End session</button></div>
+</header>
+<div class="app-layout">
+<aside class="sidebar">
+  <button id="quick-open" class="quick-button">Quick Sanitize <span>Paste → review → copy</span></button>
+  <nav aria-label="Workspaces">
+    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="send">Send</button><button data-nav="history">History</button>
+  </nav>
+  <div class="privacy-note"><strong>Raw content stays in memory.</strong><p>Automatic history uses sanitized snapshots. Content needing review is omitted from automatic logs.</p><p>Provider fields are preserved. Always inspect output before sharing.</p></div>
+</aside>
+<main id="main-content" tabindex="-1">
+  <div id="service-status" class="status-bar" role="status" aria-live="polite">Connecting to the protected local helper…</div>
+  <div id="intake-progress" class="progress-card" hidden><label for="progress-meter">Reading messages <span id="progress-label"></span></label><progress id="progress-meter" max="100" value="0"></progress><button id="cancel-intake">Cancel intake</button></div>
+  <section data-workspace="home">
+    <section class="kairo-hero" aria-labelledby="home-title">
+      <div class="hero-copy"><p class="eyebrow">Clinical Systems Copilot</p><h1 id="home-title"><span>HL7</span> Toolkit</h1><p class="hero-tagline">Inspect. Compare. Validate. Troubleshoot. Faster.</p><p class="hero-description">Load a log, inspect one message, compare two versions, or sanitize text for research. Nothing is uploaded.</p><div class="hero-promise"><span>Your health. Protected.</span><span>Your data. Yours.</span></div></div>
+      <div class="hero-visual"><img src="/assets/kairo-guardian.png" alt="KAIRO Guardian"></div>
+    </section>
+    <div class="home-grid">
+      <section id="drop-zone" class="card drop-zone"><span class="large-symbol" aria-hidden="true">↓</span><h2>Drop an HL7 message or log</h2><p>One file up to 100 MB. MLLP frames, batches, and common log prefixes are recognized.</p><label class="button primary" for="file-input">Choose a file</label><input id="file-input" type="file" accept=".hl7,.txt,.log,.dat,.mllp" class="visually-hidden"><p class="small">Processed in a background worker.</p></section>
+      <section class="card"><h2>Paste messages</h2><label for="paste-input">HL7 message or log text</label><textarea id="paste-input" rows="9" spellcheck="false" autocomplete="off" placeholder="MSH|^~\&amp;|…"></textarea><div class="button-row"><button id="load-paste" class="primary">Load messages</button><button id="load-demo">Try synthetic sample</button></div></section>
+    </div>
+    <section class="card"><h2>Built for deliberate work</h2><div class="feature-strip"><p><strong>Patient-PHI sanitizing</strong><span>Stable replacements and review warnings.</span></p><p><strong>One message at a time</strong><span>Edit and send only the selected message.</span></p><p><strong>Saved sanitized history</strong><span>Keep, search, export, or delete locally.</span></p></div></section>
+  </section>
+  <section data-workspace="inspect" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Inspect &amp; edit</p><h1>One message. Full visibility.</h1><p>Edits affect only the selected in-memory message. Use raw editing to change delimiters.</p></div>
+    <div class="workbench-grid">
+      <aside class="card catalog"><h2>Messages <span id="message-count" class="count">0</span></h2><label for="catalog-filter">Find type or control ID</label><input id="catalog-filter" type="search" autocomplete="off"><div id="message-list" class="message-list" role="list"></div><button id="more-messages" hidden>Show 200 more</button></aside>
+      <section class="card message-workspace">
+        <div class="panel-heading"><div><h2 id="active-title">Select a message</h2><span class="badge warning">Original · may contain PHI</span></div><div class="button-row"><button id="sanitize-active" class="primary" disabled>Sanitize selected</button><button id="use-compare-a" disabled>Set as A</button><button id="use-compare-b" disabled>Set as B</button></div></div>
+        <div class="button-row view-tabs"><button id="raw-tab" aria-pressed="true">Raw</button><button id="tree-tab" aria-pressed="false">Structure tree</button><button id="undo-edit" disabled>Undo</button><button id="redo-edit" disabled>Redo</button></div>
+        <div id="raw-view"><label for="raw-editor">Selected message text</label><textarea id="raw-editor" class="code-editor" rows="18" spellcheck="false" autocomplete="off" disabled></textarea><div class="button-row"><button id="apply-raw" class="primary" disabled>Apply raw edit</button><span id="delimiter-info" class="small"></span></div></div><div id="tree-view" class="tree-view" hidden></div>
+      </section>
+      <aside class="card field-panel"><h2>Field details</h2><p class="small">Choose a tree value or enter a path such as PID-5.1.</p><label for="field-path">Field path</label><input id="field-path" placeholder="PID-5.1" autocomplete="off"><label for="field-value">Value</label><textarea id="field-value" rows="4" spellcheck="false" autocomplete="off"></textarea><button id="apply-field" class="primary" disabled>Apply field edit</button><hr><h3>Segment actions</h3><label for="segment-index">Segment</label><select id="segment-index"></select><div class="button-stack"><button id="clone-segment" disabled>Clone segment</button><button id="move-segment-up" disabled>Move up</button><button id="move-segment-down" disabled>Move down</button><button id="remove-segment" class="danger-outline" disabled>Remove segment</button></div><label for="new-segment">New segment text</label><input id="new-segment" placeholder="NTE|1||" autocomplete="off"><button id="add-segment" disabled>Add after selected</button></aside>
+    </div>
+    <details class="card findings-drawer"><summary>Message findings <span id="inspect-findings-count">0</span></summary><div id="inspect-findings"></div></details>
+  </section>
+  <section data-workspace="compare" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Compare</p><h1>Make the differences clear.</h1><p>Choose exactly two messages. Ignore settings never rewrite content.</p></div>
+    <div class="card"><div class="form-grid"><div><label for="compare-a">Message A</label><select id="compare-a"><option value="">Choose message A</option></select></div><div><label for="compare-b">Message B</label><select id="compare-b"><option value="">Choose message B</option></select></div><div><label for="compare-mode">Comparison mode</label><select id="compare-mode"><option value="semantic">Semantic field paths</option><option value="exact">Exact character window</option></select></div></div>
+    <div class="button-row"><label class="check-label"><input id="ignore-timestamps" type="checkbox">Ignore MSH-7 timestamp</label><label class="check-label"><input id="ignore-control" type="checkbox">Ignore MSH-10 control ID</label></div><label for="ignore-paths">Other ignored paths, separated by commas</label><input id="ignore-paths" placeholder="PID-3, OBR-2" autocomplete="off"><div class="button-row"><button id="run-compare" class="primary">Compare A and B</button><button id="save-comparison" disabled>Save sanitized comparison</button></div><p id="compare-summary" role="status"></p><div id="compare-results" class="table-scroll"></div></div>
+  </section>
+  <section data-workspace="validate" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Validate</p><h1>Know what was checked.</h1><p>Phase 1 checks basic syntax. Full version, table, and site-profile validation is not evaluated.</p></div><div class="card"><button id="run-validation" class="primary">Validate selected message</button><p id="validation-summary">Select a message in Inspect first.</p><div id="validation-results"></div></div>
+  </section>
+  <section data-workspace="send" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Outbound MLLP</p><h1>One message at a time.</h1><p>No queue, scheduled sending, or automatic retries. A connection check sends no HL7, but the destination may record the connection.</p></div>
+    <div class="send-grid">
+      <section class="card"><h2>Destination profile</h2><label for="endpoint-profile">Saved local profile</label><select id="endpoint-profile"><option value="">New profile</option></select><label for="profile-label">Profile label — no clinical content</label><input id="profile-label" maxlength="80" autocomplete="off">
+      <div class="form-grid"><div><label for="profile-environment">Environment</label><select id="profile-environment"><option>Test</option><option>Production</option></select></div><div><label for="profile-host">IP address or hostname</label><input id="profile-host" autocomplete="off" placeholder="127.0.0.1"></div><div><label for="profile-port">TCP port</label><input id="profile-port" type="number" min="1" max="65535" value="2575"></div></div>
+      <div class="form-grid"><div><label for="connect-timeout">Connect timeout (ms)</label><input id="connect-timeout" type="number" min="100" max="120000" value="5000"></div><div><label for="response-timeout">ACK timeout (ms)</label><input id="response-timeout" type="number" min="100" max="120000" value="10000"></div><div><label for="profile-encoding">Encoding</label><select id="profile-encoding"><option value="utf-8">UTF-8</option><option value="ascii">ASCII</option><option value="windows-1252">Windows-1252</option><option value="iso-8859-1">ISO-8859-1</option></select></div></div>
+      <details><summary>Framing and nonclinical notes</summary><div class="form-grid"><div><label for="frame-start">Start byte (hex)</label><input id="frame-start" value="0B" maxlength="2" autocomplete="off"></div><div><label for="frame-end">End bytes (hex, separated by spaces)</label><input id="frame-end" value="1C 0D" maxlength="23" autocomplete="off"></div></div><label for="profile-notes">Notes — no PHI, passwords, or secrets</label><textarea id="profile-notes" rows="2" maxlength="500" autocomplete="off"></textarea></details>
+      <div class="button-row"><button id="save-profile" disabled>Save profile locally</button><button id="delete-profile" class="danger-outline" disabled>Delete profile</button><button id="check-endpoint" disabled>Check connection</button></div><p id="endpoint-status" role="status">Connecting to the local transport helper…</p><p class="alert">MLLP is unencrypted. Send only to an authorized destination over an approved network. A Test label does not make a destination safe.</p></section>
+      <section class="card"><h2>Review &amp; send</h2><p id="send-message-label">Select one message in Inspect.</p><label for="send-content-mode">Content to send</label><select id="send-content-mode"><option value="original">Original edited message — may contain PHI</option><option value="sanitized">Sanitized synthetic-test version</option></select><div id="production-banner" class="alert danger" hidden>Production destination — confirm the exact system before sending.</div><div id="send-preflight"></div><button id="send-one" class="primary" disabled>Review and send one message</button><p class="small">If delivery is uncertain, inspect the destination before deciding to send again.</p><div id="send-result" role="status" aria-live="polite"></div><details><summary>Immediate response — in memory only</summary><pre id="ack-raw"></pre></details></section>
+    </div>
+  </section>
+  <section data-workspace="history" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Sanitized history</p><h1>Your work, kept locally.</h1><p>Unreviewed high-risk content is omitted from automatic snapshots. Deletion removes only selected sessions.</p></div>
+    <div class="card"><div class="button-row"><button id="refresh-history" class="primary">Refresh history</button><button id="delete-history" class="danger-outline" disabled>Delete selected sessions</button><span id="history-size"></span></div><label for="history-search">Search loaded sanitized content</label><input id="history-search" type="search" autocomplete="off"><div id="history-list"></div><div id="history-detail" hidden><h2>Saved sanitized content</h2><button id="export-history">Export sanitized text</button><pre id="history-content"></pre></div></div>
+  </section>
+</main>
+</div>
+<dialog id="quick-dialog" aria-labelledby="quick-title">
+  <div class="dialog-heading"><div><p class="eyebrow">Quick Sanitize</p><h2 id="quick-title">Prepare text for research.</h2></div><button id="quick-close" aria-label="Close Quick Sanitize">Close</button></div>
+  <p>Patient-PHI rules run locally. Providers remain visible. Review every output; this is not a de-identification certification.</p>
+  <div class="quick-grid"><section><label for="quick-input">Paste a message or text containing PHI</label><textarea id="quick-input" rows="12" spellcheck="false" autocomplete="off"></textarea><label for="sanitize-mode">Date handling</label><select id="sanitize-mode"><option value="chat-safe">Safe-for-chat preparation — remove calendar dates</option><option value="synthetic-test">Synthetic test — consistently shift dates</option></select><button id="quick-run" class="primary">Sanitize now</button></section>
+  <section><label for="quick-output">Sanitized output — review before copying</label><textarea id="quick-output" rows="12" readonly spellcheck="false"></textarea><p id="sanitize-summary" role="status"></p><div id="sanitize-warnings"></div><div class="button-row"><button id="acknowledge-warnings" hidden>Acknowledge all visible warnings</button><button id="copy-sanitized" class="primary" disabled>Copy sanitized</button></div></section></div>
+  <p class="small">Automatic logs omit content still awaiting review. Copying with an override is recorded.</p>
+</dialog>
+<dialog id="send-review-dialog" aria-labelledby="send-review-title">
+  <h2 id="send-review-title">Review this one message</h2><p id="send-review-destination" class="alert"></p><p id="send-review-note"></p>
+  <pre id="send-preview"></pre><div id="send-review-warnings"></div>
+  <div class="button-row"><button id="send-review-cancel">Cancel — do not send</button><button id="send-review-all" hidden>Acknowledge all listed warnings</button><button id="send-review-confirm" class="primary">Send this one message</button></div>
+</dialog>
+<script type="module" src="/scripts/app.mjs"></script>
+</body>
+</html>
