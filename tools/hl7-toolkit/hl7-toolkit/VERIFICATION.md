@@ -2,6 +2,10 @@
 
 Status: automated implementation verification completed. The final September 5 branded-build run passed 66 tests with zero failures, followed by a passing Windows PowerShell service probe.
 
+## Stage Two search and filter
+
+The September 5 Stage Two search release adds instant catalog metadata filters and background HL7-path filters. Automated coverage includes all supported operators, repeated fields, combined conditions, validation without value disclosure, worker progress and cancellation, stale-result isolation, nonmutation, and accessible filter controls. The release verification passed 77 tests with zero failures, followed by a passing Windows PowerShell service probe.
+
 ## Verified so far
 
 - Core parser, selected-message edits, undo/redo, semantic/exact comparison, basic validation, sanitizer, and clipboard gates have automated coverage.

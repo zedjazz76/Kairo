@@ -16,10 +16,13 @@ The launcher sets the execution policy for its own PowerShell process only. It d
 
 - **Home:** drop one UTF-8 text file up to 100 MiB (104,857,600 bytes), paste a log, or load the synthetic sample. Processing stays in a background worker. Recognized MLLP framing, batch envelopes, and common log prefixes are separated from selectable messages.
 - **Inspect & edit:** select one message. Use the raw editor or a field path such as `PID-5.1`. Apply an edit explicitly. Undo/redo and segment add, clone, move, and remove act on the selected message only. Raw drafts must be applied before sending.
+- **Search & filter:** use the quick catalog search for a type or control ID. Open **Advanced filters** to combine metadata conditions or search an HL7 path such as `OBX-5`. Conditions use AND logic. Deep path searches run in the background; clear filters to restore the complete catalog.
 - **Compare:** select two messages. Compare semantic field paths or the exact changed character window. Ignore selected fields without modifying either message.
 - **Validate:** see basic header, delimiter, timestamp, numeric, escape, duplicate-control-ID, and message-boundary findings. “Not evaluated” is a limitation, not a pass.
 
 Input files are not modified. Original messages and undo history are kept in the browser session, not written to application history.
+
+Filter terms remain in browser and worker memory and are not written to sanitized history. Use **equals** or **contains** for routine searches. Regular expressions use JavaScript syntax without surrounding slashes; an invalid expression leaves the last valid result visible.
 
 ## Quick Sanitize for research
 
@@ -83,6 +86,7 @@ The application does not guarantee forensic erasure from browser memory, operati
 - The field dictionary is a limited original label set, not a licensed comprehensive HL7 dictionary.
 - UTF-8 file intake; outbound encodings include UTF-8, ASCII, Windows-1252, and ISO-8859-1.
 - Exact comparison shows a minimal changed character window, not a source-encoding byte diff.
+- Advanced filters use AND logic only. Saved searches, OR groups, fuzzy matching, and result export are not included yet.
 - History is not encrypted by the application and has no automatic retention limit.
 - Browser visual/keyboard acceptance and double-click launch checks are recorded separately in [VERIFICATION.md](VERIFICATION.md). Automated tests do not replace those checks.
 
