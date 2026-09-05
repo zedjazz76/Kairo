@@ -1,5 +1,6 @@
 import { catalogHl7, MAX_FILE_BYTES } from '../scripts/message-catalog.mjs';
 import { createSanitizerSession, historySafeText } from '../scripts/sanitizer.mjs';
+import { filterMessages } from '../scripts/search-filter.mjs';
 
 export async function processIntake(request, { emit, signal, sanitizer } = {}) {
   if (request.file?.size > MAX_FILE_BYTES) {
@@ -38,8 +39,18 @@ export async function processIntake(request, { emit, signal, sanitizer } = {}) {
   return result;
 }
 
+export async function processFilter(request, { emit, signal } = {}) {
+  const result = await filterMessages(request.messages, request.filter, {
+    signal,
+    onProgress: (progress) => emit({ type: 'filter-progress', id: request.id, ...progress }),
+  });
+  emit({ type: 'filter-complete', id: request.id, ...result });
+  return result;
+}
+
 if (typeof WorkerGlobalScope !== 'undefined' && globalThis instanceof WorkerGlobalScope) {
   let activeController;
+  let activeFilterController;
   let sanitizer;
   globalThis.onmessage = async ({ data }) => {
     if (data.type === 'initialize') {
@@ -60,6 +71,23 @@ if (typeof WorkerGlobalScope !== 'undefined' && globalThis instanceof WorkerGlob
     }
     if (data.type === 'cancel') {
       activeController?.abort();
+      activeFilterController?.abort();
+      return;
+    }
+    if (data.type === 'filter') {
+      activeFilterController?.abort();
+      const controller = new AbortController();
+      activeFilterController = controller;
+      try {
+        await processFilter(data, { emit: (event) => globalThis.postMessage(event), signal: controller.signal });
+      } catch (error) {
+        globalThis.postMessage({
+          type: error.name === 'AbortError' ? 'filter-canceled' : 'filter-error',
+          id: data.id,
+          code: error.code || 'FILTER_FAILED',
+          summary: error.name === 'AbortError' ? 'Filtering canceled.' : 'Filtering did not complete.',
+        });
+      }
       return;
     }
     if (data.type !== 'catalog') return;
