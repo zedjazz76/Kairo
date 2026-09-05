@@ -41,3 +41,10 @@ test('advanced catalog filtering exposes accessible apply, clear, and status con
   assert.match(html, /id="filter-error"[^>]*aria-live="assertive"/);
   assert.match(html, /id="filter-conditions"/);
 });
+
+test('validation workspace exposes a session-only local profile loader', () => {
+  const html = readFileSync('hl7-toolkit/app/index.html', 'utf8');
+  assert.match(html, /Load local validation profile/);
+  assert.match(html, /id="validation-profile-file"/);
+  assert.match(html, /id="validation-profile-status"[^>]*aria-live="polite"/);
+});

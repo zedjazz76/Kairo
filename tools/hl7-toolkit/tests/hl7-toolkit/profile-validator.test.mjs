@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseHl7 } from '../../hl7-toolkit/app/scripts/hl7-parser.mjs';
-import { evaluateProfile, validateProfilePack } from '../../hl7-toolkit/app/scripts/profile-validator.mjs';
+import { evaluateCollection, evaluateProfile, validateProfilePack } from '../../hl7-toolkit/app/scripts/profile-validator.mjs';
 
 const pack = {
   id: 'test-pack', profiles: [{
@@ -33,4 +33,9 @@ test('reports not evaluated when no profile matches declared version and family'
 
 test('rejects an invalid pack without echoing its content', () => {
   assert.throws(() => validateProfilePack({ id: 'secret-local-profile', profiles: [{}] }), (error) => error.code === 'PROFILE_PACK_INVALID' && !error.message.includes('secret'));
+});
+
+test('reports only a safe count for a configured collection duplicate rule', () => {
+  const findings = evaluateCollection([{ controlId: 'ONE' }, { controlId: 'ONE' }], { id: 'collection', profiles: [], collectionRules: [{ kind: 'unique-control-id', severity: 'warning' }] });
+  assert.deepEqual(findings.map(({ code, summary }) => ({ code, summary })), [{ code: 'PROFILE_COLLECTION_DUPLICATE', summary: 'A configured collection rule found 1 duplicate control-ID occurrence.' }]);
 });

@@ -7,6 +7,7 @@ import { hashMessage, summarizeSendPreflight, validateBasic } from './validator.
 import { createHistoryQueue } from './history-queue.mjs';
 import { createWorkerRequests } from './worker-requests.mjs';
 import { createFilterResultGate, filterMessages, isDeepFilter, validateFilter } from './search-filter.mjs';
+import { evaluateCollection, evaluateProfile, validateProfilePack } from './profile-validator.mjs';
 
 export function createWorkbenchState() {
   return { messages: [], activeId: null, workspace: 'home', compareA: null, compareB: null, selectedPath: null, findings: [], acknowledgedFindingIds: [], intakeRunning: false, historyHealthy: true,
@@ -54,7 +55,7 @@ export function redoActiveMessage(state) {
   state.acknowledgedFindingIds = [];
 }
 
-export function mountWorkbench(root, state, { api, rules, token, basicFields = { fields: {} } }) {
+export function mountWorkbench(root, state, { api, rules, token, basicFields = { fields: {} }, validationPack }) {
   const document = root.ownerDocument || root;
   const $ = (selector) => root.querySelector(selector);
   const all = (selector) => [...root.querySelectorAll(selector)];
@@ -72,6 +73,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   let comparisonPair = null;
   let savedHistoryText = '';
   let renderScheduled = false;
+  let loadedValidationPack = validateProfilePack(validationPack);
   const filterResultGate = createFilterResultGate();
   const node = (tag, text, className) => {
     const element = document.createElement(tag);
@@ -290,7 +292,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
     state.validationHash = fingerprint;
     const controlIds = new Map();
     for (const item of state.messages) if (item.controlId) controlIds.set(item.controlId, (controlIds.get(item.controlId) || 0) + 1);
-    state.findings = validateBasic(parseHl7(source), { controlIds });
+    state.findings = [...validateBasic(parseHl7(source), { controlIds }), ...evaluateProfile(parseHl7(source), loadedValidationPack), ...evaluateCollection(state.messages, loadedValidationPack)];
     const summary = summarizeSendPreflight(state.findings, state.acknowledgedFindingIds);
     $('#validation-summary').textContent = summary.counts.error + ' errors · ' + summary.counts.warning + ' warnings · ' + summary.counts['not-evaluated'] + ' not evaluated. Acknowledgements apply only to this exact message.';
     $('#inspect-findings-count').textContent = String(state.findings.length);
@@ -464,6 +466,17 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   });
   bind('#export-history', 'click', () => { const url = URL.createObjectURL(new Blob([savedHistoryText], { type: 'text/plain;charset=utf-8' })); const link = node('a'); link.href = url; link.download = 'hl7-sanitized-history.txt'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0); });
   bind('#run-validation', 'click', runValidation);
+  bind('#validation-profile-file', 'change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      loadedValidationPack = validateProfilePack(JSON.parse(await file.text()));
+      $('#validation-profile-status').textContent = 'Loaded local profile for this browser session only.';
+      if (active()) await runValidation();
+    } catch (error) {
+      $('#validation-profile-status').textContent = 'The local profile was not loaded. Check its format.';
+    } finally { event.target.value = ''; }
+  });
   bind('#end-session', 'click', async () => {
     if (!confirm('End this session and erase the in-memory original messages? Saved sanitized history will remain.')) return;
     if (state.intakeRunning) throw new Error('CANCEL_OR_FINISH_INTAKE_FIRST');

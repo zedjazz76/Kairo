@@ -18,7 +18,10 @@ if (!token) {
     const fieldResponse = await fetch('/definitions/basic-fields.v1.json', { cache: 'no-store' });
     if (!fieldResponse.ok) throw new Error('LABELS_NOT_AVAILABLE');
     const basicFields = await fieldResponse.json();
-    const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields });
+    const validationResponse = await fetch('/definitions/kairo-validation-baseline.v1.json', { cache: 'no-store' });
+    if (!validationResponse.ok) throw new Error('VALIDATION_PROFILE_NOT_AVAILABLE');
+    const validationPack = await validationResponse.json();
+    const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields, validationPack });
     await mountSend(controller, api);
   } catch {
     status.textContent = 'The protected local helper or policy is unavailable. Close the helper window and launch the toolkit again.';

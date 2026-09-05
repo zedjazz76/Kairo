@@ -15,10 +15,24 @@ function validRule(rule) {
 
 export function validateProfilePack(pack) {
   if (!pack || typeof pack.id !== 'string' || !Array.isArray(pack.profiles)) throw invalidPack();
+  if (pack.collectionRules !== undefined && (!Array.isArray(pack.collectionRules) || !pack.collectionRules.every((rule) => rule?.kind === 'unique-control-id' && ['error', 'warning', 'information'].includes(rule.severity)))) throw invalidPack();
   for (const profile of pack.profiles) {
     if (!profile || typeof profile.id !== 'string' || !Array.isArray(profile.versions) || !profile.versions.every((value) => typeof value === 'string') || !/^[A-Z0-9]{3}$/.test(profile.family) || !Array.isArray(profile.rules) || !profile.rules.every(validRule)) throw invalidPack();
   }
   return structuredClone(pack);
+}
+
+export function evaluateCollection(messages, inputPack) {
+  const pack = validateProfilePack(inputPack);
+  const findings = [];
+  for (const rule of pack.collectionRules || []) {
+    if (rule.kind !== 'unique-control-id') continue;
+    const counts = new Map();
+    for (const message of messages) if (message.controlId) counts.set(message.controlId, (counts.get(message.controlId) || 0) + 1);
+    const duplicates = [...counts.values()].reduce((total, count) => total + Math.max(0, count - 1), 0);
+    if (duplicates) findings.push({ id: 'PROFILE_COLLECTION_DUPLICATE:catalog', code: 'PROFILE_COLLECTION_DUPLICATE', severity: rule.severity, path: 'catalog', summary: `A configured collection rule found ${duplicates} duplicate control-ID occurrence${duplicates === 1 ? '' : 's'}.`, source: 'Stage 3 profile validation', overridable: true });
+  }
+  return findings;
 }
 
 function profileFinding(code, rule, path, summary) {
