@@ -1,0 +1,12 @@
+{
+  "id": "kairo-validation-baseline-1.0.0",
+  "provenance": "Kairo-owned limited product policy pack; not a redistributed HL7 standard, table, or conformance profile.",
+  "profiles": [
+    { "id": "adt-251", "versions": ["2.5.1"], "family": "ADT", "rules": [{ "kind": "required", "path": "PID-3", "severity": "warning", "suggestion": "Add the locally required patient identifier before sending." }] },
+    { "id": "orm-251", "versions": ["2.5.1"], "family": "ORM", "rules": [{ "kind": "required", "path": "ORC-1", "severity": "warning", "suggestion": "Add the local order-control value before sending." }] },
+    { "id": "oru-251", "versions": ["2.5.1"], "family": "ORU", "rules": [{ "kind": "required", "path": "OBR-4", "severity": "warning", "suggestion": "Add the local service identifier before sending." }] },
+    { "id": "siu-251", "versions": ["2.5.1"], "family": "SIU", "rules": [{ "kind": "segment", "name": "SCH", "minOccurs": 1, "severity": "warning", "suggestion": "Add the locally required schedule segment before sending." }] },
+    { "id": "dft-251", "versions": ["2.5.1"], "family": "DFT", "rules": [{ "kind": "segment", "name": "FT1", "minOccurs": 1, "severity": "warning", "suggestion": "Add the locally required financial transaction segment before sending." }] },
+    { "id": "ack-251", "versions": ["2.5.1"], "family": "ACK", "rules": [] }
+  ]
+}

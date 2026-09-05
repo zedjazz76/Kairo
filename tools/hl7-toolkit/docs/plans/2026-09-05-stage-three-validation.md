@@ -2,11 +2,13 @@
 
 **Spec:** `docs/specs/2026-09-05-stage-three-validation-design.md`
 
-## Task 1 — Profile schema and evaluator
+## Task 1 — Profile schema and evaluator — completed September 5, 2026
 
 - Add a project-owned baseline profile pack and a pure evaluator that validates profile shape, selects a profile by declared version and MSH-9 family, evaluates cardinality/value/Z-segment rules, and emits safe repair suggestions.
 - Add focused unit tests for matching, mismatch coverage, invalid packs, findings, and nonmutation.
 - Verify: `node --test tests/hl7-toolkit/profile-validator.test.mjs`.
+
+Completed files: `app/scripts/profile-validator.mjs`, `app/definitions/kairo-validation-baseline.v1.json`, and `tests/hl7-toolkit/profile-validator.test.mjs`. Verification: 3 tests passed. The baseline is deliberately a limited Kairo-owned policy pack; all standard-derived detail remains a local profile responsibility.
 
 ## Task 2 — Collection and workbench integration
 
