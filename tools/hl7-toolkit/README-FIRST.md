@@ -13,7 +13,7 @@ The toolkit does not require installation, compilation, administrator privileges
 
 ## Continue development
 
-The `source` folder contains the Phase One tests, product and Phase One designs, and the implementation plan. Stage Two search and filter is complete and verified: 77 automated tests and the PowerShell service probe passed on September 5, 2026. Stage Three adds a Kairo-owned limited validation baseline and in-memory local-profile loading; its specification, implementation plan, definition provenance, and acceptance criteria are in `source/docs`. Stage Four has not started.
+The `source` folder contains the Phase One tests, product and Phase One designs, and the implementation plan. Stage Two search and filter is complete and verified: 77 automated tests and the PowerShell service probe passed on September 5, 2026. Stage Three adds a Kairo-owned limited validation baseline and in-memory local-profile loading; its specification, implementation plan, definition provenance, and acceptance criteria are in `source/docs`. Stage Four has not started: its broad product-direction list has no approved Stage Four specification, task order, data/format decisions, or acceptance criteria. Create those authoritative artifacts before implementation.
 
 This ZIP is a clean source handoff, not a Git repository. The work-laptop Git branch remains the authoritative Git copy.
 
