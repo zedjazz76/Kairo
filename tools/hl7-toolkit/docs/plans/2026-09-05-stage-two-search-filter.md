@@ -21,7 +21,7 @@
 
 ---
 
-### Task 1: Pure filter engine
+### Task 1: Pure filter engine — completed September 5, 2026
 
 **Files:**
 - Create: `hl7-toolkit/app/scripts/search-filter.mjs`
@@ -32,7 +32,7 @@
 - Produces: `isDeepFilter(filter) -> boolean`
 - Produces: `filterMessages(messages, filter, options) -> Promise<{ ids, matched, total }>`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```javascript
 test('combines metadata and path conditions without mutating messages', async () => {
@@ -52,12 +52,12 @@ test('rejects an invalid regular expression without echoing its value', () => {
 });
 ```
 
-- [ ] **Step 2: Verify the tests fail**
+- [x] **Step 2: Verify the tests fail**
 
 Run: `node --test tests/hl7-toolkit/search-filter.test.mjs`
 Expected: FAIL because `search-filter.mjs` does not exist.
 
-- [ ] **Step 3: Implement validation and evaluation**
+- [x] **Step 3: Implement validation and evaluation**
 
 ```javascript
 export function validateFilter(filter) {
@@ -86,12 +86,12 @@ export async function filterMessages(messages, filter, {
 }
 ```
 
-- [ ] **Step 4: Run focused tests**
+- [x] **Step 4: Run focused tests**
 
 Run: `node --test tests/hl7-toolkit/search-filter.test.mjs`
 Expected: PASS for operators, paths, repetitions, AND logic, validation, and nonmutation.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```text
 git add hl7-toolkit/app/scripts/search-filter.mjs tests/hl7-toolkit/search-filter.test.mjs
