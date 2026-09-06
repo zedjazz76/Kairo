@@ -528,3 +528,11 @@ Next: user-test this workspace checkpoint using the toolkit handoff instructions
 - Manual boundary: DevTools file-input assignment exercises browser Files and the actual handler but not native OS-dialog interaction. Launcher remains running at `http://127.0.0.1:8765/`; the already-open test browser retains its session and DICOM panel, scrolled to file selection. User should select the bundled CT/MR fixtures manually. Test profile: `C:\Windows\Temp\kairo-dicom-verification`; runtime data: `/tmp/kairo-dicom-runtime`. Local screenshots `/tmp/kairo-CT_small.dcm.png` and `/tmp/kairo-MR_small.dcm.png` are not committed.
 
 Next: confirm native chooser manually in this current running instance. If the user's separate instance still fails, its loaded files/runtime must be compared with this verified checkout; stale/wrong deployment is only a hypothesis, not an established root cause. No other Stage Four work or Stage Five work was started. Stop here.
+
+## Progress checkpoint — Stage Five direction recovery blocked
+
+2026-09-05, resumed `kairo-v1` at `4a05b68`. User confirms the real Windows launcher now loads known-valid CT/MR DICOM files and renders metadata correctly. Preserve all completed work; the prior native-chooser acceptance limitation is resolved by this user confirmation.
+
+Stage Five cannot begin without product direction. Checked the authoritative ledger/handoff, toolkit product roadmap, and the Stage Two–Four specification/plan locations. No Stage Five objective, acceptance criteria, task order, or approved capability assignment exists. The September 3 product roadmap ends at Phase 4 (professional tooling); later September 5 Stage Four direction defines DICOM. That older Phase 4 list is not authority to invent or relabel Stage Five. Remaining Stage Four items stay recorded and were not resumed.
+
+No production files changed, no tests/build/launcher probes were needed for this documentation-only recovery, and no Stage Six work began. Next required input: the approved Stage Five capability/objective or the authoritative document containing it. Once supplied, create the minimum missing specification and sequential acceptance plan, then implement through the first real-UI user-testable checkpoint under single-thread LEAN mode.

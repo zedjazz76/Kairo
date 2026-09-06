@@ -45,3 +45,7 @@ Manual test in the already-open local toolkit at port 8765:
 4. Select `MR_small.dcm` from the same folder. Confirm MR, MR Image Storage, and a populated table.
 
 If the running instance is closed, launch **this checkout's** `hl7-toolkit/Open HL7 Toolkit.cmd` and use its newly opened session page. The automated browser check sets the real file input through DevTools; only native dialog interaction remains manual for this tested path. The original failure's cause is not established. Preserve the redacted-copy checkpoint; do not roll back. No additional Stage Four work is included.
+
+## Current continuation — Stage Five blocked on product direction
+
+The user has now confirmed the real Windows CT/MR DICOM selection workflow works. Preserve all completed Stage 1–4 work. Recovery from `4a05b68` found no approved Stage Five objective or capability assignment in the authoritative product roadmap, stage documents, or progress ledger. The older Phase 4 professional-tooling list must not be silently relabeled Stage Five. Supply the approved Stage Five objective (or its authoritative source) before implementation. No Stage Five capability or Stage Six work was started. The progress ledger records this product blocker.
