@@ -571,3 +571,13 @@ Remaining Stage Five: HTTP/HTTPS/TLS inspection; dedicated safe MLLP/ACK diagnos
 Real user verification through the normal Kairo Diagnostics UI succeeded against the controlled CSOL Orthanc endpoint at `100.106.197.58:4242`, Calling AE `KAIROTEST`, Called AE `ORTHANC`: DNS `SUCCESS / NOT_REQUIRED`, TCP `SUCCESS / TCP_CONNECTED`, association `SUCCESS / ASSOCIATION_ACCEPTED`, and C-ECHO `SUCCESS / C_ECHO_SUCCESS` in 240 ms. An independent pynetdicom check against the same endpoint also established an association and returned C-ECHO status `0x0000`.
 
 This checkpoint changes only DICOM association framing and its focused regressions. HTTP/TLS, MLLP, profiles, baselines, evidence correlation, and Stage Six were not started in this correction.
+
+## Stage Five HTTP/HTTPS/TLS checkpoint
+
+2026-09-06 added one-endpoint HTTP/TLS diagnostics to the existing Diagnostics workspace. One explicit action resolves one hostname, connects one selected address, uses the original URI hostname for TLS TargetHost/SNI and the HTTP Host header, negotiates TLS 1.2 through Windows Schannel, sends one bounded GET, reads at most 32 KiB of response headers, does not read or retain the response body, and reports redirects without following them. Results separate DNS, TCP, TLS, and HTTP with timings, selected safe headers, certificate subject/issuer/validity/expiration, hostname validation, negotiated TLS version, and safe failure evidence.
+
+Certificate callback evidence is copied while valid and specific policy/chain failures take precedence over the later authentication exception. Supported classifications include hostname mismatch, expiration, revoked, untrusted root, chain error, TLS timeout, and handshake failure. System certificate validation remains enforced; no callback bypass, automatic retry, crawl, scan, history write, or workstation change was added.
+
+Real user verification through the normal Kairo UI passed: `https://google.com` reached DNS, TCP, TLS and `HTTP_RESPONSE` with hostname validation and certificate details; `https://expired.badssl.com` stopped at `TLS_CERTIFICATE_EXPIRED`; `https://wrong.host.badssl.com` stopped at `TLS_CERTIFICATE_HOSTNAME_MISMATCH`. Both negative cases left HTTP `NOT_RUN`. The managed agent environment could not launch Windows PowerShell through WSL, so its service-level test invocation remained environment-blocked; focused browser-module tests and syntax/diff checks passed before checkpointing.
+
+Next approved Stage Five task: safe HL7/MLLP diagnostics. Profiles, baselines, evidence correlation, and Stage Six remain unstarted.

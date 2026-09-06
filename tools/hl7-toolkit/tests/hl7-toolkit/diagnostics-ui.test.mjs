@@ -48,3 +48,23 @@ test('helper failure clears stale evidence and permits an explicit retry', async
   assert.match(root.querySelector('#diagnostic-result').textContent, /runtime policy/);
   assert.match(root.querySelector('#diagnostic-result').textContent, /Existing tools remain available/);
 });
+
+test('HTTP TLS UI requires a click and renders layer, certificate and redirect evidence', async () => {
+  const html = await readFile(new URL('../../hl7-toolkit/app/index.html', import.meta.url), 'utf8'); const nodes = new Map();
+  const root = { querySelector(selector) { assert.ok(html.includes(`id="${selector.slice(1)}"`), selector); if (!nodes.has(selector)) nodes.set(selector, { value: '', textContent: '', listeners: {}, reportValidity: () => true, addEventListener(type, fn) { this.listeners[type] = fn; } }); return nodes.get(selector); } };
+  const requests = [];
+  mountDiagnostics(root, { request: async (path, request) => { requests.push({ path, ...request }); return { classification: 'HTTP_RESPONSE', host: 'example.test', port: 443, scheme: 'https', timestamp: '2026-09-06T12:00:00Z', resolvedAddress: '192.0.2.10', elapsedMs: 21, httpStatus: 302, redirectLocation: '/ready', tlsVersion: 'Tls12', hostnameValidation: 'VALID', certificateSubject: 'CN=example.test', certificateIssuer: 'CN=Test CA', certificateValidFrom: '2026-01-01T00:00:00Z', certificateValidTo: '2027-01-01T00:00:00Z', certificateDaysUntilExpiration: 117, headers: { location: '/ready' }, dns: { state: 'SUCCESS', code: 'RESOLVED', elapsedMs: 2, detail: 'Resolved' }, tcp: { state: 'SUCCESS', code: 'TCP_CONNECTED', elapsedMs: 3, detail: 'Connected' }, tls: { state: 'SUCCESS', code: 'TLS_CONNECTED', elapsedMs: 8, detail: 'Validated' }, http: { state: 'SUCCESS', code: 'HTTP_RESPONSE', elapsedMs: 8, detail: 'Headers only' } }; } });
+  root.querySelector('#diagnostic-http-target').value = 'https://example.test/health'; root.querySelector('#diagnostic-http-timeout').value = '3000';
+  await root.querySelector('#diagnostic-http-run').listeners.click();
+  assert.deepEqual(requests, [{ path: '/api/diagnostics/run', method: 'POST', body: { mode: 'http', target: 'https://example.test/health', timeoutMs: 3000 } }]);
+  assert.match(root.querySelector('#diagnostic-http-summary').textContent, /HTTP_RESPONSE.*302/); assert.match(root.querySelector('#diagnostic-http-layer-tls').textContent, /TLS_CONNECTED/);
+  assert.match(root.querySelector('#diagnostic-http-certificate').textContent, /CN=example\.test.*Test CA.*117/); assert.match(root.querySelector('#diagnostic-http-response').textContent, /location: \/ready/);
+  assert.match(root.querySelector('#diagnostic-http-tls-evidence').textContent, /TargetHost.*Certificate received/);
+});
+
+test('HTTP TLS UI does not report hostname mismatch when no certificate was received', async () => {
+  const nodes = new Map(); const root = { querySelector(selector) { if (!nodes.has(selector)) nodes.set(selector, { value: '', textContent: '', listeners: {}, reportValidity: () => true, addEventListener(type, fn) { this.listeners[type] = fn; } }); return nodes.get(selector); } };
+  mountDiagnostics(root, { request: async () => ({ classification: 'TLS_HANDSHAKE_FAILED', host: 'google.com', port: 443, scheme: 'https', timestamp: '2026-09-06T12:00:00Z', resolvedAddress: '142.250.1.1', elapsedMs: 10, httpStatus: 0, hostnameValidation: 'NOT_AVAILABLE', certificateSubject: '', headers: {}, dns: { state: 'SUCCESS', code: 'RESOLVED', elapsedMs: 1, detail: 'Resolved' }, tcp: { state: 'SUCCESS', code: 'TCP_CONNECTED', elapsedMs: 2, detail: 'Connected' }, tls: { state: 'FAILED', code: 'TLS_HANDSHAKE_FAILED', elapsedMs: 7, detail: 'No certificate' }, http: { state: 'NOT_RUN', code: 'NOT_RUN', elapsedMs: 0, detail: 'Not attempted' } }) });
+  root.querySelector('#diagnostic-http-target').value = 'https://google.com'; root.querySelector('#diagnostic-http-timeout').value = '3000'; await root.querySelector('#diagnostic-http-run').listeners.click();
+  assert.match(root.querySelector('#diagnostic-http-certificate').textContent, /Hostname valid: NOT_AVAILABLE/); assert.doesNotMatch(root.querySelector('#diagnostic-http-certificate').textContent, /Hostname valid: NO(?:\s|·|$)/);
+});

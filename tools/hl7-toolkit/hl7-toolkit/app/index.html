@@ -78,6 +78,7 @@
   <section data-workspace="diagnostics" hidden>
     <div class="page-heading compact"><p class="eyebrow">Live endpoint diagnostics</p><h1>Find the failing connection layer.</h1><p>Test one endpoint you are authorized to access. Results stay in this session.</p></div>
     <form id="diagnostic-form" class="card">
+      <h2>TCP / DICOM</h2>
       <label for="diagnostic-host">Hostname or IP address</label><input id="diagnostic-host" required maxlength="253" placeholder="pacs.example" autocomplete="off" spellcheck="false">
       <label for="diagnostic-port">Port</label><input id="diagnostic-port" type="number" required min="1" max="65535" step="1" value="104">
       <label for="diagnostic-timeout">Timeout per layer (ms)</label><input id="diagnostic-timeout" type="number" required min="100" max="10000" step="1" value="3000">
@@ -91,6 +92,18 @@
       <p id="diagnostic-result">Enter an endpoint and choose a test. No automatic requests or retries.</p>
       <p id="diagnostic-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-layer-association">DICOM association: NOT_RUN</p><p id="diagnostic-layer-echo">C-ECHO: NOT_RUN</p>
       <p>TCP success does not establish protocol support. C-ECHO success confirms Verification only; it does not prove storage, MWL, or Query/Retrieve support. One resolved address is tested; there is no automatic fallback.</p>
+    </div>
+    <form id="diagnostic-http-form" class="card">
+      <h2>HTTP / TLS</h2>
+      <label for="diagnostic-http-target">HTTP or HTTPS URL (a hostname defaults to HTTPS)</label><input id="diagnostic-http-target" required maxlength="2048" placeholder="https://service.example/health" autocomplete="off" spellcheck="false">
+      <label for="diagnostic-http-timeout">Timeout per layer (ms)</label><input id="diagnostic-http-timeout" type="number" required min="100" max="10000" value="3000">
+      <p>One click resolves one host, opens one connection, validates TLS when requested, and sends one GET. Response bodies are not read or retained. Redirects are reported but not followed.</p>
+      <button id="diagnostic-http-run" type="button" class="primary">Run HTTP / TLS diagnostic</button>
+    </form>
+    <div class="card" role="status" aria-live="polite" aria-atomic="true">
+      <h2>DNS → TCP → TLS → HTTP</h2><p id="diagnostic-http-summary">Enter an authorized URL and run the diagnostic. No automatic requests or retries.</p>
+      <p id="diagnostic-http-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-http-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-http-layer-tls">TLS: NOT_RUN</p><p id="diagnostic-http-layer-http">HTTP: NOT_RUN</p>
+      <p id="diagnostic-http-certificate">Certificate: NOT_AVAILABLE</p><p id="diagnostic-http-tls-evidence">TLS evidence: NOT_AVAILABLE</p><p id="diagnostic-http-response">HTTP evidence: NOT_AVAILABLE</p>
     </div>
   </section>
   <section data-workspace="send" hidden>

@@ -33,4 +33,23 @@ export function mountDiagnostics(root, api) {
   }
   $('#diagnostic-tcp').addEventListener('click', () => run('tcp'));
   $('#diagnostic-echo').addEventListener('click', () => run('dicom'));
+  const httpLayers = [['dns', 'DNS'], ['tcp', 'TCP'], ['tls', 'TLS'], ['http', 'HTTP']];
+  const resetHttp = () => { for (const [id, label] of httpLayers) $('#diagnostic-http-layer-' + id).textContent = label + ': NOT_RUN'; $('#diagnostic-http-certificate').textContent = 'Certificate: NOT_AVAILABLE'; $('#diagnostic-http-tls-evidence').textContent = 'TLS evidence: NOT_AVAILABLE'; $('#diagnostic-http-response').textContent = 'HTTP evidence: NOT_AVAILABLE'; };
+  resetHttp(); $('#diagnostic-http-form').addEventListener('submit', event => event.preventDefault());
+  $('#diagnostic-http-run').addEventListener('click', async () => {
+    if (busy || !$('#diagnostic-http-form').reportValidity()) return;
+    const body = { mode: 'http', target: $('#diagnostic-http-target').value.trim(), timeoutMs: Number($('#diagnostic-http-timeout').value) };
+    busy = true; for (const id of ['target', 'timeout', 'run']) $('#diagnostic-http-' + id).disabled = true; resetHttp(); $('#diagnostic-http-summary').textContent = 'Testing ' + body.target + ' with one request…';
+    try {
+      const result = await api.request('/api/diagnostics/run', { method: 'POST', body });
+      $('#diagnostic-http-summary').textContent = result.classification + ' · HTTP status: ' + (result.httpStatus || 'not received') + ' · ' + result.host + ':' + result.port + ' · Address: ' + (result.resolvedAddress || 'not resolved') + ' · ' + result.elapsedMs + ' ms total · ' + result.timestamp;
+      for (const [id, label] of httpLayers) { const layer = result[id]; $('#diagnostic-http-layer-' + id).textContent = label + ': ' + layer.state + ' · ' + layer.code + ' · ' + layer.elapsedMs + ' ms — ' + layer.detail; }
+      const hostname = result.hostnameValidation === 'VALID' ? 'YES' : result.hostnameValidation === 'MISMATCH' ? 'NO' : 'NOT_AVAILABLE';
+      const certificate = [result.certificateSubject && 'Subject: ' + result.certificateSubject, result.certificateIssuer && 'Issuer: ' + result.certificateIssuer, result.certificateValidFrom && 'Valid from: ' + result.certificateValidFrom, result.certificateValidTo && 'Expires: ' + result.certificateValidTo, result.certificateDaysUntilExpiration !== null && result.certificateDaysUntilExpiration !== undefined && 'Days remaining: ' + result.certificateDaysUntilExpiration, result.tlsVersion && 'TLS: ' + result.tlsVersion, result.scheme === 'https' && 'Hostname valid: ' + hostname].filter(Boolean);
+      $('#diagnostic-http-certificate').textContent = 'Certificate: ' + (certificate.length ? certificate.join(' · ') : 'NOT_AVAILABLE');
+      $('#diagnostic-http-tls-evidence').textContent = 'TLS evidence: TargetHost ' + (result.tlsTargetHost || 'NOT_AVAILABLE') + ' · Certificate received: ' + (result.certificateReceived ? 'YES' : 'NO') + ' · Policy: ' + (result.tlsPolicyErrors || 'NOT_AVAILABLE') + ' · Chain: ' + (result.chainStatus || 'NOT_AVAILABLE') + ' · Chain valid: ' + (result.chainValidation || 'NOT_AVAILABLE') + (result.exceptionType ? ' · Exception: ' + result.exceptionType : '') + (result.innerExceptionType ? ' · Inner: ' + result.innerExceptionType : '');
+      const headers = Object.entries(result.headers || {}).map(([name, value]) => name + ': ' + value); $('#diagnostic-http-response').textContent = 'HTTP evidence: ' + (result.redirectLocation ? 'Redirect (not followed): ' + result.redirectLocation : 'Redirect: none reported') + (headers.length ? ' · ' + headers.join(' · ') : ' · No selected headers returned');
+    } catch { $('#diagnostic-http-summary').textContent = 'HTTP / TLS diagnostic request failed. Check the URL and timeout, and confirm the local helper is running.'; resetHttp(); }
+    finally { busy = false; for (const id of ['target', 'timeout', 'run']) $('#diagnostic-http-' + id).disabled = false; }
+  });
 }
