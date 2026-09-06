@@ -54,6 +54,24 @@ export function parseDicomMetadata(buffer) {
 export function summarizeDicom(metadata) {
   return { objectType: explainUid(metadata.SOPClassUID).name, patientId: metadata.PatientID || '', accession: metadata.AccessionNumber || '' };
 }
+export function redactDicomMetadata(metadata) {
+  // Only recognized technical constants may leave the inspection view. Do not
+  // copy arbitrary values, including unknown UIDs, equipment text or filenames.
+  const uid = (value, category) => !value ? 'not available'
+    : Object.hasOwn(UIDS, value) && UIDS[value].category === category
+      ? value + ' (' + UIDS[value].name + ')' : 'withheld (unrecognized value)';
+  const modality = !metadata.Modality ? 'not available'
+    : ['CT', 'MR', 'CR', 'DX', 'US', 'NM', 'PT', 'MG', 'XA', 'RF', 'SC', 'SR', 'PR', 'OT'].includes(metadata.Modality)
+      ? metadata.Modality : 'withheld (unrecognized value)';
+  return [
+    'DICOM redacted troubleshooting summary',
+    'SOP Class UID: ' + uid(metadata.SOPClassUID, 'Storage'),
+    'Transfer Syntax UID: ' + uid(metadata.TransferSyntaxUID, 'Transfer Syntax'),
+    'Modality: ' + modality,
+    'All other metadata and the filename are omitted.',
+    'Limited metadata summary; not a de-identified DICOM object or proof of compatibility.',
+  ].join('\n');
+}
 export function validateDicomMetadata(metadata) {
   const checks = [['AccessionNumber', 'DICOM_ACCESSION_MISSING', 'warning'], ['StudyInstanceUID', 'DICOM_STUDY_UID_MISSING', 'error'], ['SeriesInstanceUID', 'DICOM_SERIES_UID_MISSING', 'error'], ['SOPInstanceUID', 'DICOM_SOP_INSTANCE_UID_MISSING', 'error'], ['Modality', 'DICOM_MODALITY_MISSING', 'warning']];
   return checks.filter(([field]) => !metadata[field]).map(([, code, severity]) => ({ id: code, code, severity, summary: 'Possible integration concern: required metadata is not available. Verify the source object and destination logs.', source: 'Stage 4 DICOM metadata', overridable: true }));

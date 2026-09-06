@@ -39,7 +39,10 @@ test('selected local Part 10 File reaches the DICOM table, summary and findings'
     if (!nodes.has(selector)) nodes.set(selector, { textContent: '', innerHTML: '', listeners: {}, addEventListener(type, listener) { this.listeners[type] = listener; } });
     return nodes.get(selector);
   } };
-  mountDicom(root);
+  const copies = [];
+  let rejectCopy = false;
+  mountDicom(root, { clipboard: { async writeText(text) { if (rejectCopy) throw new Error('denied'); copies.push(text); } } });
+  assert.equal(root.querySelector('#dicom-copy').disabled, true);
   await root.querySelector('#dicom-file').listeners.change({ target: { files: [file] } });
   for (const [, , vr, value, label] of expected) {
     assert.ok(root.querySelector('#dicom-tags').innerHTML.includes(`<td>${label}</td><td>${value}</td><td>${vr}</td>`), label);
@@ -50,4 +53,44 @@ test('selected local Part 10 File reaches the DICOM table, summary and findings'
   assert.equal(root.querySelector('#dicom-findings').textContent, 'No baseline metadata concerns.');
   assert.equal(root.querySelector('#dicom-status').textContent, 'Read locally from synthetic-ct.dcm. Pixels were not rendered or uploaded.');
   assert.deepEqual(Buffer.from(await file.arrayBuffer()), bytes);
+  const preview = root.querySelector('#dicom-redacted').value;
+  assert.match(preview, /Explicit VR Little Endian/);
+  assert.ok(!preview.includes('SYNTH'));
+  await root.querySelector('#dicom-copy').listeners.click();
+  assert.deepEqual(copies, []);
+  root.querySelector('#dicom-reviewed').checked = true;
+  root.querySelector('#dicom-reviewed').listeners.change();
+  assert.equal(root.querySelector('#dicom-copy').disabled, false);
+  await root.querySelector('#dicom-copy').listeners.click();
+  assert.deepEqual(copies, [preview]);
+  assert.match(root.querySelector('#dicom-copy-status').textContent, /Copied/);
+  rejectCopy = true;
+  await root.querySelector('#dicom-copy').listeners.click();
+  assert.match(root.querySelector('#dicom-copy-status').textContent, /manually/);
+  assert.equal(root.querySelector('#dicom-redacted').value, preview);
+
+  // A replacement read clears prior approval immediately, even when it fails.
+  const failedRead = root.querySelector('#dicom-file').listeners.change({ target: { files: [{ async arrayBuffer() { throw new Error('PRIVATE-FILE-ERROR'); } }] } });
+  assert.equal(root.querySelector('#dicom-copy').disabled, true);
+  assert.equal(root.querySelector('#dicom-reviewed').checked, false);
+  assert.equal(root.querySelector('#dicom-redacted').value, '');
+  await failedRead;
+  assert.ok(!root.querySelector('#dicom-status').textContent.includes('PRIVATE'));
+  await root.querySelector('#dicom-copy').listeners.click();
+  assert.equal(copies.length, 1);
+  const markup = '<img src=x onerror=alert(1)>';
+  const hostileFile = new File([preamble, element(0x0010, 0x0010, 'PN', markup)], 'synthetic-markup.dcm');
+  await root.querySelector('#dicom-file').listeners.change({ target: { files: [hostileFile] } });
+  assert.ok(!root.querySelector('#dicom-tags').innerHTML.includes('<img'));
+  assert.ok(root.querySelector('#dicom-tags').innerHTML.includes('&lt;img'));
+  assert.ok(!root.querySelector('#dicom-redacted').value.includes(markup));
+
+  let finishOldRead;
+  const oldRead = root.querySelector('#dicom-file').listeners.change({ target: { files: [{ name: 'old.dcm', arrayBuffer: () => new Promise(resolve => { finishOldRead = resolve; }) }] } });
+  await root.querySelector('#dicom-file').listeners.change({ target: { files: [file] } });
+  finishOldRead(await hostileFile.arrayBuffer());
+  await oldRead;
+  assert.equal(root.querySelector('#dicom-redacted').value, preview);
+  assert.equal(root.querySelector('#dicom-reviewed').checked, false);
+  assert.equal(root.querySelector('#dicom-copy').disabled, true);
 });
