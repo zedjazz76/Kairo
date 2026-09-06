@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 
-export async function startService() {
+export async function startService({ launcher = 'hl7-toolkit/service/Start-HL7Toolkit.ps1' } = {}) {
   const dataRoot = mkdtempSync(path.join(tmpdir(), 'hl7-integration-'));
   const token = randomBytes(32).toString('hex');
-  const child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'hl7-toolkit/service/Start-HL7Toolkit.ps1', '-Port', '0', '-Token', token, '-DataRoot', dataRoot, '-NoBrowser'], { windowsHide: true });
+  const child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', launcher, '-Port', '0', '-Token', token, '-DataRoot', dataRoot, '-NoBrowser'], { windowsHide: true });
   let diagnostics = '';
   child.stderr.on('data', (chunk) => { diagnostics += chunk; });
   const stop = async () => {

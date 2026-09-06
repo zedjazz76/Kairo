@@ -20,7 +20,7 @@
 <aside class="sidebar">
   <button id="quick-open" class="quick-button">Quick Sanitize <span>Paste → review → copy</span></button>
   <nav aria-label="Workspaces">
-    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="dicom">DICOM</button><button data-nav="send">Send</button><button data-nav="history">History</button>
+    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="dicom">DICOM</button><button data-nav="diagnostics">Diagnostics</button><button data-nav="send">Send</button><button data-nav="history">History</button>
   </nav>
   <div class="privacy-note"><strong>Raw content stays in memory.</strong><p>Automatic history uses sanitized snapshots. Content needing review is omitted from automatic logs.</p><p>Provider fields are preserved. Always inspect output before sharing.</p></div>
 </aside>
@@ -74,6 +74,24 @@
     <div class="page-heading compact"><p class="eyebrow">DICOM metadata</p><h1>Inspect without rendering.</h1><p>Files stay on this device and remain in browser memory.</p></div>
     <div class="card"><label for="dicom-file">Choose a local DICOM file</label><input id="dicom-file" type="file" accept=".dcm,application/dicom"><p id="dicom-status" role="status">Select a DICOM Part 10 file.</p><label for="dicom-search">Search tag number, keyword, or name</label><input id="dicom-search" placeholder="0010,0020 or PatientID"><p id="dicom-definition"></p><p id="dicom-uid"></p><p id="dicom-summary"></p><pre id="dicom-findings"></pre><div id="dicom-tags"></div></div>
     <div class="card"><h2>Redacted troubleshooting copy</h2><p id="dicom-copy-help">Only recognized SOP class, Transfer Syntax, and modality values are included. Patient and instance identifiers, dates, filenames, and free text are omitted. Review before sharing.</p><label for="dicom-redacted">Redacted preview</label><textarea id="dicom-redacted" rows="8" readonly aria-describedby="dicom-copy-help"></textarea><label><input id="dicom-reviewed" type="checkbox" disabled> I reviewed this redacted preview for sharing.</label><button id="dicom-copy" disabled>Copy redacted summary</button><p id="dicom-copy-status" role="status" aria-live="polite">Load a DICOM file to prepare a preview.</p></div>
+  </section>
+  <section data-workspace="diagnostics" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Live endpoint diagnostics</p><h1>Find the failing connection layer.</h1><p>Test one endpoint you are authorized to access. Results stay in this session.</p></div>
+    <form id="diagnostic-form" class="card">
+      <label for="diagnostic-host">Hostname or IP address</label><input id="diagnostic-host" required maxlength="253" placeholder="pacs.example" autocomplete="off" spellcheck="false">
+      <label for="diagnostic-port">Port</label><input id="diagnostic-port" type="number" required min="1" max="65535" step="1" value="104">
+      <label for="diagnostic-timeout">Timeout per layer (ms)</label><input id="diagnostic-timeout" type="number" required min="100" max="10000" step="1" value="3000">
+      <label for="diagnostic-calling">Calling AE (DICOM only)</label><input id="diagnostic-calling" maxlength="16" value="KAIRO" autocomplete="off" spellcheck="false">
+      <label for="diagnostic-called">Called AE (DICOM only)</label><input id="diagnostic-called" maxlength="16" placeholder="Destination AE title" autocomplete="off" spellcheck="false">
+      <p>TCP test opens one connection and sends no application data. C-ECHO sends one DICOM Verification request using these AE titles. Neither action sends HL7 messages or patient datasets. The endpoint may record the connection.</p>
+      <button id="diagnostic-tcp" type="button">Test TCP connection</button><button id="diagnostic-echo" type="button" class="primary">Run DICOM C-ECHO</button>
+    </form>
+    <div class="card" role="status" aria-live="polite" aria-atomic="true">
+      <h2>DNS → TCP → DICOM association → C-ECHO</h2>
+      <p id="diagnostic-result">Enter an endpoint and choose a test. No automatic requests or retries.</p>
+      <p id="diagnostic-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-layer-association">DICOM association: NOT_RUN</p><p id="diagnostic-layer-echo">C-ECHO: NOT_RUN</p>
+      <p>TCP success does not establish protocol support. C-ECHO success confirms Verification only; it does not prove storage, MWL, or Query/Retrieve support. One resolved address is tested; there is no automatic fallback.</p>
+    </div>
   </section>
   <section data-workspace="send" hidden>
     <div class="page-heading compact"><p class="eyebrow">Outbound MLLP</p><h1>One message at a time.</h1><p>No queue, scheduled sending, or automatic retries. A connection check sends no HL7, but the destination may record the connection.</p></div>

@@ -49,3 +49,19 @@ If the running instance is closed, launch **this checkout's** `hl7-toolkit/Open 
 ## Current continuation — Stage Five blocked on product direction
 
 The user has now confirmed the real Windows CT/MR DICOM selection workflow works. Preserve all completed Stage 1–4 work. Recovery from `4a05b68` found no approved Stage Five objective or capability assignment in the authoritative product roadmap, stage documents, or progress ledger. The older Phase 4 professional-tooling list must not be silently relabeled Stage Five. Supply the approved Stage Five objective (or its authoritative source) before implementation. No Stage Five capability or Stage Six work was started. The progress ledger records this product blocker.
+
+## Current checkpoint — Stage Five TCP and DICOM C-ECHO
+
+The Stage Five direction blocker is resolved by user approval. **Diagnostics** is now available in the existing toolkit. This first checkpoint adds one-endpoint TCP checks and DICOM Verification/C-ECHO, with separate DNS, TCP, association and C-ECHO results, selected address, timing, timestamp and explanations. Existing HL7 and DICOM tools are preserved.
+
+### Test now
+
+1. Close the old helper/browser session and double-click **this checkout's** `hl7-toolkit/Open HL7 Toolkit.cmd` normally. Do not run as Administrator.
+2. Open **Diagnostics**. Enter an endpoint you are authorized to test, its port, and optionally the timeout per layer (default 3000 ms).
+3. Click **Test TCP connection**. Expect `TCP_CONNECTED`, `CONNECTION_REFUSED`, `TIMEOUT`, or a DNS/network classification. No application bytes are sent; DICOM layers remain `NOT_RUN`.
+4. For a DICOM endpoint, enter its **Called AE** and a **Calling AE** that it permits (default `KAIRO` may need to be changed for your site's configuration). Click **Run DICOM C-ECHO**.
+5. Expect DNS → TCP → association → C-ECHO evidence. Successful Verification shows `C_ECHO_SUCCESS`; an AE rejection leaves TCP successful and reports the association reason; a later C-ECHO failure/timeout preserves the accepted association result. Later layers remain `NOT_RUN` if an earlier layer fails.
+
+Runs use ordinary standard-user networking, one address and one connection per click. No scanning, automatic retries, patient messages/datasets, firewall changes, installed services/drivers or persistent diagnostic history. C-ECHO success does not prove storage, MWL or query/retrieve support. The initial client does not support DICOM TLS. If runtime policy blocks optional diagnostics, the UI reports unavailable and existing workspaces remain usable; do not weaken workstation security.
+
+Verified: 13 targeted tests plus 5 real Chrome/Windows-launcher workflows against controlled loopback peers; Windows token confirmed non-elevated, and success/rejection screenshots visually inspected. No hospital endpoint was tested. The authoritative progress ledger has exact commands and evidence. Remaining Stage Five capabilities are HTTP/TLS, MLLP diagnostic integration, profiles, baselines and evidence correlation. Stop here for user testing; Stage Six has not started.

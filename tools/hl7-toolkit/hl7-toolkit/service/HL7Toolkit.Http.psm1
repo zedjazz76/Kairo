@@ -218,6 +218,25 @@ function Invoke-HL7HttpConnection {
                 Write-HL7HttpResponse -Stream $stream -Body '{"status":"ready","version":"1.0.0-phase1"}'
                 return
             }
+            if ($path -eq '/api/diagnostics/run') {
+                try {
+                    if ($request.Method -ne 'POST') { throw 'DIAGNOSTIC_METHOD_REJECTED' }
+                    if ($request.Body.Length -gt 2048) { throw 'DIAGNOSTIC_INPUT_REJECTED' }
+                    $payload = $request.Body | ConvertFrom-Json
+                    if (-not (Get-Command Invoke-KairoEndpointDiagnostic -ErrorAction SilentlyContinue)) {
+                        try { Import-Module (Join-Path $PSScriptRoot 'HL7Toolkit.Diagnostics.psm1') -ErrorAction Stop }
+                        catch { throw 'DIAGNOSTIC_RUNTIME_UNAVAILABLE' }
+                    }
+                    $result = Invoke-KairoEndpointDiagnostic -Payload $payload
+                    Write-HL7HttpResponse -Stream $stream -Body ($result | ConvertTo-Json -Depth 8 -Compress)
+                } catch {
+                    $code = if ($_.Exception.Message -match '^DIAGNOSTIC_[A-Z_]+$') { $_.Exception.Message } else { 'DIAGNOSTIC_INPUT_REJECTED' }
+                    $statusCode = if ($code -eq 'DIAGNOSTIC_RUNTIME_UNAVAILABLE') { 503 } else { 400 }
+                    $reason = if ($statusCode -eq 503) { 'Service Unavailable' } else { 'Bad Request' }
+                    Write-HL7HttpResponse -Stream $stream -StatusCode $statusCode -Reason $reason -Body ('{"error":"' + $code + '"}')
+                }
+                return
+            }
             if ($path -in @('/api/profiles/endpoint', '/api/mllp/check', '/api/mllp/send-one')) {
                 try {
                     $payload = if ($request.Body) { $request.Body | ConvertFrom-Json } else { $null }
