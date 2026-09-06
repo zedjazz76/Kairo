@@ -38,3 +38,22 @@ Using synthetic data only:
 8. Delete one synthetic session and then multiple synthetic sessions. Do not delete real history as a test.
 
 These remaining observations are a release-acceptance limitation, not an automated test failure. Production PHI use is not approved by this report.
+
+## Stage Four bounded DICOM file-selection repair — September 5, 2026
+
+Checkout baseline: `9bb43b9` on `kairo-v1`. The validation baseline JSON was present; the supplied continuation's Transfer Syntax display and startup-diagnostic improvements were not present in this checkout. Startup behavior was left outside this repair.
+
+The permitted alternative verification exercised production `mountDicom`'s file-input `change` listener, `File.arrayBuffer()`, parser, table rendering, summary, UID explanation, findings, and completion status with an in-memory synthetic `synthetic-ct.dcm` File. The test checks the real HTML input's `.dcm` acceptance and uses a minimal DOM adapter; it does not automate browser selection or prove visual layout. No browser executable, browser automation tool, or PowerShell launcher runtime was available on this Linux host, so the reported earlier ready-workspace/navigation result was not independently repeated.
+
+RED: the new selected-file test failed on missing Transfer Syntax UID. Inspection also identified incorrect parsing of the long explicit-VR `OB` header for File Meta Information Version, which disrupted subsequent metadata. Repair: honor long explicit-VR header lengths, recognize Transfer Syntax UID, and display its explanation and UID.
+
+GREEN (4 tests total):
+
+- `node tools/hl7-toolkit/tests/hl7-toolkit/dicom-file-selection.test.mjs` — 1 passed.
+- `node tools/hl7-toolkit/tests/hl7-toolkit/dicom-core.test.mjs` — 3 passed.
+
+The normal `node --test` subprocess invocation produced a generic test-process failure in this host; direct invocation of the same `node:test` files produced the detailed RED and GREEN results above.
+
+Confirmed generated table cells: Transfer Syntax UID `1.2.840.10008.1.2.1`, SOP Class UID (CT Image Storage), SOP Instance UID, Patient Name, Patient ID, Accession Number, Modality, Study Instance UID, and Series Instance UID, including their VRs. Confirmed explanation `Transfer Syntax: Explicit VR Little Endian`, correct summary, no baseline metadata concerns, successful local-read status, and unchanged source bytes.
+
+Result: the bounded DICOM-loading repair passes the authorized alternative verification. Native Windows launcher/file-chooser interaction and browser-rendered visual acceptance remain unverified here. Coverage is for the selected Explicit VR Little Endian path, not broader transfer syntaxes. No additional Stage Four work was performed.

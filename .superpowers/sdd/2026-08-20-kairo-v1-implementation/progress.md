@@ -494,3 +494,13 @@ Boundary retained:
 
 Next:
 - Wire the existing pairing confirmation into the loopback host lifecycle, then use the same validated encrypted result path for Ask Kairo and the remaining dashboard collections.
+
+## Progress checkpoint — Bounded DICOM selected-file repair
+
+2026-09-05, resumed from `9bb43b9` on `kairo-v1` only for the incomplete DICOM verification task. The baseline asset exists; the described Transfer Syntax display and startup diagnostic changes were absent from this checkout. No unrelated startup changes were made.
+
+A synthetic Part 10 File exercised the actual DICOM file-input listener through `arrayBuffer`, metadata parsing, and UI rendering using a minimal DOM adapter. The initial test failed on Transfer Syntax. Fixed missing Transfer Syntax tag/display and parsing of long explicit-VR headers (the File Meta Information Version `OB` element disrupted following metadata).
+
+Verification: direct Node execution of `dicom-file-selection.test.mjs` (1/1) and `dicom-core.test.mjs` (3/3) passed. Confirmed Transfer Syntax UID and Explicit VR Little Endian explanation, patient name/ID, accession, modality, study/series/SOP instance UIDs, SOP class, VR cells, summary, findings, local-read status, and byte preservation. Detailed evidence: `tools/hl7-toolkit/hl7-toolkit/VERIFICATION.md`, Stage Four bounded repair section.
+
+The user-authorized fallback passes. Native chooser, actual Windows launcher, and browser visual acceptance remain unverified on this Linux host (no browser automation/browser executable/PowerShell runtime). Earlier ready-workspace and DICOM-navigation success are user-reported, not repeated here. This checkpoint completes only the bounded repair; stop without advancing remaining Stage Four features.

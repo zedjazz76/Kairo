@@ -7,6 +7,7 @@ export function mountDicom(root) {
     const summary = summarizeDicom(metadata); $('#dicom-summary').textContent = 'Object type: ' + summary.objectType + ' · Patient ID: ' + (summary.patientId || 'not available') + ' · Accession: ' + (summary.accession || 'not available');
     $('#dicom-findings').textContent = validateDicomMetadata(metadata).map((f) => f.severity.toUpperCase() + ' · ' + f.code + ' · ' + f.summary).join('\n') || 'No baseline metadata concerns.';
     $('#dicom-uid').textContent = metadata.SOPClassUID ? explainUid(metadata.SOPClassUID).name : 'SOP Class UID not available.';
+    $('#dicom-uid').textContent += ' · Transfer Syntax: ' + (metadata.TransferSyntaxUID ? explainUid(metadata.TransferSyntaxUID).name + ' (' + metadata.TransferSyntaxUID + ')' : 'not available');
   };
   $('#dicom-file').addEventListener('change', async (event) => { const file = event.target.files[0]; if (!file) return; render(parseDicomMetadata(await file.arrayBuffer())); $('#dicom-status').textContent = 'Read locally from ' + file.name + '. Pixels were not rendered or uploaded.'; });
   $('#dicom-search').addEventListener('input', () => { const tag = findDicomTag($('#dicom-search').value); $('#dicom-definition').textContent = tag ? tag.name + ' (' + tag.keyword + ') · VR ' + tag.vr + ' · VM ' + tag.vm + ' · ' + tag.category : 'No supported standard tag found.'; });
