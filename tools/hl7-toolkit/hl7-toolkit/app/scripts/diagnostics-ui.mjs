@@ -117,10 +117,19 @@ export function mountDiagnostics(root, api) {
     lastComparison = loadedBaseline && lastDiagnostic && loadedBaseline.type === lastDiagnostic.type ? compareBaseline(loadedBaseline, lastDiagnostic.result) : [];
     $('#diagnostic-baseline-comparison').textContent = lastComparison.length ? lastComparison.join(' ') : 'Run the matching diagnostic to compare current evidence.';
   });
+  const currentSummary = () => {
+    const validationSummary = $('#validation-summary').textContent || '', dicomFindings = $('#dicom-findings').textContent || '';
+    return correlateEvidence({ type: lastDiagnostic.type, result: lastDiagnostic.result, validationSummary, dicomEvidence: Boolean(dicomFindings && !/No baseline metadata concerns/i.test(dicomFindings)), baselineChanges: lastComparison });
+  };
   $('#diagnostic-evidence-run').addEventListener('click', () => {
     if (!lastDiagnostic) { $('#diagnostic-evidence-observed').textContent = 'OBSERVED: No diagnostic result is available.'; return; }
-    const validationSummary = $('#validation-summary').textContent || '', dicomFindings = $('#dicom-findings').textContent || '';
-    const summary = correlateEvidence({ type: lastDiagnostic.type, result: lastDiagnostic.result, validationSummary, dicomEvidence: Boolean(dicomFindings && !/No baseline metadata concerns/i.test(dicomFindings)), baselineChanges: lastComparison });
+    const summary = currentSummary();
     $('#diagnostic-evidence-observed').textContent = 'OBSERVED: ' + summary.observed.join(' '); $('#diagnostic-evidence-boundary').textContent = 'LIKELY BOUNDARY: ' + summary.likelyBoundary; $('#diagnostic-evidence-missing').textContent = 'MISSING EVIDENCE: ' + summary.missingEvidence; $('#diagnostic-evidence-next').textContent = 'NEXT CHECK: ' + summary.nextCheck;
+  });
+  $('#diagnostic-case-attach').addEventListener('click', () => {
+    if (!lastDiagnostic) { $('#diagnostic-case-status').textContent = 'Run a diagnostic before adding evidence to a case.'; return; }
+    const summary = currentSummary(), result = lastDiagnostic.result;
+    root.dispatchEvent(new root.defaultView.CustomEvent('kairo:diagnostic-evidence', { detail: { type: lastDiagnostic.type, timestamp: result.timestamp, endpoint: result.host + ':' + result.port, classification: result.classification, observed: summary.observed, baselineChanges: [...lastComparison], likelyBoundary: summary.likelyBoundary, missingEvidence: summary.missingEvidence, nextCheck: summary.nextCheck } }));
+    $('#diagnostic-case-status').textContent = 'Current diagnostic offered to the active case. Open Case to review its timeline.';
   });
 }

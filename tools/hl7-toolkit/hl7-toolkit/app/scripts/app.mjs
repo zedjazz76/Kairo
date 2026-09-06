@@ -3,6 +3,7 @@ import { createWorkbenchState, mountWorkbench } from './workbench.mjs';
 import { mountSend } from './send-ui.mjs';
 import { mountDicom } from './dicom-ui.mjs';
 import { mountDiagnostics } from './diagnostics-ui.mjs';
+import { mountCase } from './case-ui.mjs';
 
 const token = new URLSearchParams(location.search).get('token') || new URLSearchParams(location.hash.slice(1)).get('session') || '';
 const status = document.querySelector('#service-status');
@@ -26,6 +27,7 @@ if (!token) {
     const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields, validationPack });
     await mountSend(controller, api);
     mountDicom(document);
+    mountCase(document);
     mountDiagnostics(document, api);
   } catch {
     status.textContent = 'The protected local helper or policy is unavailable. Close the helper window and launch the toolkit again.';

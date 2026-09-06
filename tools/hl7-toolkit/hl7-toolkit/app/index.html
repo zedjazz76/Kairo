@@ -20,7 +20,7 @@
 <aside class="sidebar">
   <button id="quick-open" class="quick-button">Quick Sanitize <span>Paste → review → copy</span></button>
   <nav aria-label="Workspaces">
-    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="dicom">DICOM</button><button data-nav="diagnostics">Diagnostics</button><button data-nav="send">Send</button><button data-nav="history">History</button>
+    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="dicom">DICOM</button><button data-nav="diagnostics">Diagnostics</button><button data-nav="case">Case</button><button data-nav="send">Send</button><button data-nav="history">History</button>
   </nav>
   <div class="privacy-note"><strong>Raw content stays in memory.</strong><p>Automatic history uses sanitized snapshots. Content needing review is omitted from automatic logs.</p><p>Provider fields are preserved. Always inspect output before sharing.</p></div>
 </aside>
@@ -75,6 +75,24 @@
     <div class="card"><label for="dicom-file">Choose a local DICOM file</label><input id="dicom-file" type="file" accept=".dcm,application/dicom"><p id="dicom-status" role="status">Select a DICOM Part 10 file.</p><label for="dicom-search">Search tag number, keyword, or name</label><input id="dicom-search" placeholder="0010,0020 or PatientID"><p id="dicom-definition"></p><p id="dicom-uid"></p><p id="dicom-summary"></p><pre id="dicom-findings"></pre><div id="dicom-tags"></div></div>
     <div class="card"><h2>Redacted troubleshooting copy</h2><p id="dicom-copy-help">Only recognized SOP class, Transfer Syntax, and modality values are included. Patient and instance identifiers, dates, filenames, and free text are omitted. Review before sharing.</p><label for="dicom-redacted">Redacted preview</label><textarea id="dicom-redacted" rows="8" readonly aria-describedby="dicom-copy-help"></textarea><label><input id="dicom-reviewed" type="checkbox" disabled> I reviewed this redacted preview for sharing.</label><button id="dicom-copy" disabled>Copy redacted summary</button><p id="dicom-copy-status" role="status" aria-live="polite">Load a DICOM file to prepare a preview.</p></div>
   </section>
+  <section data-workspace="case" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Guided troubleshooting</p><h1>Build an evidence-based case.</h1><p>This first checkpoint stays in this browser session. Do not enter patient-identifiable data, credentials, message bodies, or secrets.</p></div>
+    <form id="case-form" class="card">
+      <h2>Create active case</h2>
+      <label for="case-title">Case title</label><input id="case-title" required maxlength="120" autocomplete="off">
+      <label for="case-system">System / workflow</label><input id="case-system" required maxlength="120" autocomplete="off">
+      <label for="case-environment">Environment</label><input id="case-environment" required maxlength="40" value="Test" autocomplete="off">
+      <label for="case-issue">Issue description</label><textarea id="case-issue" required rows="3" maxlength="1200"></textarea>
+      <label for="case-symptom">Observed symptom</label><textarea id="case-symptom" required rows="2" maxlength="600"></textarea>
+      <label for="case-status">Status</label><select id="case-status"><option>OPEN</option><option>INVESTIGATING</option><option>BLOCKED</option><option>RESOLVED</option></select>
+      <label for="case-notes">Analyst notes</label><textarea id="case-notes" rows="3" maxlength="2000"></textarea>
+      <button id="case-create" type="button" class="primary">Create active case</button><p id="case-active" role="status">No active case. Case history is not included in this checkpoint.</p>
+    </form>
+    <div class="card"><h2>Add manual evidence note</h2><label for="case-manual-note">Concise nonclinical note</label><textarea id="case-manual-note" rows="2" maxlength="600"></textarea><button id="case-note-add" type="button">Add note to timeline</button><p id="case-evidence-status" role="status">Create a case, then add a note or attach the current result from Diagnostics.</p></div>
+    <div class="card"><h2>Evidence timeline</h2><pre id="case-timeline">No evidence attached.</pre></div>
+    <div class="card"><h2>Guided evidence summary</h2><button id="case-summary-run" type="button">Generate case evidence summary</button><p id="case-summary-observed">OBSERVED: No case evidence evaluated.</p><p id="case-summary-boundary">LIKELY BOUNDARY: Not evaluated.</p><p id="case-summary-missing">MISSING EVIDENCE: Not evaluated.</p><p id="case-summary-next">NEXT CHECK: Not evaluated.</p></div>
+    <div class="card"><h2>Technical handoff</h2><p>Review before copying or transmitting through your approved workflow. Kairo does not send this summary.</p><button id="case-handoff-run" type="button">Generate handoff summary</button><label for="case-handoff">Case handoff</label><textarea id="case-handoff" rows="18" readonly></textarea></div>
+  </section>
   <section data-workspace="diagnostics" hidden>
     <div class="page-heading compact"><p class="eyebrow">Live endpoint diagnostics</p><h1>Find the failing connection layer.</h1><p>Test one endpoint you are authorized to access. Results stay in this session.</p></div>
     <form id="diagnostic-profile-form" class="card">
@@ -87,7 +105,7 @@
       <label for="diagnostic-profile-environment">Environment</label><select id="diagnostic-profile-environment"><option>Test</option><option>Production</option></select><label for="diagnostic-profile-notes">Notes</label><textarea id="diagnostic-profile-notes" rows="2" maxlength="500"></textarea>
       <button id="diagnostic-profile-save" type="button" class="primary">Save profile locally</button><button id="diagnostic-profile-delete" type="button">Delete selected profile</button><p id="diagnostic-profile-status" role="status">Load profiles or enter a new endpoint.</p>
       <h3>Known-good baseline</h3><button id="diagnostic-baseline-save" type="button">Save successful result as baseline</button><button id="diagnostic-baseline-load" type="button">Load and compare baseline</button><p id="diagnostic-baseline-status" role="status">No baseline loaded.</p><p id="diagnostic-baseline-comparison">Run a diagnostic, then save or load a baseline.</p>
-      <h3>Evidence summary</h3><p>Uses the current diagnostic, loaded baseline comparison, and safe availability signals from existing HL7/DICOM evidence. It does not establish certainty.</p><button id="diagnostic-evidence-run" type="button">Summarize troubleshooting evidence</button><p id="diagnostic-evidence-observed">OBSERVED: Run a diagnostic first.</p><p id="diagnostic-evidence-boundary">LIKELY BOUNDARY: Not evaluated.</p><p id="diagnostic-evidence-missing">MISSING EVIDENCE: Not evaluated.</p><p id="diagnostic-evidence-next">NEXT CHECK: Not evaluated.</p>
+      <h3>Evidence summary</h3><p>Uses the current diagnostic, loaded baseline comparison, and safe availability signals from existing HL7/DICOM evidence. It does not establish certainty.</p><button id="diagnostic-evidence-run" type="button">Summarize troubleshooting evidence</button><button id="diagnostic-case-attach" type="button">Add current diagnostic to case</button><p id="diagnostic-case-status" role="status">Run a diagnostic before adding evidence to a case.</p><p id="diagnostic-evidence-observed">OBSERVED: Run a diagnostic first.</p><p id="diagnostic-evidence-boundary">LIKELY BOUNDARY: Not evaluated.</p><p id="diagnostic-evidence-missing">MISSING EVIDENCE: Not evaluated.</p><p id="diagnostic-evidence-next">NEXT CHECK: Not evaluated.</p>
     </form>
     <form id="diagnostic-form" class="card">
       <h2>TCP / DICOM</h2>

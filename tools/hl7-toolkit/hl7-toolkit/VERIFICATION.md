@@ -47,6 +47,16 @@ Final manual acceptance passed through the real Windows Kairo UI under the stand
 
 The final Linux-side targeted rerun remains limited to browser modules because this host has no `powershell.exe`; the accepted real Windows UI workflow supplies the required final manual checkpoint. Stage Five is complete. Stage Six has not started.
 
+## Stage Six first guided-case checkpoint — September 6, 2026
+
+The additive first checkpoint adds one browser-session troubleshooting case, explicit manual-note and current-diagnostic attachment, a timestamped evidence timeline, case-aware four-part guidance, and a locally generated technical handoff. Case text rejects obvious message, key/certificate, credential, control-character, and overlength content. Diagnostic attachment copies only allowlisted technical summary fields and never the raw result object.
+
+Focused TDD covered bounded case creation, unsafe-content rejection, immutable evidence insertion, timeline ordering, allowlisted diagnostic attachment, conservative summary selection, all required handoff headings, explicit Diagnostics attachment, and the complete Case DOM workflow. Final Linux verification passed four test files with zero failures: `case-model.test.mjs`, `case-ui.test.mjs`, `diagnostics-ui.test.mjs`, and the existing `ui-contract.test.mjs`. `node --check` passed for `case-model.mjs`, `case-ui.mjs`, `diagnostics-ui.mjs`, and `app.mjs`; `git diff --check` passed.
+
+Final manual acceptance passed through the real Windows Kairo UI under a normal standard-user token. The accepted workflow created a troubleshooting case, added a manual evidence note, explicitly attached an existing diagnostic result, displayed the chronological evidence timeline, generated OBSERVED / LIKELY BOUNDARY / MISSING EVIDENCE / NEXT CHECK guidance, and generated the complete case handoff. Session-local behavior passed, with no automatic diagnostic, case persistence, transmission, or privilege prompt. Stage Five endpoint profiles were separately retested across normal restarts: a saved profile survived with its values intact, and after deletion it remained absent after another restart.
+
+The first Stage Six checkpoint is complete. Later Stage Six case history, archive/reopen/delete, checklists, advisory action suggestions, broader evidence attachment, and Stage Seven remain unstarted.
+
 ## Stage Four bounded DICOM file-selection repair — September 5, 2026
 
 Checkout baseline: `9bb43b9` on `kairo-v1`. The validation baseline JSON was present; the supplied continuation's Transfer Syntax display and startup-diagnostic improvements were not present in this checkout. Startup behavior was left outside this repair.

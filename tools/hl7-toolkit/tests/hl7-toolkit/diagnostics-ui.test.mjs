@@ -7,7 +7,8 @@ test('diagnostics require a click, send one explicit endpoint and render layer e
   const html = await readFile(new URL('../../hl7-toolkit/app/index.html', import.meta.url), 'utf8');
   assert.match(html, /data-nav="diagnostics"/);
   const nodes = new Map();
-  const root = { querySelector(selector) {
+  const events = [];
+  const root = { defaultView: { CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } } }, dispatchEvent(event) { events.push(event); }, querySelector(selector) {
     assert.ok(html.includes(`id="${selector.slice(1)}"`), selector);
     if (!nodes.has(selector)) nodes.set(selector, { value: '', textContent: '', listeners: {}, reportValidity: () => true, addEventListener(type, fn) { this.listeners[type] = fn; } });
     return nodes.get(selector);
@@ -32,6 +33,14 @@ test('diagnostics require a click, send one explicit endpoint and render layer e
   assert.match(root.querySelector('#diagnostic-layer-echo').textContent, /NOT_RUN/);
   assert.equal(root.querySelector('#diagnostic-echo').disabled, false);
   assert.equal(root.querySelector('#diagnostic-result').innerHTML, undefined);
+  assert.equal(events.length, 0);
+  root.querySelector('#diagnostic-case-attach').listeners.click();
+  assert.equal(events.length, 1);
+  assert.equal(events[0].type, 'kairo:diagnostic-evidence');
+  assert.deepEqual(Object.keys(events[0].detail).sort(), ['baselineChanges', 'classification', 'endpoint', 'likelyBoundary', 'missingEvidence', 'nextCheck', 'observed', 'timestamp', 'type'].sort());
+  assert.equal(events[0].detail.classification, 'ASSOCIATION_REJECTED');
+  assert.match(events[0].detail.endpoint, /<untrusted>:104/);
+  assert.ok(!JSON.stringify(events[0].detail).includes('Called AE title not recognized'));
 });
 
 test('helper failure clears stale evidence and permits an explicit retry', async () => {

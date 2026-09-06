@@ -68,6 +68,12 @@ Open **Diagnostics**, load or create a local endpoint profile, and choose the ex
 
 After a complete successful diagnostic, choose **Save successful result as baseline**. On a later matching run, load the profile baseline to see only meaningful layer, certificate, ACK, or timing changes. Choose **Summarize troubleshooting evidence** to see observed facts, a qualified likely boundary, missing evidence, and the smallest useful next check. A correlation summary is guidance, not certainty, and endpoint reachability does not prove the affected clinical workflow.
 
+## Guided troubleshooting case
+
+Open **Case** to create one troubleshooting case for the current browser session. Use concise technical descriptions only; do not enter patient-identifiable data, credentials, message bodies, or secrets. Add a manual note explicitly, or run an existing authorized diagnostic and select **Add current diagnostic to case**. Kairo adds an allowlisted technical summary—not the raw diagnostic response or clinical message—to the evidence timeline.
+
+The Case workspace can generate OBSERVED, LIKELY BOUNDARY, MISSING EVIDENCE, and NEXT CHECK from attached diagnostic evidence, plus a local technical handoff for analyst review. Kairo does not automatically copy or transmit the handoff. This first checkpoint does not save, reopen, archive, or sync cases.
+
 ## Saved history
 
 Sanitized snapshots are saved automatically during import and after applied edits, comparisons you explicitly save, and reviewed copy/send actions. Saving sanitized content immediately avoids relying on browser shutdown to remove PHI from a raw log.
