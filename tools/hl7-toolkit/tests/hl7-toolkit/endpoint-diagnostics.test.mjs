@@ -64,8 +64,8 @@ test('DICOM Verification preserves layer evidence across success, negotiation an
   const service = await startService();
   try {
     for (const [mode, expected, layer] of [
-      ['success', 'C_ECHO_SUCCESS', 'echo'], ['fragmented', 'C_ECHO_SUCCESS', 'echo'],
-      ['reject', 'ASSOCIATION_REJECTED', 'association'], ['context-rejected', 'VERIFICATION_NOT_ACCEPTED', 'association'],
+      ['success', 'C_ECHO_SUCCESS', 'echo'], ['fragmented', 'C_ECHO_SUCCESS', 'echo'], ['fragmented-association', 'C_ECHO_SUCCESS', 'echo'],
+      ['reject', 'ASSOCIATION_REJECTED', 'association'], ['fragmented-reject', 'ASSOCIATION_REJECTED', 'association'], ['context-rejected', 'VERIFICATION_NOT_ACCEPTED', 'association'],
       ['wrong-syntax', 'NEGOTIATION_MISMATCH', 'association'], ['abort', 'PEER_ABORT', 'association'],
       ['association-timeout', 'TIMEOUT', 'association'], ['malformed', 'MALFORMED_RESPONSE', 'association'],
       ['oversized', 'RESPONSE_TOO_LARGE', 'association'], ['echo-timeout', 'TIMEOUT', 'echo'],
@@ -82,7 +82,7 @@ test('DICOM Verification preserves layer evidence across success, negotiation an
         if (layer === 'association') assert.equal(data.echo.state, 'NOT_RUN', mode);
         else assert.equal(data.association.code, 'ASSOCIATION_ACCEPTED', mode);
         if (expected === 'C_ECHO_SUCCESS') { assert.equal(data.echoStatus, '0000'); assert.ok(peer.observations.released); }
-        if (mode === 'reject') { assert.equal(data.rejectionReason, 7); assert.match(data.association.detail, /Called AE/); }
+        if (mode === 'reject' || mode === 'fragmented-reject') { assert.equal(data.rejectionReason, 7); assert.match(data.association.detail, /Called AE/); }
         assert.deepEqual(peer.observations.errors, [], mode);
       } finally { await peer.close(); }
     }

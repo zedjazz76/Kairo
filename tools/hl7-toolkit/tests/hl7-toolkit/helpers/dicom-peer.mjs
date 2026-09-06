@@ -34,16 +34,26 @@ export async function startDicomPeer(mode = 'success') {
             assert.equal(body.readUInt16BE(0), 1);
             assert.equal(body.subarray(4, 20).toString().trim(), 'TEST_SCP');
             assert.equal(body.subarray(20, 36).toString().trim(), 'KAIRO');
+            assert.equal(body[68], 0x10, 'first variable item follows the 68-byte A-ASSOCIATE fixed fields');
             assert.ok(body.includes(item(0x30, uid('1.2.840.10008.1.1'))));
             assert.ok(body.includes(item(0x40, uid('1.2.840.10008.1.2'))));
             if (mode === 'association-timeout') continue;
-            if (mode === 'reject') { socket.write(pdu(3, Buffer.from([0, 1, 1, 7]))); continue; }
+            if (mode === 'reject' || mode === 'fragmented-reject') {
+              const rejection = pdu(3, Buffer.from([0, 1, 1, 7]));
+              if (mode === 'fragmented-reject') { socket.write(rejection.subarray(0, 2)); socket.write(rejection.subarray(2, 6)); socket.write(rejection.subarray(6)); }
+              else socket.write(rejection);
+              continue;
+            }
             if (mode === 'abort') { socket.write(pdu(7, Buffer.from([0, 0, 2, 0]))); continue; }
             if (mode === 'oversized') { socket.write(Buffer.from([2, 0, 0, 16, 0, 1])); continue; }
             if (mode === 'malformed') { socket.write(pdu(2, Buffer.from([0, 1]))); continue; }
             const context = item(0x21, Buffer.concat([Buffer.from([1, 0, mode === 'context-rejected' ? 3 : 0, 0]), item(0x40, uid(mode === 'wrong-syntax' ? '1.2.840.10008.1.2.1' : '1.2.840.10008.1.2'))]));
             const user = item(0x50, Buffer.concat([item(0x51, u32(16384)), item(0x52, uid('2.25.123456789'))]));
-            socket.write(pdu(2, Buffer.concat([body.subarray(0, 72), app, context, user])));
+            const association = pdu(2, Buffer.concat([body.subarray(0, 68), app, context, user]));
+            if (mode === 'fragmented-association') {
+              // Deliberately split both the six-byte UL header and declared body.
+              socket.write(association.subarray(0, 2)); socket.write(association.subarray(2, 6)); socket.write(association.subarray(6, 41)); socket.write(association.subarray(41));
+            } else socket.write(association);
           } else if (type === 4) {
             observations.echoes++;
             assert.equal(body.readUInt32BE(0), body.length - 4); assert.equal(body[4], 1); assert.equal(body[5], 3);

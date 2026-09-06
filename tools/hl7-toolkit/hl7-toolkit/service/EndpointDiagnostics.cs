@@ -90,7 +90,7 @@ namespace Kairo.Diagnostics {
         }
         static int Negotiate(NetworkStream stream, int timeout, string calling, string called, Result result) {
             var timer = Stopwatch.StartNew();
-            var fixedPart = new byte[72]; fixedPart[1] = 1;
+            var fixedPart = new byte[68]; fixedPart[1] = 1;
             Buffer.BlockCopy(Encoding.ASCII.GetBytes(called.PadRight(16)), 0, fixedPart, 4, 16);
             Buffer.BlockCopy(Encoding.ASCII.GetBytes(calling.PadRight(16)), 0, fixedPart, 20, 16);
             var context = Item(0x20, Join(new byte[] { 1, 0, 0, 0 }, Item(0x30, Encoding.ASCII.GetBytes(Verification)), Item(0x40, Encoding.ASCII.GetBytes(Implicit))));
@@ -104,9 +104,9 @@ namespace Kairo.Diagnostics {
                     response.body[2] == 1 && response.body[3] == 3 ? "Calling AE title not recognized." : "Check AE configuration, application context and peer association policy.";
                 throw new ProtocolFailure("ASSOCIATION_REJECTED", "TCP connected; the peer rejected the association. " + reason + " Result/source/reason: " + response.body[1] + "/" + response.body[2] + "/" + response.body[3] + ".");
             }
-            Require(response.type == 2 && response.body.Length >= 72 && (U16(response.body, 0) & 1) == 1);
+            Require(response.type == 2 && response.body.Length >= 68 && (U16(response.body, 0) & 1) == 1);
             bool app = false, accepted = false, seenContext = false, maxSeen = false; int maxPdu = 16384;
-            for (int p = 72; p < response.body.Length;) {
+            for (int p = 68; p < response.body.Length;) {
                 Require(p + 4 <= response.body.Length);
                 int type = response.body[p], n = U16(response.body, p + 2); var value = Slice(response.body, p + 4, n); p += 4 + n;
                 if (type == 0x10) { Require(!app && Encoding.ASCII.GetString(value) == Application); app = true; }

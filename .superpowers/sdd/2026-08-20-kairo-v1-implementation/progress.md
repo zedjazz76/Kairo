@@ -563,3 +563,11 @@ Verification performed sequentially, with no agents/worktrees/background diagnos
 Manual test: restart this checkout's `tools/hl7-toolkit/hl7-toolkit/Open HL7 Toolkit.cmd` normally, choose Diagnostics, enter one authorized host/port and run Test TCP connection. For DICOM enter registered Calling AE and destination Called AE, then Run DICOM C-ECHO. Expect independent layer results with NOT_RUN after a failing layer. Success verifies only TCP or DICOM Verification, never C-STORE/MWL/query support. Timeout is per layer (default 3000 ms); at most one resolved address is selected (prefer IPv4, otherwise IPv6), with no address fallback. Diagnostic results are session-only; DICOM-over-TLS is not implemented in this first checkpoint.
 
 Remaining Stage Five: HTTP/HTTPS/TLS inspection; dedicated safe MLLP/ACK diagnostic integration; endpoint profiles; baseline comparison; practical evidence correlation. Stop at this checkpoint. Stage Six was not started.
+
+## Stage Five DICOM association interoperability correction
+
+2026-09-06 corrected the existing DICOM Verification client without advancing other Stage Five work. The A-ASSOCIATE-RQ fixed fields and A-ASSOCIATE-AC variable-item offset incorrectly used 72 bytes; DICOM UL requires 68 bytes. The controlled peer now returns the standards-compliant 68-byte form, asserts the request's first variable item begins at byte 68, deliberately fragments an association header and body, and fragments a valid A-ASSOCIATE-RJ.
+
+Real user verification through the normal Kairo Diagnostics UI succeeded against the controlled CSOL Orthanc endpoint at `100.106.197.58:4242`, Calling AE `KAIROTEST`, Called AE `ORTHANC`: DNS `SUCCESS / NOT_REQUIRED`, TCP `SUCCESS / TCP_CONNECTED`, association `SUCCESS / ASSOCIATION_ACCEPTED`, and C-ECHO `SUCCESS / C_ECHO_SUCCESS` in 240 ms. An independent pynetdicom check against the same endpoint also established an association and returned C-ECHO status `0x0000`.
+
+This checkpoint changes only DICOM association framing and its focused regressions. HTTP/TLS, MLLP, profiles, baselines, evidence correlation, and Stage Six were not started in this correction.
