@@ -77,6 +77,18 @@
   </section>
   <section data-workspace="diagnostics" hidden>
     <div class="page-heading compact"><p class="eyebrow">Live endpoint diagnostics</p><h1>Find the failing connection layer.</h1><p>Test one endpoint you are authorized to access. Results stay in this session.</p></div>
+    <form id="diagnostic-profile-form" class="card">
+      <h2>Endpoint profiles</h2><p>Profiles are stored only in Kairo's local data folder. Do not enter credentials, PHI, or secrets.</p>
+      <label for="diagnostic-profile-select">Saved endpoint</label><select id="diagnostic-profile-select"><option value="">New profile</option></select><button id="diagnostic-profile-load" type="button">Load local profiles</button>
+      <label for="diagnostic-profile-name">Friendly name</label><input id="diagnostic-profile-name" required maxlength="80" autocomplete="off">
+      <label for="diagnostic-profile-type">Type</label><select id="diagnostic-profile-type"><option value="tcp">TCP</option><option value="dicom">DICOM</option><option value="https">HTTPS</option><option value="http">HTTP</option><option value="mllp">HL7 / MLLP</option></select>
+      <label for="diagnostic-profile-host">Hostname or IP</label><input id="diagnostic-profile-host" required maxlength="253" autocomplete="off" spellcheck="false"><label for="diagnostic-profile-port">Port</label><input id="diagnostic-profile-port" type="number" required min="1" max="65535" value="443">
+      <label for="diagnostic-profile-calling">Calling AE (DICOM)</label><input id="diagnostic-profile-calling" maxlength="16" autocomplete="off"><label for="diagnostic-profile-called">Called AE (DICOM)</label><input id="diagnostic-profile-called" maxlength="16" autocomplete="off">
+      <label for="diagnostic-profile-environment">Environment</label><select id="diagnostic-profile-environment"><option>Test</option><option>Production</option></select><label for="diagnostic-profile-notes">Notes</label><textarea id="diagnostic-profile-notes" rows="2" maxlength="500"></textarea>
+      <button id="diagnostic-profile-save" type="button" class="primary">Save profile locally</button><button id="diagnostic-profile-delete" type="button">Delete selected profile</button><p id="diagnostic-profile-status" role="status">Load profiles or enter a new endpoint.</p>
+      <h3>Known-good baseline</h3><button id="diagnostic-baseline-save" type="button">Save successful result as baseline</button><button id="diagnostic-baseline-load" type="button">Load and compare baseline</button><p id="diagnostic-baseline-status" role="status">No baseline loaded.</p><p id="diagnostic-baseline-comparison">Run a diagnostic, then save or load a baseline.</p>
+      <h3>Evidence summary</h3><p>Uses the current diagnostic, loaded baseline comparison, and safe availability signals from existing HL7/DICOM evidence. It does not establish certainty.</p><button id="diagnostic-evidence-run" type="button">Summarize troubleshooting evidence</button><p id="diagnostic-evidence-observed">OBSERVED: Run a diagnostic first.</p><p id="diagnostic-evidence-boundary">LIKELY BOUNDARY: Not evaluated.</p><p id="diagnostic-evidence-missing">MISSING EVIDENCE: Not evaluated.</p><p id="diagnostic-evidence-next">NEXT CHECK: Not evaluated.</p>
+    </form>
     <form id="diagnostic-form" class="card">
       <h2>TCP / DICOM</h2>
       <label for="diagnostic-host">Hostname or IP address</label><input id="diagnostic-host" required maxlength="253" placeholder="pacs.example" autocomplete="off" spellcheck="false">

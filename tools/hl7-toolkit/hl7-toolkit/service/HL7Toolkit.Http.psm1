@@ -237,7 +237,7 @@ function Invoke-HL7HttpConnection {
                 }
                 return
             }
-            if ($path -in @('/api/profiles/endpoint', '/api/mllp/check', '/api/mllp/send-one')) {
+            if ($path -in @('/api/profiles/endpoint', '/api/diagnostics/baseline', '/api/mllp/check', '/api/mllp/send-one')) {
                 try {
                     $payload = if ($request.Body) { $request.Body | ConvertFrom-Json } else { $null }
                     if ($path -eq '/api/profiles/endpoint') {
@@ -248,12 +248,18 @@ function Invoke-HL7HttpConnection {
                             default { throw 'PROFILE_METHOD_REJECTED' }
                         }
                     }
+                    elseif ($path -eq '/api/diagnostics/baseline') {
+                        if ($request.Method -ne 'POST') { throw 'DIAGNOSTIC_BASELINE_METHOD_REJECTED' }
+                        if ((Get-HL7PropertyValue $payload 'action') -eq 'save') { $result = Save-HL7DiagnosticBaseline -DataRoot $DataRoot -Baseline $payload.baseline }
+                        elseif ((Get-HL7PropertyValue $payload 'action') -eq 'get') { $result = Get-HL7DiagnosticBaseline -DataRoot $DataRoot -ProfileId (Get-HL7PropertyValue $payload 'profileId') }
+                        else { throw 'DIAGNOSTIC_BASELINE_ACTION_REJECTED' }
+                    }
                     elseif ($request.Method -ne 'POST') { throw 'SEND_METHOD_REJECTED' }
                     elseif ($path -eq '/api/mllp/check') { $result = Test-HL7Endpoint -Profile $payload.profile }
                     else { $result = Invoke-HL7ReviewedSend -Payload $payload }
                     Write-HL7HttpResponse -Stream $stream -Body ($result | ConvertTo-Json -Depth 20 -Compress)
                 } catch {
-                    $code = if ($_.Exception.Message -match '^(PROFILE|SEND)_[A-Z_]+$') { $_.Exception.Message } else { 'SEND_REQUEST_FAILED' }
+                    $code = if ($_.Exception.Message -match '^(PROFILE|SEND|DIAGNOSTIC_BASELINE)_[A-Z_]+$') { $_.Exception.Message } else { 'SEND_REQUEST_FAILED' }
                     Write-HL7HttpResponse -Stream $stream -StatusCode 400 -Reason 'Bad Request' -Body ('{"error":"' + $code + '"}')
                 }
                 return

@@ -5,13 +5,20 @@ Import-Module (Join-Path $PSScriptRoot 'HL7Toolkit.Paths.psm1') -DisableNameChec
 function Assert-HL7EndpointProfile {
     param([object]$Profile)
     if ($null -eq $Profile -or $Profile -is [Array]) { throw 'PROFILE_OBJECT_REQUIRED' }
-    $allowed = @('schema','id','label','environment','host','port','connectTimeoutMs','responseTimeoutMs','encoding','startByte','endBytes','notes')
+    $allowed = @('schema','id','label','environment','type','host','port','callingAe','calledAe','connectTimeoutMs','responseTimeoutMs','encoding','startByte','endBytes','notes')
     foreach ($name in (Get-HL7PropertyNames $Profile)) { if ($name -notin $allowed) { throw 'PROFILE_PROPERTY_REJECTED' } }
     if ((Get-HL7PropertyValue $Profile 'schema') -ne 'hl7-toolkit.endpoint-profile.v1') { throw 'PROFILE_SCHEMA_REJECTED' }
     $clean = [ordered]@{ schema = 'hl7-toolkit.endpoint-profile.v1' }
     foreach ($name in @('id','label','environment','host','encoding','notes')) {
         $value = Get-HL7PropertyValue $Profile $name ''
         if ($value -isnot [string]) { throw 'PROFILE_TEXT_REJECTED' }
+        $clean[$name] = $value.Trim()
+    }
+    $clean['type'] = Get-HL7PropertyValue $Profile 'type' 'mllp'
+    if ($clean.type -isnot [string] -or $clean.type -notin @('tcp','dicom','http','https','mllp')) { throw 'PROFILE_TYPE_REJECTED' }
+    foreach ($name in @('callingAe','calledAe')) {
+        $value = Get-HL7PropertyValue $Profile $name ''
+        if ($value -isnot [string] -or $value.Length -gt 16 -or $value -match '[^ -~\\]' -or $value -match '\\') { throw 'PROFILE_AE_REJECTED' }
         $clean[$name] = $value.Trim()
     }
     if ($clean.id -notmatch '^[a-z0-9][a-z0-9-]{0,63}$') { throw 'PROFILE_ID_REJECTED' }
@@ -83,4 +90,47 @@ function Remove-HL7EndpointProfile {
     return [pscustomobject]@{ deleted = $exists }
 }
 
-Export-ModuleMember -Function Assert-HL7EndpointProfile, Save-HL7EndpointProfile, Get-HL7EndpointProfiles, Remove-HL7EndpointProfile
+function Get-HL7DiagnosticBaselinePath {
+    param([string]$DataRoot, [string]$ProfileId)
+    if ($ProfileId -notmatch '^[a-z0-9][a-z0-9-]{0,63}$') { throw 'DIAGNOSTIC_BASELINE_ID_REJECTED' }
+    $folder = [IO.Path]::GetFullPath((Join-Path $DataRoot 'diagnostic-baselines')).TrimEnd('\') + '\'
+    $target = [IO.Path]::GetFullPath((Join-Path $folder ($ProfileId + '.json')))
+    if (-not $target.StartsWith($folder, [StringComparison]::OrdinalIgnoreCase)) { throw 'DIAGNOSTIC_BASELINE_ID_REJECTED' }
+    Assert-HL7LocalDataPath -Root $DataRoot -Target $target
+    return $target
+}
+
+function Assert-HL7DiagnosticBaseline {
+    param([object]$Baseline)
+    if ($null -eq $Baseline -or $Baseline -is [Array]) { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+    $allowed = @('schema','profileId','type','endpoint','savedAt','classification','totalMs','layers','certificateDaysUntilExpiration','tlsVersion','httpStatus','acknowledgmentCode')
+    foreach ($name in (Get-HL7PropertyNames $Baseline)) { if ($name -notin $allowed) { throw 'DIAGNOSTIC_BASELINE_REJECTED' } }
+    if ((Get-HL7PropertyValue $Baseline 'schema') -ne 'kairo.diagnostic-baseline.v1' -or (Get-HL7PropertyValue $Baseline 'profileId') -notmatch '^[a-z0-9][a-z0-9-]{0,63}$' -or (Get-HL7PropertyValue $Baseline 'type') -notin @('tcp','dicom','http','https','mllp')) { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+    if ((Get-HL7PropertyValue $Baseline 'classification') -notmatch '^[A-Z0-9_]{1,64}$' -or (Get-HL7PropertyValue $Baseline 'savedAt') -isnot [string]) { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+    $total = Get-HL7PropertyValue $Baseline 'totalMs'; if ($total -isnot [ValueType] -or $total -lt 0 -or $total -gt 600000) { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+    $endpoint = Get-HL7PropertyValue $Baseline 'endpoint'; $layers = Get-HL7PropertyValue $Baseline 'layers'
+    if ($null -eq $endpoint -or $null -eq $layers -or (Get-HL7PropertyValue $endpoint 'label') -isnot [string] -or (Get-HL7PropertyValue $endpoint 'host') -isnot [string]) { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+    foreach ($name in (Get-HL7PropertyNames $layers)) {
+        if ($name -notin @('dns','tcp','association','echo','tls','http','mllp','ack','application')) { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+        $layer = Get-HL7PropertyValue $layers $name; $code = Get-HL7PropertyValue $layer 'code'; $elapsed = Get-HL7PropertyValue $layer 'elapsedMs'
+        if ($code -isnot [string] -or $code -notmatch '^[A-Z0-9_]{1,64}$' -or $elapsed -isnot [ValueType] -or $elapsed -lt 0 -or $elapsed -gt 600000) { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+    }
+    return $Baseline
+}
+
+function Save-HL7DiagnosticBaseline {
+    param([string]$DataRoot, [object]$Baseline)
+    $clean = Assert-HL7DiagnosticBaseline $Baseline; $target = Get-HL7DiagnosticBaselinePath -DataRoot $DataRoot -ProfileId $clean.profileId
+    Write-HL7AtomicJson -Path $target -Value $clean
+    return $clean
+}
+
+function Get-HL7DiagnosticBaseline {
+    param([string]$DataRoot, [string]$ProfileId)
+    $target = Get-HL7DiagnosticBaselinePath -DataRoot $DataRoot -ProfileId $ProfileId
+    if (-not [IO.File]::Exists($target)) { return [pscustomobject]@{ baseline = $null } }
+    try { return [pscustomobject]@{ baseline = Assert-HL7DiagnosticBaseline ([IO.File]::ReadAllText($target) | ConvertFrom-Json) } }
+    catch { throw 'DIAGNOSTIC_BASELINE_REJECTED' }
+}
+
+Export-ModuleMember -Function Assert-HL7EndpointProfile, Save-HL7EndpointProfile, Get-HL7EndpointProfiles, Remove-HL7EndpointProfile, Save-HL7DiagnosticBaseline, Get-HL7DiagnosticBaseline

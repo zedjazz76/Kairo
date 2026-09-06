@@ -39,6 +39,14 @@ Using synthetic data only:
 
 These remaining observations are a release-acceptance limitation, not an automated test failure. Production PHI use is not approved by this report.
 
+## Stage Five final checkpoint — September 6, 2026
+
+The additive final checkpoint adds local diagnostic endpoint profiles, successful-result known-good baselines, meaningful-change comparison, and conservative evidence correlation to the existing Diagnostics workspace. Browser-side focused tests cover profile create/select/edit/delete behavior, allowlisted baseline construction and DICOM/HTTPS/MLLP comparisons, and transport/association/application correlation boundaries. The modified JavaScript modules pass `node --check`.
+
+Final manual acceptance passed through the real Windows Kairo UI under the standard-user-only boundary. Profile create/select/edit/delete worked, and selecting a profile populated the existing diagnostic controls without starting a run. A successful DICOM result was saved and reloaded as a known-good baseline. A controlled wrong-port rerun changed the TCP evidence from `TCP_CONNECTED` to `CONNECTION_REFUSED`; comparison correctly identified TCP as the first changed layer. The evidence summary displayed OBSERVED, LIKELY BOUNDARY, MISSING EVIDENCE, and NEXT CHECK, with conservative evidence-based guidance. Standard-user-only behavior remained intact.
+
+The final Linux-side targeted rerun remains limited to browser modules because this host has no `powershell.exe`; the accepted real Windows UI workflow supplies the required final manual checkpoint. Stage Five is complete. Stage Six has not started.
+
 ## Stage Four bounded DICOM file-selection repair — September 5, 2026
 
 Checkout baseline: `9bb43b9` on `kairo-v1`. The validation baseline JSON was present; the supplied continuation's Transfer Syntax display and startup-diagnostic improvements were not present in this checkout. Startup behavior was left outside this repair.

@@ -80,3 +80,19 @@ test('MLLP UI previews the destination and separates reachability from one synth
   await root.querySelector('#diagnostic-mllp-send').listeners.click(); assert.equal(requests[1].body.mode, 'mllp-synthetic'); assert.match(root.querySelector('#diagnostic-mllp-layer-ack').textContent, /ACK_RECEIVED/); assert.match(root.querySelector('#diagnostic-mllp-layer-application').textContent, /APPLICATION_ERROR/);
   assert.match(root.querySelector('#diagnostic-mllp-ack').textContent, /AE.*KAIRO-SYNTH-1234.*correlated.*Synthetic validation error.*Synthetic diagnostic/); assert.equal(requests.length, 2);
 });
+
+test('diagnostic endpoint profiles load locally, fill existing controls, save edits and delete explicitly', async () => {
+  const nodes = new Map();
+  const makeNode = () => ({ value: '', textContent: '', children: [], listeners: {}, reportValidity: () => true, addEventListener(type, fn) { this.listeners[type] = fn; }, replaceChildren(...items) { this.children = items; }, append(item) { this.children.push(item); } });
+  const root = { querySelector(selector) { if (!nodes.has(selector)) nodes.set(selector, makeNode()); return nodes.get(selector); }, createElement() { return makeNode(); } };
+  const profile = { schema: 'hl7-toolkit.endpoint-profile.v1', id: 'orthanc-test', label: 'CSOL Orthanc', environment: 'Test', type: 'dicom', host: '100.106.197.58', port: 4242, callingAe: 'KAIROTEST', calledAe: 'ORTHANC', notes: 'Controlled test endpoint', connectTimeoutMs: 3000, responseTimeoutMs: 3000, encoding: 'utf-8', startByte: 11, endBytes: [28, 13] };
+  const requests = [];
+  mountDiagnostics(root, { request: async (path, request = {}) => { requests.push({ path, ...request }); if (!request.method) return { profiles: [profile], invalidCount: 0 }; if (request.method === 'POST') return request.body.profile; return { deleted: true }; } });
+  await root.querySelector('#diagnostic-profile-load').listeners.click();
+  assert.equal(root.querySelector('#diagnostic-profile-select').children.length, 2);
+  root.querySelector('#diagnostic-profile-select').value = 'orthanc-test'; root.querySelector('#diagnostic-profile-select').listeners.change();
+  assert.equal(root.querySelector('#diagnostic-host').value, '100.106.197.58'); assert.equal(root.querySelector('#diagnostic-port').value, 4242); assert.equal(root.querySelector('#diagnostic-calling').value, 'KAIROTEST'); assert.equal(root.querySelector('#diagnostic-called').value, 'ORTHANC');
+  root.querySelector('#diagnostic-profile-name').value = 'Updated Orthanc'; await root.querySelector('#diagnostic-profile-save').listeners.click();
+  const saved = requests.find(request => request.method === 'POST'); assert.equal(saved.body.profile.type, 'dicom'); assert.equal(saved.body.profile.label, 'Updated Orthanc');
+  await root.querySelector('#diagnostic-profile-delete').listeners.click(); const deleted = requests.find(request => request.method === 'DELETE'); assert.equal(deleted.body.id, 'orthanc-test');
+});

@@ -2,11 +2,21 @@
 
 Status: product direction approved by the user, September 5, 2026. Additive to the accepted Stage 1–4 toolkit. The prior direction blocker at `32888b4` is resolved by that approval.
 
+Final Stage Five Windows manual acceptance passed September 6, 2026, using the real Kairo UI under the standard-user-only operating boundary.
+
 ## Objective and scope
 
 Provide local, analyst-initiated live evidence to distinguish DNS, network, protocol negotiation, and application failures. Approved Stage Five scope comprises TCP; HTTP/HTTPS status, redirects, safe headers and TLS/certificate inspection; DICOM Verification/C-ECHO; safe MLLP reachability and ACK interpretation; technical endpoint profiles; known-good baseline comparison; and correlation with artifact evidence that separates observations, inferences and missing evidence.
 
-The first checkpoint implements **TCP and DICOM C-ECHO only**, reachable in the existing Kairo navigation. Defer the other capabilities. Do not begin Stage Six.
+Stage Five now implements the approved capabilities in the existing Kairo navigation: TCP, DICOM C-ECHO, HTTP/HTTPS/TLS, safe HL7/MLLP diagnostics, local technical endpoint profiles, known-good baseline comparison, and conservative evidence correlation. Do not begin Stage Six.
+
+## Final checkpoint contract
+
+Endpoint profiles remain local application data and contain technical routing values only: friendly name, diagnostic type, host, port, optional DICOM Calling/Called AE titles, environment label, and nonclinical notes. TCP, DICOM, HTTP, HTTPS, and MLLP are supported. Profiles never contain credentials, certificates, messages, or PHI; create, edit, select, and delete are explicit user actions.
+
+A user may save only a complete successful diagnostic as the known-good baseline for the selected matching profile. Baselines retain allowlisted technical classifications, layer timings, endpoint identity, and protocol-specific certificate or ACK facts. A later matching run reports the first changed protocol layer plus meaningful certificate, ACK, or material timing changes; unchanged fields are not dumped.
+
+Evidence correlation uses only evidence already present in the active Kairo session: the current diagnostic, a loaded baseline comparison, the existing HL7 validation summary, and availability of DICOM metadata findings. It separates directly observed facts from a best-supported likely boundary, missing evidence, and the smallest useful next check. It must use qualified language and must not claim workflow success from reachability alone.
 
 ## First checkpoint contract
 

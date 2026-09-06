@@ -62,6 +62,12 @@ MLLP is **not encrypted** in Phase 1. Use only authorized destinations over an a
 
 The toolkit reads the first framed response and shows MSA/ERR details. It does not automatically wait for a separate later application acknowledgment in enhanced acknowledgment workflows. One confirmation produces at most one transmission attempt. Reusing the same request identifier is rejected by the helper.
 
+## Diagnose an endpoint
+
+Open **Diagnostics**, load or create a local endpoint profile, and choose the existing explicit diagnostic action for TCP, DICOM, HTTP/HTTPS, or HL7/MLLP. Selecting a profile fills the matching controls but never starts network activity. Profiles contain technical endpoint settings only and stay in Kairo's local data folder; do not put credentials, PHI, secrets, certificates, or message content in names or notes.
+
+After a complete successful diagnostic, choose **Save successful result as baseline**. On a later matching run, load the profile baseline to see only meaningful layer, certificate, ACK, or timing changes. Choose **Summarize troubleshooting evidence** to see observed facts, a qualified likely boundary, missing evidence, and the smallest useful next check. A correlation summary is guidance, not certainty, and endpoint reachability does not prove the affected clinical workflow.
+
 ## Saved history
 
 Sanitized snapshots are saved automatically during import and after applied edits, comparisons you explicitly save, and reviewed copy/send actions. Saving sanitized content immediately avoids relying on browser shutdown to remove PHI from a raw log.
