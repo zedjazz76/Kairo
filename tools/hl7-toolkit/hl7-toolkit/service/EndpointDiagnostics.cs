@@ -18,8 +18,10 @@ namespace Kairo.Diagnostics {
         public string mode, host, timestamp, resolvedAddress = "", classification = "FAILED";
         public int port;
         public long elapsedMs;
-        public Layer dns = new Layer(), tcp = new Layer(), association = new Layer(), echo = new Layer();
+        public Layer dns = new Layer(), tcp = new Layer(), association = new Layer(), echo = new Layer(), mllp = new Layer(), ack = new Layer(), application = new Layer();
         public string release = "NOT_RUN", echoStatus = "";
+        public string messageControlId = "", acknowledgmentCode = "", acknowledgedControlId = "", acknowledgmentText = "", acknowledgmentError = "";
+        public bool controlIdCorrelated;
         public int? rejectionResult, rejectionSource, rejectionReason;
     }
     public static class EndpointProbe {
@@ -38,7 +40,7 @@ namespace Kairo.Diagnostics {
             return "NETWORK_ERROR";
         }
         static void Validate(string mode, string host, int port, int timeout, string calling, string called) {
-            if ((mode != "tcp" && mode != "dicom") || String.IsNullOrWhiteSpace(host) || host.Length > 253 || host != host.Trim() ||
+            if ((mode != "tcp" && mode != "dicom" && mode != "mllp" && mode != "mllp-synthetic") || String.IsNullOrWhiteSpace(host) || host.Length > 253 || host != host.Trim() ||
                 Uri.CheckHostName(host) == UriHostNameType.Unknown || port < 1 || port > 65535 || timeout < 100 || timeout > 10000)
                 throw new ArgumentException("DIAGNOSTIC_INPUT_REJECTED");
             if (mode == "dicom") {
@@ -167,6 +169,50 @@ namespace Kairo.Diagnostics {
                 return BitConverter.ToUInt16(values[0x900], 0);
             }
         }
+        static void SyntheticMllp(NetworkStream stream, int timeout, Result result) {
+            string controlId = "KAIRO-SYNTH-" + Guid.NewGuid().ToString("N").Substring(0, 16).ToUpperInvariant();
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss"); result.messageControlId = controlId;
+            string message = "MSH|^~\\&|KAIRO_SYNTHETIC|KAIRO_TEST|MLLP_DIAGNOSTIC|AUTHORIZED_ENDPOINT|" + timestamp + "||ADT^A01|" + controlId + "|P|2.5\r" +
+                "EVN|A01|" + timestamp + "\rPID|1||KAIRO-SYNTHETIC-TEST-ID||TEST^PATIENT^^^^^SYNTHETIC||19000101|U\rPV1|1|O\r";
+            byte[] payload = Encoding.UTF8.GetBytes(message), frame = new byte[payload.Length + 3];
+            frame[0] = 11; Buffer.BlockCopy(payload, 0, frame, 1, payload.Length); frame[frame.Length - 2] = 28; frame[frame.Length - 1] = 13;
+            var phase = Stopwatch.StartNew(); stream.WriteTimeout = timeout; stream.Write(frame, 0, frame.Length); stream.Flush();
+            result.mllp.Set("SUCCESS", "MLLP_MESSAGE_SENT", "One generated synthetic HL7 message was sent in one MLLP frame. No loaded message or patient data was used.", phase.ElapsedMilliseconds);
+            phase.Restart(); stream.ReadTimeout = timeout;
+            using (var response = new MemoryStream()) {
+                try {
+                    if (stream.ReadByte() != 11) throw new ProtocolFailure("MALFORMED_ACK", "The peer response was not an MLLP-framed acknowledgment.");
+                    int previous = -1;
+                    while (response.Length <= 1048576) {
+                        int value = stream.ReadByte(); if (value < 0) throw new ProtocolFailure("INCOMPLETE_ACK", "The peer closed before a complete MLLP acknowledgment arrived.");
+                        if (previous == 28 && value == 13) { response.SetLength(response.Length - 1); break; }
+                        response.WriteByte((byte)value); previous = value;
+                    }
+                } catch (IOException error) {
+                    if (Classify(error) == "TIMEOUT") throw new ProtocolFailure("ACK_TIMEOUT", "The synthetic message was sent, but no complete acknowledgment arrived within the timeout.");
+                    throw;
+                }
+                if (response.Length > 1048576) throw new ProtocolFailure("ACK_TOO_LARGE", "The acknowledgment exceeded the diagnostic size limit.");
+                string text;
+                try { text = new UTF8Encoding(false, true).GetString(response.ToArray()); } catch { throw new ProtocolFailure("MALFORMED_ACK", "The acknowledgment was not valid UTF-8."); }
+                string msa = null, errorText = ""; int msaCount = 0;
+                foreach (string segment in text.Split(new char[] { '\r' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    if (segment.StartsWith("MSA|", StringComparison.Ordinal)) { msa = segment; msaCount += 1; }
+                    if (segment.StartsWith("ERR|", StringComparison.Ordinal) && errorText.Length == 0) errorText = segment.Length > 4 ? segment.Substring(4) : "ERR returned without detail";
+                }
+                if (!text.StartsWith("MSH|", StringComparison.Ordinal) || msaCount != 1) throw new ProtocolFailure("MALFORMED_ACK", "A framed response arrived, but it did not contain exactly one MSH and one MSA segment.");
+                string[] fields = msa.Split(new char[] { '|' });
+                if (fields.Length < 3 || String.IsNullOrWhiteSpace(fields[1]) || String.IsNullOrWhiteSpace(fields[2])) throw new ProtocolFailure("MALFORMED_ACK", "The MSA code or acknowledged control ID was missing.");
+                result.acknowledgmentCode = fields[1]; result.acknowledgedControlId = fields[2]; result.acknowledgmentText = fields.Length > 3 ? fields[3] : ""; result.acknowledgmentError = errorText;
+                result.controlIdCorrelated = result.acknowledgedControlId == controlId;
+                result.ack.Set("SUCCESS", "ACK_RECEIVED", "One bounded MLLP response containing an MSA acknowledgment was received.", phase.ElapsedMilliseconds);
+                if (!result.controlIdCorrelated) { result.application.Set("FAILED", "ACK_MISMATCH", "The MSA control ID does not match the synthetic message. Application status is not confirmed.", 0); result.classification = "ACK_MISMATCH"; return; }
+                string classification = result.acknowledgmentCode == "AA" ? "APPLICATION_ACCEPT" : result.acknowledgmentCode == "AE" ? "APPLICATION_ERROR" : result.acknowledgmentCode == "AR" ? "APPLICATION_REJECT" : "APPLICATION_NOT_CONFIRMED";
+                string state = result.acknowledgmentCode == "AA" ? "SUCCESS" : result.acknowledgmentCode == "AE" || result.acknowledgmentCode == "AR" ? "FAILED" : "INDETERMINATE";
+                string detail = classification == "APPLICATION_ACCEPT" ? "AA: the application accepted the correlated synthetic message." : classification == "APPLICATION_ERROR" ? "AE: the application reported an error for the correlated synthetic message." : classification == "APPLICATION_REJECT" ? "AR: the application rejected the correlated synthetic message." : "The correlated acknowledgment used a code other than AA, AE or AR; application status is not confirmed.";
+                result.application.Set(state, classification, detail, 0); result.classification = classification;
+            }
+        }
         public static Result Run(string mode, string host, int port, int timeout, string calling, string called) {
             Validate(mode, host, port, timeout, calling, called);
             var result = new Result { mode = mode, host = host, port = port, timestamp = DateTime.UtcNow.ToString("o") };
@@ -197,6 +243,8 @@ namespace Kairo.Diagnostics {
                 } finally { connect.AsyncWaitHandle.Close(); }
                 layer.Set("SUCCESS", "TCP_CONNECTED", "TCP accepted a connection. This alone does not verify DICOM or HL7 application behavior.", phase.ElapsedMilliseconds);
                 result.classification = "TCP_CONNECTED";
+                if (mode == "mllp") result.mllp.Set("INDETERMINATE", "MLLP_NOT_VERIFIED", "TCP connected with zero application bytes sent. This does not establish that an HL7/MLLP receiver is functioning.", 0);
+                if (mode == "mllp-synthetic") { layer = result.mllp; phase.Restart(); SyntheticMllp(client.GetStream(), timeout, result); }
                 if (mode == "dicom") {
                     var stream = client.GetStream();
                     layer = result.association; phase.Restart();
@@ -218,6 +266,7 @@ namespace Kairo.Diagnostics {
             } catch (Exception error) {
                 var protocol = error as ProtocolFailure;
                 string code = protocol == null ? Classify(error) : protocol.code;
+                if (mode == "mllp-synthetic" && result.mllp.code == "MLLP_MESSAGE_SENT") layer = result.ack;
                 if (layer == result.dns) code = code == "TIMEOUT" ? "DNS_TIMEOUT" : "DNS_FAILED";
                 string meaning = code == "CONNECTION_REFUSED" ? "The address responded but did not accept this TCP connection; a listener or network policy may be refusing it." :
                     code == "TIMEOUT" || code == "DNS_TIMEOUT" ? "No completion within the configured layer timeout. Filtering, routing or endpoint delay may be involved." :

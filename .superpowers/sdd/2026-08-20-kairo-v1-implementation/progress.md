@@ -581,3 +581,15 @@ Certificate callback evidence is copied while valid and specific policy/chain fa
 Real user verification through the normal Kairo UI passed: `https://google.com` reached DNS, TCP, TLS and `HTTP_RESPONSE` with hostname validation and certificate details; `https://expired.badssl.com` stopped at `TLS_CERTIFICATE_EXPIRED`; `https://wrong.host.badssl.com` stopped at `TLS_CERTIFICATE_HOSTNAME_MISMATCH`. Both negative cases left HTTP `NOT_RUN`. The managed agent environment could not launch Windows PowerShell through WSL, so its service-level test invocation remained environment-blocked; focused browser-module tests and syntax/diff checks passed before checkpointing.
 
 Next approved Stage Five task: safe HL7/MLLP diagnostics. Profiles, baselines, evidence correlation, and Stage Six remain unstarted.
+
+## Stage Five safe HL7/MLLP diagnostics checkpoint
+
+2026-09-06 added two explicit actions to the existing Diagnostics workspace. **Safe reachability** resolves one supplied host, opens one TCP connection to the selected address, sends zero bytes, and reports `MLLP_NOT_VERIFIED` so TCP success is never presented as HL7 success. **Synthetic send** displays the exact entered destination and, only after its own button click, generates one test-only ADT message with `KAIRO_SYNTHETIC`, `KAIRO-SYNTHETIC-TEST-ID`, and `TEST^PATIENT` identifiers. It sends one UTF-8 frame using `0x0B … 0x1C 0x0D`, reads one response bounded to 1 MiB and the selected timeout, and never uses imported message content or retries.
+
+Results preserve DNS → TCP → MLLP message → ACK → application layers. A returned MSA exposes MSA-1, MSA-2 correlation with the generated MSH-10, bounded MSA text and the first ERR detail. Correlated AA, AE and AR map to `APPLICATION_ACCEPT`, `APPLICATION_ERROR` and `APPLICATION_REJECT`; missing, incomplete, malformed, oversized and mismatched acknowledgments do not claim application success.
+
+Real user verification through the normal Kairo Diagnostics UI passed over an SSH tunnel at `127.0.0.1:16661` to the controlled CSOL NextGen Connect receiver on the CSOL Mac at `127.0.0.1:6661`. The observed result was DNS `SUCCESS / NOT_REQUIRED`, TCP `SUCCESS / TCP_CONNECTED`, MLLP `SUCCESS / MLLP_MESSAGE_SENT`, ACK `SUCCESS / ACK_RECEIVED`, and application `SUCCESS / APPLICATION_ACCEPT`. MSA-1 was `AA`; sent MSH-10 and returned MSA-2 both equaled `KAIRO-SYNTH-5E2C87830B1941B5`, confirming successful correlation and acceptance of the generated synthetic test message.
+
+Focused UI tests pass locally. The managed WSL environment cannot launch Windows PowerShell, so the service-backed automated MLLP test remains environment-blocked; the real Windows UI acceptance above verifies the current production path.
+
+This addition uses ordinary standard-user DNS/TCP streams against one explicitly entered endpoint. It adds no listener, scan, discovery, retry loop, elevation, system change, capture, raw socket, persistence, profile/baseline/correlation work, or Stage Six work.

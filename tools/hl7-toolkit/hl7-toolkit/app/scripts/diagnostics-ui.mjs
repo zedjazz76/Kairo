@@ -52,4 +52,22 @@ export function mountDiagnostics(root, api) {
     } catch { $('#diagnostic-http-summary').textContent = 'HTTP / TLS diagnostic request failed. Check the URL and timeout, and confirm the local helper is running.'; resetHttp(); }
     finally { busy = false; for (const id of ['target', 'timeout', 'run']) $('#diagnostic-http-' + id).disabled = false; }
   });
+  const mllpLayers = [['dns', 'DNS'], ['tcp', 'TCP'], ['mllp', 'MLLP message'], ['ack', 'ACK'], ['application', 'Application']]; const mllpControls = ['host', 'port', 'timeout', 'check', 'send'];
+  const resetMllp = () => { for (const [id, label] of mllpLayers) $('#diagnostic-mllp-layer-' + id).textContent = label + ': NOT_RUN'; $('#diagnostic-mllp-ack').textContent = 'ACK evidence: NOT_AVAILABLE'; };
+  const showDestination = () => { const host = $('#diagnostic-mllp-host').value.trim(), port = $('#diagnostic-mllp-port').value; $('#diagnostic-mllp-destination').textContent = host && port ? 'Destination: ' + host + ':' + port + '. Verify this exact endpoint before either action.' : 'Destination: enter a host and port.'; };
+  resetMllp(); showDestination(); $('#diagnostic-mllp-form').addEventListener('submit', event => event.preventDefault()); $('#diagnostic-mllp-host').addEventListener('input', showDestination); $('#diagnostic-mllp-port').addEventListener('input', showDestination);
+  async function runMllp(mode) {
+    if (busy || !$('#diagnostic-mllp-form').reportValidity()) return;
+    const body = { mode, host: $('#diagnostic-mllp-host').value.trim(), port: Number($('#diagnostic-mllp-port').value), timeoutMs: Number($('#diagnostic-mllp-timeout').value) };
+    busy = true; mllpControls.forEach(id => { $('#diagnostic-mllp-' + id).disabled = true; }); resetMllp();
+    $('#diagnostic-mllp-summary').textContent = mode === 'mllp' ? 'Opening one zero-payload connection to ' + body.host + ':' + body.port + '…' : 'Sending one generated synthetic message to ' + body.host + ':' + body.port + '…';
+    try {
+      const result = await api.request('/api/diagnostics/run', { method: 'POST', body });
+      $('#diagnostic-mllp-summary').textContent = result.classification + ' · ' + result.host + ':' + result.port + ' · Address: ' + (result.resolvedAddress || 'not resolved') + ' · ' + result.elapsedMs + ' ms total · ' + result.timestamp;
+      for (const [id, label] of mllpLayers) { const layer = result[id]; $('#diagnostic-mllp-layer-' + id).textContent = label + ': ' + layer.state + ' · ' + layer.code + ' · ' + layer.elapsedMs + ' ms — ' + layer.detail; }
+      if (result.acknowledgmentCode) $('#diagnostic-mllp-ack').textContent = 'ACK evidence: MSA-1 ' + result.acknowledgmentCode + ' · sent MSH-10 ' + result.messageControlId + ' · returned MSA-2 ' + result.acknowledgedControlId + ' · ' + (result.controlIdCorrelated ? 'correlated' : 'NOT CORRELATED') + (result.acknowledgmentText ? ' · MSA text: ' + result.acknowledgmentText : '') + (result.acknowledgmentError ? ' · ERR: ' + result.acknowledgmentError : '');
+    } catch { $('#diagnostic-mllp-summary').textContent = 'HL7 / MLLP diagnostic request failed. Check the host, port and timeout, and confirm the local helper is running.'; resetMllp(); }
+    finally { busy = false; mllpControls.forEach(id => { $('#diagnostic-mllp-' + id).disabled = false; }); }
+  }
+  $('#diagnostic-mllp-check').addEventListener('click', () => runMllp('mllp')); $('#diagnostic-mllp-send').addEventListener('click', () => runMllp('mllp-synthetic'));
 }

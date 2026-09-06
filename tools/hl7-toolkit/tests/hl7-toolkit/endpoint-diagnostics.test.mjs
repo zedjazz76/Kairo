@@ -126,6 +126,39 @@ test('authenticated TCP diagnostics classify real connections and reject invalid
   } finally { if (peer) { try { await peer.close(); } catch {} } await service.stop(); }
 });
 
+test('MLLP diagnostics separate zero-byte reachability from one synthetic send and correlated AA AE AR acknowledgments', async () => {
+  const service = await startService(); const run = body => service.request('/api/diagnostics/run', { method: 'POST', body });
+  let reachabilityBytes = 0;
+  const reachabilityPeer = await listener(socket => socket.on('data', data => { reachabilityBytes += data.length; }));
+  try {
+    const reachable = await run({ mode: 'mllp', host: '127.0.0.1', port: reachabilityPeer.port, timeoutMs: 500 });
+    assert.equal(reachable.data.classification, 'TCP_CONNECTED'); assert.equal(reachable.data.tcp.code, 'TCP_CONNECTED');
+    assert.equal(reachable.data.mllp.code, 'MLLP_NOT_VERIFIED'); assert.equal(reachable.data.mllp.state, 'INDETERMINATE'); assert.equal(reachabilityBytes, 0);
+    await reachabilityPeer.close();
+    for (const [ackCode, expected] of [['AA', 'APPLICATION_ACCEPT'], ['AE', 'APPLICATION_ERROR'], ['AR', 'APPLICATION_REJECT']]) {
+      let connections = 0; let sent = Buffer.alloc(0);
+      const peer = await listener(socket => { connections += 1; socket.on('data', data => {
+        sent = Buffer.concat([sent, data]); if (!sent.subarray(-2).equals(Buffer.from([0x1c, 0x0d]))) return;
+        assert.equal(sent[0], 0x0b); const message = sent.subarray(1, -2).toString('utf8'); const controlId = message.split('\r')[0].split('|')[9];
+        const err = ackCode === 'AE' ? 'ERR||PID^3^1|101^Synthetic ID rejected^HL70357|E|||Synthetic diagnostic|Synthetic user message\r' : '';
+        socket.end(`\x0bMSH|^~\\&|SYNTHETIC_RECEIVER|TEST|KAIRO_SYNTHETIC|KAIRO_TEST|20260906120000||ACK^A01|ACK-${controlId}|P|2.5\rMSA|${ackCode}|${controlId}|Synthetic ${ackCode} result\r${err}\x1c\r`);
+      }); });
+      try {
+        const result = await run({ mode: 'mllp-synthetic', host: '127.0.0.1', port: peer.port, timeoutMs: 1000 });
+        assert.equal(result.data.tcp.code, 'TCP_CONNECTED'); assert.equal(result.data.mllp.code, 'MLLP_MESSAGE_SENT'); assert.equal(result.data.ack.code, 'ACK_RECEIVED');
+        assert.equal(result.data.application.code, expected); assert.equal(result.data.acknowledgmentCode, ackCode); assert.equal(result.data.acknowledgedControlId, result.data.messageControlId); assert.equal(result.data.controlIdCorrelated, true);
+        assert.match(result.data.acknowledgmentText, new RegExp(`Synthetic ${ackCode}`)); if (ackCode === 'AE') assert.match(result.data.acknowledgmentError, /Synthetic diagnostic/);
+        assert.match(sent.toString('utf8'), /KAIRO-SYNTHETIC-TEST-ID.*TEST\^PATIENT/); assert.equal(connections, 1);
+      } finally { await peer.close(); }
+    }
+    const silentPeer = await listener(() => {});
+    try {
+      const missing = await run({ mode: 'mllp-synthetic', host: '127.0.0.1', port: silentPeer.port, timeoutMs: 100 });
+      assert.equal(missing.data.mllp.code, 'MLLP_MESSAGE_SENT'); assert.equal(missing.data.ack.code, 'ACK_TIMEOUT'); assert.equal(missing.data.application.state, 'NOT_RUN');
+    } finally { await silentPeer.close(); }
+  } finally { try { await reachabilityPeer.close(); } catch {} await service.stop(); }
+});
+
 import { startDicomPeer } from './helpers/dicom-peer.mjs';
 test('blocked diagnostic compilation preserves the existing launcher and reports unavailability', async () => {
   const service = await startService({ launcher: 'tests/hl7-toolkit/helpers/diagnostics-policy-block.ps1' });

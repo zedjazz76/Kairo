@@ -105,6 +105,22 @@
       <p id="diagnostic-http-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-http-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-http-layer-tls">TLS: NOT_RUN</p><p id="diagnostic-http-layer-http">HTTP: NOT_RUN</p>
       <p id="diagnostic-http-certificate">Certificate: NOT_AVAILABLE</p><p id="diagnostic-http-tls-evidence">TLS evidence: NOT_AVAILABLE</p><p id="diagnostic-http-response">HTTP evidence: NOT_AVAILABLE</p>
     </div>
+    <form id="diagnostic-mllp-form" class="card">
+      <h2>HL7 / MLLP</h2>
+      <label for="diagnostic-mllp-host">Hostname or IP address</label><input id="diagnostic-mllp-host" required maxlength="253" placeholder="hl7.example" autocomplete="off" spellcheck="false">
+      <label for="diagnostic-mllp-port">Port</label><input id="diagnostic-mllp-port" type="number" required min="1" max="65535" value="2575">
+      <label for="diagnostic-mllp-timeout">Timeout per layer (ms)</label><input id="diagnostic-mllp-timeout" type="number" required min="100" max="10000" value="3000">
+      <p id="diagnostic-mllp-destination">Destination: enter a host and port.</p>
+      <p><strong>Safe reachability</strong> opens one TCP connection and sends zero bytes. TCP success alone does not verify an HL7/MLLP receiver.</p>
+      <button id="diagnostic-mllp-check" type="button">Check safe MLLP reachability</button>
+      <p><strong>Synthetic send</strong> sends exactly one generated ADT test message with KAIRO-SYNTHETIC and TEST PATIENT identifiers. It never uses imported HL7 content or retries automatically.</p>
+      <button id="diagnostic-mllp-send" type="button" class="primary">Send one synthetic MLLP test</button>
+    </form>
+    <div class="card" role="status" aria-live="polite" aria-atomic="true">
+      <h2>DNS → TCP → MLLP message → ACK → application</h2><p id="diagnostic-mllp-summary">Enter an authorized destination and choose one action. Nothing is sent automatically.</p>
+      <p id="diagnostic-mllp-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-mllp-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-mllp-layer-mllp">MLLP message: NOT_RUN</p><p id="diagnostic-mllp-layer-ack">ACK: NOT_RUN</p><p id="diagnostic-mllp-layer-application">Application: NOT_RUN</p>
+      <p id="diagnostic-mllp-ack">ACK evidence: NOT_AVAILABLE</p><p>AA means application accept, AE means application error, and AR means application reject. A correlated AA does not independently prove downstream clinical processing.</p>
+    </div>
   </section>
   <section data-workspace="send" hidden>
     <div class="page-heading compact"><p class="eyebrow">Outbound MLLP</p><h1>One message at a time.</h1><p>No queue, scheduled sending, or automatic retries. A connection check sends no HL7, but the destination may record the connection.</p></div>
