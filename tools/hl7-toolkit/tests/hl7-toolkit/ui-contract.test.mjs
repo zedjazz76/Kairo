@@ -48,3 +48,25 @@ test('validation workspace exposes a session-only local profile loader', () => {
   assert.match(html, /id="validation-profile-file"/);
   assert.match(html, /id="validation-profile-status"[^>]*aria-live="polite"/);
 });
+
+test('Diagnostics contains the explicit DICOM Modality Worklist form', () => {
+  const html = readFileSync('hl7-toolkit/app/index.html', 'utf8');
+  const diagnostics = html.match(/<section data-workspace="diagnostics"[\s\S]*?<section data-workspace="send"/)[0];
+  for (const id of ['mwl-profile-select', 'mwl-host', 'mwl-port', 'mwl-calling', 'mwl-called', 'mwl-scheduled-date', 'mwl-modality', 'mwl-station-ae', 'mwl-patient-id', 'mwl-accession', 'mwl-requested-procedure-id', 'mwl-requested-procedure-description', 'mwl-procedure-code', 'mwl-procedure-scheme', 'mwl-location', 'mwl-run', 'mwl-clear']) {
+    assert.match(diagnostics, new RegExp(`id="${id}"`), `Missing MWL control: ${id}`);
+  }
+  assert.match(diagnostics, /Run MWL C-FIND/);
+  assert.match(diagnostics, /session-only/i);
+  const app = readFileSync('hl7-toolkit/app/scripts/app.mjs', 'utf8');
+  assert.match(app, /mountMwl\(document, api\)/);
+});
+
+test('MWL results and selected-item inspector expose aligned semantic table headers', () => {
+  const html = readFileSync('hl7-toolkit/app/index.html', 'utf8');
+  const results = html.match(/<table[^>]*id="mwl-results-table"[\s\S]*?<\/table>/)?.[0] ?? '';
+  const inspector = html.match(/<table[^>]*id="mwl-inspector-table"[\s\S]*?<\/table>/)?.[0] ?? '';
+  assert.deepEqual([...results.matchAll(/<th[^>]*>([^<]+)<\/th>/g)].map(match => match[1]), ['Patient Name', 'Patient ID', 'Accession', 'Requested Procedure', 'Modality', 'Scheduled Station AE', 'Scheduled Date / Time']);
+  assert.deepEqual([...inspector.matchAll(/<th[^>]*>([^<]+)<\/th>/g)].map(match => match[1]), ['Tag', 'Keyword', 'Value', 'Definition']);
+  assert.match(results, /<tbody id="mwl-results"><\/tbody>/);
+  assert.match(inspector, /<tbody id="mwl-inspector"><\/tbody>/);
+});

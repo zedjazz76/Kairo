@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).ProviderPath
 $securityModule = Join-Path $repoRoot 'hl7-toolkit\service\HL7Toolkit.Security.psm1'
 $startScript = Join-Path $repoRoot 'hl7-toolkit\service\Start-HL7Toolkit.ps1'
 Import-Module $securityModule -Force
@@ -32,6 +32,10 @@ if (-not $process.Start()) { throw 'toolkit helper did not start' }
 try {
     $ready = $false
     for ($attempt = 0; $attempt -lt 50; $attempt += 1) {
+        if ($process.HasExited) {
+            $childError = $process.StandardError.ReadToEnd().Trim()
+            throw ('health contract failed: helper exited {0}: {1}' -f $process.ExitCode, $childError)
+        }
         try {
             $healthUri = 'http://127.0.0.1:' + $port + '/health?token=' + $token
             $healthResponse = Invoke-WebRequest -UseBasicParsing -Uri $healthUri

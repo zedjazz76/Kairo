@@ -17,6 +17,10 @@ test('finds tags and explains a transfer syntax UID', () => {
   assert.equal(findDicomTag('0010,0020').keyword, 'PatientID');
   assert.match(explainUid('1.2.840.10008.1.2.1').name, /Explicit VR Little Endian/);
 });
+test('finds modality worklist sequence definitions', () => {
+  assert.equal(findDicomTag('0040,0100').keyword, 'ScheduledProcedureStepSequence');
+  assert.equal(findDicomTag('0040,0002').keyword, 'ScheduledProcedureStepStartDate');
+});
 test('reports missing identifiers as possible integration concerns', () => {
   assert.deepEqual(validateDicomMetadata({ PatientID: 'P' }).map(({ code, severity }) => ({ code, severity })), [
     { code: 'DICOM_ACCESSION_MISSING', severity: 'warning' }, { code: 'DICOM_STUDY_UID_MISSING', severity: 'error' },

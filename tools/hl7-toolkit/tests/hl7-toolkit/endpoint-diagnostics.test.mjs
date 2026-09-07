@@ -3,11 +3,8 @@ import test from 'node:test';
 import net from 'node:net';
 import http from 'node:http';
 import https from 'node:https';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import { startService } from './helpers/service-harness.mjs';
+import { wrongHostCertificate, wrongHostKey } from './helpers/tls-fixture.mjs';
 
 async function listener(onConnection, host = '127.0.0.1') {
   const sockets = new Set();
@@ -45,7 +42,10 @@ test('HTTP diagnostic returns separate layers and one header-only response witho
     assert.equal(result.data.httpStatus, 302);
     assert.equal(result.data.redirectLocation, '/ready');
     assert.equal(result.data.redirectFollowed, false);
-    assert.deepEqual(result.data.headers, { 'content-length': '22', 'content-type': 'text/plain', location: '/ready' });
+    const { date, ...fixtureControlledHeaders } = result.data.headers;
+    assert.deepEqual(fixtureControlledHeaders, { 'content-length': '22', 'content-type': 'text/plain', location: '/ready' });
+    if (date !== undefined) assert.ok(!Number.isNaN(Date.parse(date)), 'Platform-generated Date must be a valid HTTP date');
+    assert.equal('x-private-diagnostic' in result.data.headers, false);
     assert.equal('responseBody' in result.data, false);
     assert.equal(requests, 1);
     for (const target of ['ftp://127.0.0.1/', 'http://*.example/', 'http://127.0.0.1/a#fragment', 'http://127.0.0.1 user']) {
@@ -73,10 +73,7 @@ test('HTTPS preserves the URI host for TLS and leaves hostname validation unavai
 });
 
 test('HTTPS classifies a received certificate hostname mismatch and does not send HTTP', async () => {
-  const certificateRoot = mkdtempSync(path.join(tmpdir(), 'kairo-tls-'));
-  const keyPath = path.join(certificateRoot, 'key.pem'); const certificatePath = path.join(certificateRoot, 'certificate.pem');
-  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-keyout', keyPath, '-out', certificatePath, '-days', '2', '-nodes', '-subj', '/CN=wrong.example', '-addext', 'subjectAltName=DNS:wrong.example'], { stdio: 'ignore' });
-  let requests = 0; const peer = https.createServer({ key: readFileSync(keyPath), cert: readFileSync(certificatePath) }, (_request, response) => { requests += 1; response.end(); });
+  let requests = 0; const peer = https.createServer({ key: wrongHostKey, cert: wrongHostCertificate }, (_request, response) => { requests += 1; response.end(); });
   await new Promise(resolve => peer.listen(0, '127.0.0.1', resolve)); const service = await startService();
   try {
     const result = await service.request('/api/diagnostics/run', { method: 'POST', body: { mode: 'http', target: `https://localhost:${peer.address().port}/`, timeoutMs: 1000 } });
@@ -84,7 +81,7 @@ test('HTTPS classifies a received certificate hostname mismatch and does not sen
     assert.equal(result.data.hostnameValidation, 'MISMATCH');
     assert.match(result.data.certificateSubject, /CN=wrong\.example/);
     assert.equal(result.data.http.state, 'NOT_RUN'); assert.equal(requests, 0);
-  } finally { await service.stop(); await new Promise(resolve => peer.close(resolve)); rmSync(certificateRoot, { recursive: true, force: true }); }
+  } finally { await service.stop(); await new Promise(resolve => peer.close(resolve)); }
 });
 
 test('authenticated TCP diagnostics classify real connections and reject invalid requests', async () => {

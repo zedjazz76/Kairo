@@ -75,3 +75,32 @@ The normal `node --test` subprocess invocation produced a generic test-process f
 Confirmed generated table cells: Transfer Syntax UID `1.2.840.10008.1.2.1`, SOP Class UID (CT Image Storage), SOP Instance UID, Patient Name, Patient ID, Accession Number, Modality, Study Instance UID, and Series Instance UID, including their VRs. Confirmed explanation `Transfer Syntax: Explicit VR Little Endian`, correct summary, no baseline metadata concerns, successful local-read status, and unchanged source bytes.
 
 Result: the bounded DICOM-loading repair passes the authorized alternative verification. Native Windows launcher/file-chooser interaction and browser-rendered visual acceptance remain unverified here. Coverage is for the selected Explicit VR Little Endian path, not broader transfer syntaxes. No additional Stage Four work was performed.
+
+## Stage Seven Checkpoint 7.1 — complete
+
+Status on September 7, 2026: automated implementation verification and final real Windows UI acceptance are complete. Checkpoint 7.2 has not started.
+
+Fresh automated results:
+
+- Windows `endpoint-diagnostics.test.mjs`: 7 passed, 0 failed.
+- Windows `mwl-query.test.mjs`: 18 passed, 0 failed.
+- Affected browser suite (`mwl-model`, `mwl-ui`, `diagnostics-ui`, `dicom-core`, `ui-contract`, `case-ui`): 35 passed, 0 failed.
+- `node --check` passed for `mwl-model.mjs`, `mwl-ui.mjs`, `dicom-core.mjs`, and `app.mjs`.
+- `service-probe.ps1` printed `service probe passed` under Windows PowerShell without elevation or installation.
+- `git diff --check` passed.
+
+The endpoint-diagnostics gate initially exposed two test-environment issues. Node's HTTP test server automatically generated a standards-oriented `Date` header through `ServerResponse.sendDate`; the test now exact-checks the fixture-controlled safe headers, validates an optional generated Date, and still proves the unsafe application header is excluded. The TLS hostname-mismatch test used `openssl` only to generate a temporary certificate; it now uses a repository-owned synthetic wrong-host PEM fixture and adds no Kairo runtime dependency. The service probe now resolves its nested launcher path as a native UNC provider path and fails fast when the child exits.
+
+Verified MWL boundaries include explicit-run-only behavior, local empty-criteria rejection, visible criteria, endpoint-profile fill without auto-run, independent DNS/TCP/association/C-FIND/match evidence, successful zero matches, nested inspection, metadata-only decoding warnings, and complete Clear disposal. Supported character sets are absent/default, `ISO_IR 6`, `ISO_IR 100`, and `ISO_IR 192`. The fixed safety boundary retains at most 100 matches, sends correlated C-CANCEL after match 100, preserves retained results across timeout/send/close/race outcomes, and classifies truncation as `SUCCESS_TRUNCATED` rather than SCP failure. Criteria and results remain session-only.
+
+Final manual acceptance passed through the real Windows Kairo UI against the controlled synthetic MWL SCP. The accepted workflow verified:
+
+- the MWL form and explicit **Run MWL C-FIND** behavior;
+- separate DNS, TCP, association, and C-FIND layers;
+- one successful matching query;
+- seven aligned result columns and the selected-row inspector;
+- aligned TAG / KEYWORD / VALUE / DEFINITION fields, including nested Scheduled Procedure Step paths;
+- session-only patient-bearing result behavior; and
+- complete **Clear MWL results** behavior.
+
+The bounded UI alignment correction affecting the result table and inspector was manually retested and passed. Checkpoint 7.1 is complete. Checkpoint 7.2 has not started.

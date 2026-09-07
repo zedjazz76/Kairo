@@ -23,6 +23,16 @@ const TAGS = {
   '00401001': { name: 'Requested Procedure ID', keyword: 'RequestedProcedureID', vr: 'SH', vm: '1', category: 'Workflow' },
   '00400009': { name: 'Scheduled Procedure Step ID', keyword: 'ScheduledProcedureStepID', vr: 'SH', vm: '1', category: 'Workflow' },
   '00400001': { name: 'Scheduled Station AE Title', keyword: 'ScheduledStationAETitle', vr: 'AE', vm: '1-n', category: 'Workflow' },
+  '00080005': { name: 'Specific Character Set', keyword: 'SpecificCharacterSet', vr: 'CS', vm: '1-n', category: 'Workflow', definition: 'Character repertoire used to encode text values.' },
+  '00081060': { name: 'Name of Physician(s) Reading Study', keyword: 'NameOfPhysiciansReadingStudy', vr: 'PN', vm: '1-n', category: 'Workflow', definition: 'Physician associated with reading the requested study.' },
+  '00321060': { name: 'Requested Procedure Description', keyword: 'RequestedProcedureDescription', vr: 'LO', vm: '1', category: 'Workflow', definition: 'Description of the requested procedure.' },
+  '00400100': { name: 'Scheduled Procedure Step Sequence', keyword: 'ScheduledProcedureStepSequence', vr: 'SQ', vm: '1', category: 'Workflow', definition: 'Sequence containing scheduled procedure step details.' },
+  '00400002': { name: 'Scheduled Procedure Step Start Date', keyword: 'ScheduledProcedureStepStartDate', vr: 'DA', vm: '1', category: 'Workflow', definition: 'Date on which the scheduled procedure step starts.' },
+  '00400003': { name: 'Scheduled Procedure Step Start Time', keyword: 'ScheduledProcedureStepStartTime', vr: 'TM', vm: '1', category: 'Workflow', definition: 'Time at which the scheduled procedure step starts.' },
+  '00400006': { name: 'Scheduled Performing Physician Name', keyword: 'ScheduledPerformingPhysicianName', vr: 'PN', vm: '1', category: 'Workflow', definition: 'Physician scheduled to perform the procedure step.' },
+  '00400007': { name: 'Scheduled Procedure Step Description', keyword: 'ScheduledProcedureStepDescription', vr: 'LO', vm: '1', category: 'Workflow', definition: 'Description of the scheduled procedure step.' },
+  '00400010': { name: 'Scheduled Station Name', keyword: 'ScheduledStationName', vr: 'SH', vm: '1-n', category: 'Workflow', definition: 'Name of the scheduled station.' },
+  '00081110': { name: 'Referenced Study Sequence', keyword: 'ReferencedStudySequence', vr: 'SQ', vm: '1', category: 'Workflow', definition: 'References a related study.' },
 };
 const UIDS = {
   '1.2.840.10008.5.1.4.1.1.2': { name: 'CT Image Storage', category: 'Storage' },

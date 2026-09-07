@@ -92,6 +92,16 @@ Finish or cancel intake, wait for sanitized history to finish saving, then choos
 
 The application does not guarantee forensic erasure from browser memory, operating-system paging, crash dumps, clipboard history, endpoint monitoring, or backups. See [SECURITY.md](SECURITY.md).
 
+## DICOM Modality Worklist — Checkpoint 7.1 complete
+
+In **Diagnostics → DICOM Modality Worklist**, load and explicitly fill a saved DICOM profile or enter Host/IP, Port, Calling AE, and Called AE. Review the visible criteria; Scheduled Date is initialized once to today's local date and remains editable. Only **Run MWL C-FIND** sends a query. Clearing every criterion blocks locally without an API call or DICOM connection. There is no automatic retry, broadening, scanning, or midnight mutation.
+
+The live result separates DNS, TCP, association, C-FIND status, match count, truncation, and cancellation. Select a returned row to inspect allowlisted tags and nested Scheduled Procedure Step paths. Query criteria, Patient Name/ID, returned values, warnings, and inspector state remain in the browser session and are not added to profiles, history, baselines, or cases. Choose **Clear MWL results** when finished.
+
+The decoder supports the DICOM default repertoire, `ISO_IR 6`, `ISO_IR 100`, and `ISO_IR 192`. Other declarations and malformed supported text receive safe field markers and metadata-only warnings. The fixed limit is 100 retained matches; match 100 triggers correlated C-CANCEL and `SUCCESS_TRUNCATED` while preserving cancellation and final DICOM status independently.
+
+Automated gates are green, including the standard-user Windows service probe. Final manual acceptance passed September 7, 2026 through the real Windows Kairo UI against the controlled synthetic MWL SCP. The accepted workflow covered the form and explicit Run behavior, separate DNS/TCP/association/C-FIND evidence, one successful match, seven aligned result columns, the selected-row inspector with aligned TAG / KEYWORD / VALUE / DEFINITION fields, nested Scheduled Procedure Step paths, session-only patient-bearing results, and Clear disposal. The bounded result/inspector alignment correction was manually retested and passed. Checkpoint 7.1 is complete; Checkpoint 7.2 has not started.
+
 ## Current limitations
 
 - The Kairo baseline is a small project-owned policy pack, not a full HL7 standard, table, grammar, or certified conformance profile. Kairo does not distribute copied HL7 definitions. An organization may load only a profile it is licensed and authorized to use; that profile stays in the active browser session and is not saved to history.

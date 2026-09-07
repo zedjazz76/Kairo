@@ -123,6 +123,40 @@
       <p id="diagnostic-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-layer-association">DICOM association: NOT_RUN</p><p id="diagnostic-layer-echo">C-ECHO: NOT_RUN</p>
       <p>TCP success does not establish protocol support. C-ECHO success confirms Verification only; it does not prove storage, MWL, or Query/Retrieve support. One resolved address is tested; there is no automatic fallback.</p>
     </div>
+    <form id="mwl-form" class="card">
+      <h2>DICOM Modality Worklist</h2>
+      <p>Run one authorized MWL C-FIND explicitly. Query criteria and returned patient data remain session-only and are not added to profiles, history, baselines, or cases.</p>
+      <h3>Endpoint</h3>
+      <label for="mwl-profile-select">Saved DICOM endpoint profile</label><select id="mwl-profile-select"><option value="">Select a DICOM profile</option></select>
+      <button id="mwl-profile-load" type="button">Load DICOM profiles</button><button id="mwl-profile-fill" type="button">Fill endpoint</button>
+      <label for="mwl-host">Host or IP</label><input id="mwl-host" required maxlength="253" autocomplete="off" spellcheck="false">
+      <label for="mwl-port">Port</label><input id="mwl-port" type="number" required min="1" max="65535" value="104">
+      <label for="mwl-timeout">Response timeout (ms)</label><input id="mwl-timeout" type="number" required min="100" max="10000" value="3000">
+      <label for="mwl-calling">Calling AE</label><input id="mwl-calling" required maxlength="16" value="KAIRO" autocomplete="off" spellcheck="false">
+      <label for="mwl-called">Called AE</label><input id="mwl-called" required maxlength="16" autocomplete="off" spellcheck="false">
+      <h3>Query criteria</h3>
+      <label for="mwl-scheduled-date">Scheduled Date</label><input id="mwl-scheduled-date" type="date">
+      <label for="mwl-modality">Modality</label><input id="mwl-modality" maxlength="16" autocomplete="off">
+      <label for="mwl-station-ae">Scheduled Station AE Title</label><input id="mwl-station-ae" maxlength="16" autocomplete="off">
+      <label for="mwl-patient-id">Patient ID</label><input id="mwl-patient-id" maxlength="64" autocomplete="off">
+      <label for="mwl-accession">Accession Number</label><input id="mwl-accession" maxlength="16" autocomplete="off">
+      <label for="mwl-requested-procedure-id">Requested Procedure ID</label><input id="mwl-requested-procedure-id" maxlength="16" autocomplete="off">
+      <label for="mwl-requested-procedure-description">Requested Procedure Description</label><input id="mwl-requested-procedure-description" maxlength="64" autocomplete="off">
+      <label for="mwl-procedure-code">Requested Procedure Code Value</label><input id="mwl-procedure-code" maxlength="16" autocomplete="off">
+      <label for="mwl-procedure-scheme">Coding Scheme Designator</label><input id="mwl-procedure-scheme" maxlength="16" autocomplete="off">
+      <label for="mwl-location">Scheduled Procedure Step Location</label><input id="mwl-location" maxlength="64" autocomplete="off">
+      <div class="button-row"><button id="mwl-run" type="button" class="primary">Run MWL C-FIND</button><button id="mwl-clear" type="button">Clear MWL results</button></div>
+      <p id="mwl-status" role="status" aria-live="polite">Review the endpoint and visible criteria, then run explicitly. No automatic requests or retries.</p>
+      <h3>Layered result</h3>
+      <p id="mwl-summary">No MWL result is retained.</p>
+      <p id="mwl-layer-dns">DNS: NOT_RUN</p><p id="mwl-layer-tcp">TCP: NOT_RUN</p><p id="mwl-layer-association">DICOM association: NOT_RUN</p><p id="mwl-layer-cfind">C-FIND: NOT_RUN</p>
+      <p id="mwl-match-summary">Matches retained: 0 · Query truncated: NO · Cancellation: NOT_RUN</p>
+      <p id="mwl-warnings" role="status" aria-live="polite"></p>
+      <p>Patient Name, Patient ID, query criteria, and returned values are session-only. Clear results when finished.</p>
+      <div class="table-wrap"><table id="mwl-results-table" class="mwl-results-table"><colgroup><col class="mwl-col-patient-name"><col class="mwl-col-patient-id"><col class="mwl-col-accession"><col class="mwl-col-procedure"><col class="mwl-col-modality"><col class="mwl-col-station"><col class="mwl-col-datetime"></colgroup><thead><tr><th scope="col">Patient Name</th><th scope="col">Patient ID</th><th scope="col">Accession</th><th scope="col">Requested Procedure</th><th scope="col">Modality</th><th scope="col">Scheduled Station AE</th><th scope="col">Scheduled Date / Time</th></tr></thead><tbody id="mwl-results"></tbody></table></div>
+      <h3>Selected-item inspector</h3>
+      <div class="table-wrap"><table id="mwl-inspector-table" class="mwl-inspector-table"><colgroup><col class="mwl-col-tag"><col class="mwl-col-keyword"><col class="mwl-col-value"><col class="mwl-col-definition"></colgroup><thead><tr><th scope="col">Tag</th><th scope="col">Keyword</th><th scope="col">Value</th><th scope="col">Definition</th></tr></thead><tbody id="mwl-inspector"></tbody></table></div>
+    </form>
     <form id="diagnostic-http-form" class="card">
       <h2>HTTP / TLS</h2>
       <label for="diagnostic-http-target">HTTP or HTTPS URL (a hostname defaults to HTTPS)</label><input id="diagnostic-http-target" required maxlength="2048" placeholder="https://service.example/health" autocomplete="off" spellcheck="false">

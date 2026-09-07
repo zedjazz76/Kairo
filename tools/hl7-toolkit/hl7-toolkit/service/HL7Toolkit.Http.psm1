@@ -237,6 +237,19 @@ function Invoke-HL7HttpConnection {
                 }
                 return
             }
+            if ($path -eq '/api/dicom/mwl/find') {
+                try {
+                    if ($request.Method -ne 'POST') { throw 'MWL_METHOD_REJECTED' }
+                    if ($request.Body.Length -gt 8192) { throw 'MWL_INPUT_REJECTED' }
+                    $result = Invoke-KairoMwlQuery -Payload ($request.Body | ConvertFrom-Json)
+                    Write-HL7HttpResponse -Stream $stream -Body ($result | ConvertTo-Json -Depth 16 -Compress)
+                } catch {
+                    $code = if ($_.Exception.Message -match '^MWL_[A-Z_]+$') { $_.Exception.Message } else { 'MWL_INPUT_REJECTED' }
+                    $statusCode = if ($code -eq 'MWL_RUNTIME_UNAVAILABLE') { 503 } else { 400 }
+                    Write-HL7HttpResponse -Stream $stream -StatusCode $statusCode -Reason $(if($statusCode -eq 503){'Service Unavailable'}else{'Bad Request'}) -Body ('{"error":"' + $code + '"}')
+                }
+                return
+            }
             if ($path -in @('/api/profiles/endpoint', '/api/diagnostics/baseline', '/api/mllp/check', '/api/mllp/send-one')) {
                 try {
                     $payload = if ($request.Body) { $request.Body | ConvertFrom-Json } else { $null }
