@@ -104,3 +104,29 @@ Final manual acceptance passed through the real Windows Kairo UI against the con
 - complete **Clear MWL results** behavior.
 
 The bounded UI alignment correction affecting the result table and inspector was manually retested and passed. Checkpoint 7.1 is complete. Checkpoint 7.2 has not started.
+
+## Stage Seven Checkpoint 7.2 — complete
+
+Status on September 7, 2026: the browser-only MWL/ORM comparison implementation, automated verification, and final real Windows UI acceptance are complete. Checkpoint 7.3 has not started.
+
+Fresh automated results:
+
+- Seven `node --check` gates passed for the adapters, comparison model/controller, workbench, MWL controller, and app mount.
+- The affected browser suite passed 60 tests with zero failures.
+- Windows MWL protocol plus endpoint diagnostics passed 25 tests with zero failures.
+- `service-probe.ps1` printed `service probe passed` under Windows PowerShell.
+- Tracked and new-file whitespace checks passed.
+
+Coverage includes ORM eligibility, structural single/multiple/ambiguous groups, exact occurrence provenance, session-only accession selection, selected-item and successful-zero-match adapters, separate agreeing/conflicting HL7 sources, conservative code/composite/date-time comparison, all approved row states, concept aggregation, explicit Compare, stale-source invalidation, Clear behavior, PHI-safe guidance, six-column UI alignment, and existing Stage 1–7.1 browser/service regressions.
+
+Final manual acceptance passed through the real Windows Kairo UI using synthetic evidence. It covered non-ORM `ORM_REQUIRED`; single and multiple structural order groups; explicit group choice and group-local provenance; default Not established accession and `NOT_COMPARABLE` until explicit source selection; selected-item and successful-zero-match query-context modes; provenance-preserving rows and concept summaries; all four qualified guidance sections; ORM/group/MWL source invalidation; explicit Clear; and session-only disposal.
+
+## Global workspace selector/navigation — complete
+
+The Inspect and Diagnostics multi-tool workspaces now open on shared selector pages. Inspect contains HL7 Message Inspector and DICOM File Inspector. Diagnostics contains Endpoint Profiles / Baselines, DICOM Connectivity, Modality Worklist, ORM ↔ MWL Comparison, HTTP / TLS, and HL7 / MLLP. Home, Compare, Validate, Case, Send, and History remain direct workflows; Quick Sanitize remains global.
+
+Each selector card contains a concise description, synthetic example, in-Kairo Quick Guide, and designer Open Tool action. Opening a tool shows a breadcrumb and Back action, hides sibling controls, and leaves the existing tool mounted so valid session state survives Back and reopen. Navigation and guides do not run diagnostics or other tool actions.
+
+Automated verification on September 7, 2026 passed 66 affected browser tests, nine JavaScript syntax checks, 25 Windows MWL/endpoint protocol tests, the standard-user real Chrome launcher/navigation harness, the protected service probe, and whitespace checks. The real browser harness confirmed the six-card Diagnostics landing, two-card Inspect landing, guide content/focus restoration without diagnostic mutation, focused sibling hiding, and DICOM access through Inspect.
+
+Final manual acceptance passed through the real Windows Kairo UI. It covered exact Inspect and Diagnostics card inventories; descriptions and synthetic examples; Quick Guides without diagnostic actions; designer Open buttons; focused views and hidden siblings; breadcrumbs and Back navigation; wide, medium, and narrow layouts without overflow; keyboard, Escape, and focus restoration; preserved in-session state; direct Home, Compare, Validate, Case, Send, and History workflows; global Quick Sanitize; and unchanged Stage 1 through Checkpoint 7.2 privacy boundaries.

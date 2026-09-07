@@ -64,7 +64,9 @@ The toolkit reads the first framed response and shows MSA/ERR details. It does n
 
 ## Diagnose an endpoint
 
-Open **Diagnostics**, load or create a local endpoint profile, and choose the existing explicit diagnostic action for TCP, DICOM, HTTP/HTTPS, or HL7/MLLP. Selecting a profile fills the matching controls but never starts network activity. Profiles contain technical endpoint settings only and stay in Kairo's local data folder; do not put credentials, PHI, secrets, certificates, or message content in names or notes.
+Open **Diagnostics**, choose the relevant tool card, then use its existing explicit action. The selector provides focused tools for profiles/baselines, DICOM connectivity, MWL, ORM/MWL comparison, HTTP/TLS, and HL7/MLLP. Selecting a profile fills matching controls but never starts network activity. Profiles contain technical endpoint settings only and stay in Kairo's local data folder; do not put credentials, PHI, secrets, certificates, or message content in names or notes.
+
+**Inspect** similarly offers focused HL7 Message Inspector and DICOM File Inspector cards. Every selector card includes a synthetic example, an in-Kairo Quick Guide, and an Open Tool action. Back returns to the selector without clearing valid in-session tool state. Navigation and guides never run a diagnostic or tool action.
 
 After a complete successful diagnostic, choose **Save successful result as baseline**. On a later matching run, load the profile baseline to see only meaningful layer, certificate, ACK, or timing changes. Choose **Summarize troubleshooting evidence** to see observed facts, a qualified likely boundary, missing evidence, and the smallest useful next check. A correlation summary is guidance, not certainty, and endpoint reachability does not prove the affected clinical workflow.
 
@@ -101,6 +103,16 @@ The live result separates DNS, TCP, association, C-FIND status, match count, tru
 The decoder supports the DICOM default repertoire, `ISO_IR 6`, `ISO_IR 100`, and `ISO_IR 192`. Other declarations and malformed supported text receive safe field markers and metadata-only warnings. The fixed limit is 100 retained matches; match 100 triggers correlated C-CANCEL and `SUCCESS_TRUNCATED` while preserving cancellation and final DICOM status independently.
 
 Automated gates are green, including the standard-user Windows service probe. Final manual acceptance passed September 7, 2026 through the real Windows Kairo UI against the controlled synthetic MWL SCP. The accepted workflow covered the form and explicit Run behavior, separate DNS/TCP/association/C-FIND evidence, one successful match, seven aligned result columns, the selected-row inspector with aligned TAG / KEYWORD / VALUE / DEFINITION fields, nested Scheduled Procedure Step paths, session-only patient-bearing results, and Clear disposal. The bounded result/inspector alignment correction was manually retested and passed. Checkpoint 7.1 is complete; Checkpoint 7.2 has not started.
+
+## MWL / ORM workflow comparison — Checkpoint 7.2 complete
+
+In **Diagnostics → DICOM Workflow**, explicitly choose **Use selected HL7 ORM** after selecting an eligible ORM in Inspect. A sole structural order group becomes active after that explicit action; multiple groups require an explicit choice. **HL7 Accession Source** defaults to **Not established** and is never inferred or saved.
+
+Run or retain an MWL result, explicitly select a returned row when matches exist, then choose **Use current MWL target**. A successful zero-match query uses its actual visible criteria and DNS/TCP/association/C-FIND/status/count context without inventing an item. Choose **Compare ORM to MWL** explicitly to render CONCEPT / HL7 SOURCE / HL7 VALUE / MWL SOURCE / MWL VALUE / RESULT, concept summaries, and qualified four-part guidance.
+
+Original values and provenance remain visible. Comparison trims only surrounding/transport padding; it does not case-fold, fuzzy-match, infer vendors/synonyms/accession, or invent timezone precision. State remains in browser memory and is not persisted or attached. **Clear comparison** clears accession, MWL target, rows, summaries, and guidance while retaining the selected ORM/group and underlying sources.
+
+Automated gates and final real Windows UI acceptance using synthetic ORM/MWL evidence passed September 7, 2026. The accepted workflow covered explicit eligibility/source/group/target selection, selected-item and zero-match modes, provenance, conservative results, guidance, invalidation, Clear, and session-only disposal. The shared navigation shell was also manually accepted. Checkpoint 7.3 has not started.
 
 ## Current limitations
 

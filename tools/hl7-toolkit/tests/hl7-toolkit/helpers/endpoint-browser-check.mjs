@@ -45,6 +45,13 @@ try {
   assert.ok(ready, 'Actual launcher workspace did not become ready');
   await evaluate(`document.querySelector('[data-nav="diagnostics"]').click()`);
   assert.equal(await evaluate(`document.querySelector('[data-workspace="diagnostics"]').hidden`), false);
+  assert.equal(await evaluate(`document.querySelector('#diagnostics-landing').hidden`), false);
+  assert.equal(await evaluate(`document.querySelectorAll('#diagnostics-tool-host .tool-card').length`), 6);
+  const guideCheck = await evaluate(`(() => { const before = document.querySelector('#diagnostic-result').textContent; const button = document.querySelector('[aria-label="Quick Guide for DICOM Connectivity"]'); button.click(); const dialog = document.querySelector('#tool-guide-dialog'); const result = { open: dialog.open, sections: dialog.querySelectorAll('section').length, unchanged: document.querySelector('#diagnostic-result').textContent === before }; document.querySelector('#tool-guide-close').click(); result.focusRestored = document.activeElement === button; return result; })()`);
+  assert.deepEqual(guideCheck, { open: true, sections: 5, unchanged: true, focusRestored: true });
+  await evaluate(`document.querySelector('[aria-label="Open DICOM Connectivity"]').click()`);
+  assert.equal(await evaluate(`document.querySelector('[data-tool-panel="dicom-connectivity"]').hidden`), false);
+  assert.equal(await evaluate(`document.querySelector('[data-tool-panel="http-tls"]').hidden`), true);
   for (const [mode, action, classification, evidence] of [
     ['success', 'tcp', 'TCP_CONNECTED', 'NOT_RUN'],
     ['success', 'echo', 'C_ECHO_SUCCESS', 'C_ECHO_SUCCESS'],
@@ -68,10 +75,14 @@ try {
     await peer.close(); peer = null;
   }
   // Existing workspaces remain reachable in the same real launcher.
-  for (const name of ['dicom', 'inspect', 'send']) {
+  for (const name of ['inspect', 'send']) {
     await evaluate(`document.querySelector('[data-nav="${name}"]').click()`);
     assert.equal(await evaluate(`document.querySelector('[data-workspace="${name}"]').hidden`), false);
   }
+  await evaluate(`document.querySelector('[data-nav="inspect"]').click(); document.querySelector('[aria-label="Open DICOM File Inspector"]').click()`);
+  assert.equal(await evaluate(`document.querySelector('[data-tool-panel="dicom-inspector"]').hidden`), false);
+  await evaluate(`document.querySelector('#inspect-back').click()`);
+  assert.equal(await evaluate(`document.querySelectorAll('#inspect-tool-host .tool-card').length`), 2);
   console.log('Real launcher compilation/startup and existing workspace navigation — PASS');
 } finally {
   if (peer) await peer.close();

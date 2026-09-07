@@ -29,7 +29,7 @@ const evaluate = async expression => {
 };
 try {
   assert.match(await evaluate(`document.querySelector('#service-status').textContent`), /workspace ready/i);
-  await evaluate(`document.querySelector('[data-nav="dicom"]').click()`);
+  await evaluate(`document.querySelector('[data-nav="inspect"]').click(); document.querySelector('[aria-label="Open DICOM File Inspector"]').click()`);
   const { root } = await send('DOM.getDocument');
   const { nodeId } = await send('DOM.querySelector', { nodeId: root.nodeId, selector: '#dicom-file' });
   for (const [name, size, modality, count] of [['CT_small.dcm', 39206, 'CT', 20], ['MR_small.dcm', 9830, 'MR', 19]]) {
@@ -45,7 +45,7 @@ try {
       return { name: file.name, size: file.size, bufferBytes: bytes.byteLength, marker: String.fromCharCode(...new Uint8Array(bytes, 128, 4)),
         count: rows.length, modality: value('Modality'), uid: document.querySelector('#dicom-uid').textContent,
         identifiersPresent: ['Study Instance UID', 'Series Instance UID', 'SOP Instance UID'].every(label => Boolean(value(label))),
-        visible: !document.querySelector('[data-workspace="dicom"]').hidden, completed: document.querySelector('#dicom-status').textContent.startsWith('Read locally') };
+        visible: !document.querySelector('[data-workspace="inspect"]').hidden && !document.querySelector('[data-tool-panel="dicom-inspector"]').hidden, completed: document.querySelector('#dicom-status').textContent.startsWith('Read locally') };
     })()`);
     assert.equal(result.name, name); assert.equal(result.size, size); assert.equal(result.bufferBytes, size);
     assert.equal(result.marker, 'DICM'); assert.equal(result.count, count); assert.equal(result.modality, modality);

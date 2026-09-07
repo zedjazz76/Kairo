@@ -30,6 +30,12 @@ export function mountMwl(root, api, { now = () => new Date() } = {}) {
   let active = false;
   let profiles = [];
   let state = emptyMwlState();
+  let generation = 0;
+  const comparisonListeners = new Set();
+  const invalidateComparison = reason => {
+    generation += 1;
+    for (const listener of comparisonListeners) listener({ generation, reason });
+  };
 
   const layerText = (label, layer) => `${label}: ${layer?.state ?? 'NOT_RUN'} · ${layer?.dicomStatus ? layer.dicomStatus + ' · ' : ''}${layer?.code ?? 'NOT_RUN'} · ${layer?.detail ?? 'Not attempted.'}`;
   const clearRendered = () => {
@@ -56,8 +62,9 @@ export function mountMwl(root, api, { now = () => new Date() } = {}) {
     inspector.replaceChildren(...rows);
   };
 
-  const renderResult = result => {
-    state = { result, items: result.items, selectedIndex: -1 };
+  const renderResult = (result, request) => {
+    state = { result, request: structuredClone(request), items: result.items, selectedIndex: -1 };
+    invalidateComparison('RESULT_REPLACED');
     root.querySelector('#mwl-summary').textContent = `${result.classification} · ${result.items.length} retained match${result.items.length === 1 ? '' : 'es'}`;
     root.querySelector('#mwl-layer-dns').textContent = layerText('DNS', result.dns);
     root.querySelector('#mwl-layer-tcp').textContent = layerText('TCP', result.tcp);
@@ -74,7 +81,7 @@ export function mountMwl(root, api, { now = () => new Date() } = {}) {
         cell.textContent = field ?? '';
         row.append(cell);
       }
-      row.addEventListener('click', () => { state.selectedIndex = index; renderInspector(state.items[index]); });
+      row.addEventListener('click', () => { state.selectedIndex = index; invalidateComparison('ITEM_SELECTED'); renderInspector(state.items[index]); });
       return row;
     });
     root.querySelector('#mwl-results').replaceChildren(...rows);
@@ -106,6 +113,7 @@ export function mountMwl(root, api, { now = () => new Date() } = {}) {
 
   root.querySelector('#mwl-clear').addEventListener('click', () => {
     state = emptyMwlState();
+    invalidateComparison('RESULTS_CLEARED');
     clearRendered();
     status.textContent = 'MWL results cleared from this session. Query criteria were not sent.';
   });
@@ -127,7 +135,7 @@ export function mountMwl(root, api, { now = () => new Date() } = {}) {
     try {
       const response = await api.request('/api/dicom/mwl/find', { method: 'POST', body: request });
       const result = normalizeMwlResult(response);
-      renderResult(result);
+      renderResult(result, request);
       status.textContent = 'MWL query completed.';
     } catch {
       status.textContent = 'MWL query failed.';
@@ -138,4 +146,11 @@ export function mountMwl(root, api, { now = () => new Date() } = {}) {
   });
 
   clearRendered();
+  return {
+    getComparisonSnapshot() {
+      if (!state.result) return null;
+      return structuredClone({ generation, request: state.request, result: state.result, selectedIndex: state.selectedIndex });
+    },
+    onComparisonSourceChange(listener) { comparisonListeners.add(listener); return () => comparisonListeners.delete(listener); }
+  };
 }

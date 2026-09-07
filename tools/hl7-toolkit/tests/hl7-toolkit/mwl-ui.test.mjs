@@ -187,3 +187,23 @@ test('Clear MWL results removes patient values from table and inspector without 
   assert.doesNotMatch(view.visibleText(), /SYNTHETIC PATIENT|SYNTHETIC-ID/);
   assert.equal(requests, 1);
 });
+
+test('exposes cloned comparison snapshots and invalidates them on selection and Clear', async () => {
+  const { root } = harness(); endpoint(root); root.querySelector('#mwl-accession').value = 'SYNTH-ACC';
+  const changes = [];
+  const item = { patientName: 'TEST^ONE', patientId: 'ID-1', accessionNumber: 'SYNTH-ACC', scheduledProcedureStep: {}, tags: [] };
+  const controller = mountMwl(root, { request: async () => matchingResult([item]) });
+  controller.onComparisonSourceChange(change => changes.push(change));
+  assert.equal(controller.getComparisonSnapshot(), null);
+  await root.querySelector('#mwl-run').listeners.click();
+  const snapshot = controller.getComparisonSnapshot();
+  assert.equal(snapshot.request.criteria.accessionNumber, 'SYNTH-ACC');
+  snapshot.request.criteria.accessionNumber = 'CHANGED';
+  assert.equal(controller.getComparisonSnapshot().request.criteria.accessionNumber, 'SYNTH-ACC');
+  root.querySelector('#mwl-results').children[0].listeners.click();
+  assert.equal(controller.getComparisonSnapshot().selectedIndex, 0);
+  root.querySelector('#mwl-clear').listeners.click();
+  assert.equal(controller.getComparisonSnapshot(), null);
+  assert.ok(changes.length >= 3);
+  assert.deepEqual(Object.keys(changes[0]), ['generation', 'reason']);
+});

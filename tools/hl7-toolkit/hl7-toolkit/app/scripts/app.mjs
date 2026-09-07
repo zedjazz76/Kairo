@@ -5,6 +5,8 @@ import { mountDicom } from './dicom-ui.mjs';
 import { mountDiagnostics } from './diagnostics-ui.mjs';
 import { mountMwl } from './mwl-ui.mjs';
 import { mountCase } from './case-ui.mjs';
+import { mountWorkflowComparison } from './workflow-comparison-ui.mjs';
+import { createWorkspaceNavigation } from './workspace-navigation.mjs';
 
 const token = new URLSearchParams(location.search).get('token') || new URLSearchParams(location.hash.slice(1)).get('session') || '';
 const status = document.querySelector('#service-status');
@@ -25,12 +27,14 @@ if (!token) {
     const validationResponse = await fetch('/definitions/kairo-validation-baseline.v1.json', { cache: 'no-store' });
     if (!validationResponse.ok) throw new Error('VALIDATION_PROFILE_NOT_AVAILABLE');
     const validationPack = await validationResponse.json();
-    const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields, validationPack });
+    const navigation = createWorkspaceNavigation(document);
+    const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields, validationPack, navigation });
     await mountSend(controller, api);
     mountDicom(document);
     mountCase(document);
     mountDiagnostics(document, api);
-    mountMwl(document, api);
+    const mwlController = mountMwl(document, api);
+    mountWorkflowComparison(document, { hl7Source: controller, mwlSource: mwlController });
   } catch {
     status.textContent = 'The protected local helper or policy is unavailable. Close the helper window and launch the toolkit again.';
     status.classList.add('error');

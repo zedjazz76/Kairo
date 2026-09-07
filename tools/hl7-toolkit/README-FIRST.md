@@ -99,3 +99,17 @@ The existing **Diagnostics** workspace now contains one explicit **DICOM Modalit
 Supported response character sets are absent/default, `ISO_IR 6`, `ISO_IR 100`, and `ISO_IR 192`. Unsupported or malformed text is replaced with a safe marker and metadata-only warning. Kairo retains at most 100 matches, immediately sends correlated C-CANCEL after match 100, and reports `SUCCESS_TRUNCATED` without treating the safety limit as a PACS failure.
 
 Final automated verification passed September 7, 2026: 18 Windows MWL protocol tests, 7 Windows endpoint-diagnostics tests, 35 affected browser tests, four JavaScript syntax checks, the Windows service probe, and `git diff --check`. Final manual acceptance passed through the real Windows Kairo UI against the controlled synthetic MWL SCP. The accepted workflow covered the MWL form and explicit Run behavior; separate DNS, TCP, association, and C-FIND evidence; one successful matching result; seven aligned result columns; the selected-row inspector; aligned TAG / KEYWORD / VALUE / DEFINITION fields; nested Scheduled Procedure Step paths; session-only patient-bearing results; and **Clear MWL results**. The bounded result/inspector alignment correction was manually retested and passed. Checkpoint 7.1 is complete; Checkpoint 7.2 has not started.
+
+## Complete — Stage Seven Checkpoint 7.2 MWL/ORM comparison
+
+The existing Diagnostics workspace now adds **DICOM Workflow → Compare ORM to MWL → Why is this exam missing?** The analyst explicitly uses one selected eligible ORM, chooses one structural order group when multiple exist, optionally establishes one session-only HL7 accession source, and explicitly uses either one selected MWL row or a successful zero-match query context. No source, row, mapping, or comparison is chosen or run automatically.
+
+The six-column live comparison preserves original HL7/MWL values and exact provenance, keeps multiple same-concept sources separate, and uses conservative MATCH / MISMATCH / MISSING / NOT_COMPARABLE / AMBIGUOUS states plus concept summaries. Four-part guidance is fixed-template, qualified, and PHI-safe. Comparison state, patient identifiers, accession, raw messages, and raw results are not persisted or attached.
+
+Automated verification and final real Windows manual acceptance passed September 7, 2026. Acceptance covered ORM eligibility, structural order-group selection and provenance, explicit accession mapping, selected-item and successful-zero-match modes, comparison rows and summaries, four-part guidance, invalidation, Clear, and session-only disposal. Checkpoint 7.3 has not started.
+
+## Complete — global workspace selectors
+
+Inspect now opens a two-card selector for the existing HL7 Message Inspector and DICOM File Inspector. Diagnostics opens a six-card selector for Profiles/Baselines, DICOM Connectivity, Modality Worklist, ORM ↔ MWL Comparison, HTTP/TLS, and HL7/MLLP. Shared designer Open Tool and Quick Guide buttons, an in-Kairo guide dialog, breadcrumbs, and Back navigation wrap the existing tools without remounting or changing them.
+
+Home, Compare, Validate, Case, Send, and History remain direct workflows, and Quick Sanitize remains global. Final real Windows acceptance passed for cards, guides, focused views, navigation, responsive layout, keyboard/focus behavior, preserved state, and unchanged privacy boundaries.

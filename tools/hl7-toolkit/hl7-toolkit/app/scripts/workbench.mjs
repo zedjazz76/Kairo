@@ -11,7 +11,12 @@ import { evaluateCollection, evaluateProfile, validateProfilePack } from './prof
 
 export function createWorkbenchState() {
   return { messages: [], activeId: null, workspace: 'home', compareA: null, compareB: null, selectedPath: null, findings: [], acknowledgedFindingIds: [], intakeRunning: false, historyHealthy: true,
-    catalogFilter: { conditions: [], matchingIds: null, running: false, error: '' } };
+    sourceGeneration: 0, catalogFilter: { conditions: [], matchingIds: null, running: false, error: '' } };
+}
+
+export function getSelectedMessageSnapshot(state) {
+  const message = state.messages.find(({ id }) => id === state.activeId);
+  return message ? structuredClone({ generation: state.sourceGeneration, id: message.id, index: message.index, type: message.type, text: message.text }) : null;
 }
 
 export function selectMessage(state, id) {
@@ -19,6 +24,7 @@ export function selectMessage(state, id) {
   state.activeId = id;
   state.selectedPath = null;
   state.acknowledgedFindingIds = [];
+  state.sourceGeneration += 1;
 }
 
 export function editActiveMessage(state, operation) {
@@ -32,6 +38,7 @@ export function editActiveMessage(state, operation) {
   message.text = receipt.after;
   message.sanitized = null;
   state.acknowledgedFindingIds = [];
+  state.sourceGeneration += 1;
   return receipt;
 }
 
@@ -43,6 +50,7 @@ export function undoActiveMessage(state) {
   message.text = receipt.before;
   message.sanitized = null;
   state.acknowledgedFindingIds = [];
+  state.sourceGeneration += 1;
 }
 
 export function redoActiveMessage(state) {
@@ -53,14 +61,19 @@ export function redoActiveMessage(state) {
   message.text = receipt.after;
   message.sanitized = null;
   state.acknowledgedFindingIds = [];
+  state.sourceGeneration += 1;
 }
 
-export function mountWorkbench(root, state, { api, rules, token, basicFields = { fields: {} }, validationPack }) {
+export function mountWorkbench(root, state, { api, rules, token, basicFields = { fields: {} }, validationPack, navigation }) {
   const document = root.ownerDocument || root;
   const $ = (selector) => root.querySelector(selector);
   const all = (selector) => [...root.querySelectorAll(selector)];
   const worker = new Worker('/workers/intake-worker.mjs', { type: 'module' });
   const workerRequests = createWorkerRequests((message) => worker.postMessage(message));
+  const selectedMessageListeners = new Set();
+  const notifySelectedMessageChange = reason => {
+    for (const listener of selectedMessageListeners) listener({ generation: state.sourceGeneration, reason });
+  };
   const historyQueue = createHistoryQueue((event) => api.saveSanitizedEvent(event), ({ pending, failed, healthy }) => {
     state.historyHealthy = healthy && !workerRequests.failed;
     $('#history-status').textContent = failed ? failed + ' unsaved history events' : pending ? 'Saving history (' + pending + ')' : 'Sanitized history saved';
@@ -123,7 +136,8 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   }
   function showWorkspace(name) {
     state.workspace = name;
-    all('[data-workspace]').forEach((section) => { section.hidden = section.dataset.workspace !== name; });
+    if (navigation) navigation.showWorkspace(name);
+    else all('[data-workspace]').forEach((section) => { section.hidden = section.dataset.workspace !== name; });
     all('[data-nav]').forEach((button) => {
       if (button.dataset.nav === name) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
@@ -142,7 +156,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
       const button = node('button', undefined, 'message-item');
       button.setAttribute('aria-pressed', String(message.id === state.activeId));
       button.append(node('strong', (message.index + 1) + '. ' + (message.type || 'Unknown type')), node('small', message.controlId || 'No control ID'), node('small', (message.version || 'Unknown version') + ' · ' + message.length.toLocaleString() + ' characters'));
-      button.addEventListener('click', () => { selectMessage(state, message.id); renderActive(); renderCatalog(); });
+      button.addEventListener('click', () => { selectMessage(state, message.id); notifySelectedMessageChange('MESSAGE_SELECTED'); renderActive(); renderCatalog(); });
       list.append(button);
     }
     $('#more-messages').hidden = matching.length <= visibleMessages;
@@ -382,7 +396,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
     if (data.type === 'messages') {
       const count = state.messages.length;
       data.messages.forEach((message, index) => state.messages.push({ ...message, id: data.id + '-' + message.id, index: count + index, undo: [], redo: [] }));
-      if (!state.activeId && state.messages.length) { selectMessage(state, state.messages[0].id); renderActive(); }
+      if (!state.activeId && state.messages.length) { selectMessage(state, state.messages[0].id); notifySelectedMessageChange('MESSAGE_SELECTED'); renderActive(); }
       scheduleCatalogRender();
     } else if (data.type === 'archive') {
       const warnings = data.results.flatMap((item) => item.result.warnings);
@@ -422,7 +436,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   bind('#drop-zone', 'drop', (event) => { event.preventDefault(); $('#drop-zone').classList.remove('dragging'); if (event.dataTransfer.files.length !== 1) throw new Error('CHOOSE_ONE_FILE'); load({ file: event.dataTransfer.files[0] }); });
   bind('#raw-tab', 'click', () => { $('#raw-view').hidden = false; $('#tree-view').hidden = true; $('#raw-tab').setAttribute('aria-pressed', 'true'); $('#tree-tab').setAttribute('aria-pressed', 'false'); });
   bind('#tree-tab', 'click', () => { $('#raw-view').hidden = true; $('#tree-view').hidden = false; $('#raw-tab').setAttribute('aria-pressed', 'false'); $('#tree-tab').setAttribute('aria-pressed', 'true'); });
-  async function afterEdit() { renderActive(); renderCatalog(); await snapshotActive(); status('Selected message updated. A sanitized snapshot was saved.'); }
+  async function afterEdit() { notifySelectedMessageChange('MESSAGE_CHANGED'); renderActive(); renderCatalog(); await snapshotActive(); status('Selected message updated. A sanitized snapshot was saved.'); }
   bind('#raw-editor', 'input', () => { state.rawDraftDirty = true; state.onValidation?.(); });
   bind('#apply-raw', 'click', async () => { editActiveMessage(state, { type: 'replace-raw', value: $('#raw-editor').value.replace(/\r?\n/g, '\r') }); await afterEdit(); });
   bind('#apply-field', 'click', async () => { editActiveMessage(state, { type: 'set-value', path: $('#field-path').value.trim(), value: $('#field-value').value }); await afterEdit(); });
@@ -485,5 +499,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
     quickResult = null; comparisonPair = null; savedHistoryText = ''; location.replace('/#session=' + encodeURIComponent(token)); location.reload();
   });
   return { state, workerCall, saveEvent, snapshotActive, active, renderActive, runValidation, status, showWorkspace, handleError, bind, $, all, node,
+    getSelectedMessageSnapshot: () => getSelectedMessageSnapshot(state),
+    onSelectedMessageChange(listener) { selectedMessageListeners.add(listener); return () => selectedMessageListeners.delete(listener); },
     historyReady: async () => { await historyQueue.ready(); if (!state.historyHealthy) throw new Error('HISTORY_WRITE_FAILED'); } };
 }

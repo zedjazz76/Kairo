@@ -20,7 +20,7 @@
 <aside class="sidebar">
   <button id="quick-open" class="quick-button">Quick Sanitize <span>Paste → review → copy</span></button>
   <nav aria-label="Workspaces">
-    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect &amp; edit</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="dicom">DICOM</button><button data-nav="diagnostics">Diagnostics</button><button data-nav="case">Case</button><button data-nav="send">Send</button><button data-nav="history">History</button>
+    <button data-nav="home" aria-current="page">Home</button><button data-nav="inspect">Inspect</button><button data-nav="compare">Compare</button><button data-nav="validate">Validate</button><button data-nav="diagnostics">Diagnostics</button><button data-nav="case">Case</button><button data-nav="send">Send</button><button data-nav="history">History</button>
   </nav>
   <div class="privacy-note"><strong>Raw content stays in memory.</strong><p>Automatic history uses sanitized snapshots. Content needing review is omitted from automatic logs.</p><p>Provider fields are preserved. Always inspect output before sharing.</p></div>
 </aside>
@@ -39,7 +39,16 @@
     <section class="card"><h2>Built for deliberate work</h2><div class="feature-strip"><p><strong>Patient-PHI sanitizing</strong><span>Stable replacements and review warnings.</span></p><p><strong>One message at a time</strong><span>Edit and send only the selected message.</span></p><p><strong>Saved sanitized history</strong><span>Keep, search, export, or delete locally.</span></p></div></section>
   </section>
   <section data-workspace="inspect" hidden>
-    <div class="page-heading compact"><p class="eyebrow">Inspect &amp; edit</p><h1>One message. Full visibility.</h1><p>Edits affect only the selected in-memory message. Use raw editing to change delimiters.</p></div>
+    <section id="inspect-landing" class="workspace-landing" tabindex="-1" aria-labelledby="inspect-landing-title">
+      <div class="page-heading compact"><p class="eyebrow">Inspect</p><h1 id="inspect-landing-title">Choose an inspector.</h1><p>Open one focused local inspection workflow. Existing in-session work remains available when you return.</p></div>
+      <div id="inspect-tool-host" class="tool-card-grid"></div>
+    </section>
+    <section id="inspect-tool-view" class="focused-tool-view" hidden>
+      <nav id="inspect-breadcrumb" class="tool-breadcrumb" aria-label="Current tool"></nav>
+      <button id="inspect-back" class="workspace-back" type="button">← Back to Inspect</button>
+      <h1 id="inspect-tool-heading" class="visually-hidden" tabindex="-1">Inspector</h1>
+      <div data-tool-panel="hl7-inspector" hidden>
+    <div class="page-heading compact"><p class="eyebrow">HL7 Message Inspector</p><h1>One message. Full visibility.</h1><p>Edits affect only the selected in-memory message. Use raw editing to change delimiters.</p></div>
     <div class="workbench-grid">
       <aside class="card catalog">
         <h2>Messages <span id="message-count" class="count">0</span></h2>
@@ -61,6 +70,13 @@
       <aside class="card field-panel"><h2>Field details</h2><p class="small">Choose a tree value or enter a path such as PID-5.1.</p><label for="field-path">Field path</label><input id="field-path" placeholder="PID-5.1" autocomplete="off"><label for="field-value">Value</label><textarea id="field-value" rows="4" spellcheck="false" autocomplete="off"></textarea><button id="apply-field" class="primary" disabled>Apply field edit</button><hr><h3>Segment actions</h3><label for="segment-index">Segment</label><select id="segment-index"></select><div class="button-stack"><button id="clone-segment" disabled>Clone segment</button><button id="move-segment-up" disabled>Move up</button><button id="move-segment-down" disabled>Move down</button><button id="remove-segment" class="danger-outline" disabled>Remove segment</button></div><label for="new-segment">New segment text</label><input id="new-segment" placeholder="NTE|1||" autocomplete="off"><button id="add-segment" disabled>Add after selected</button></aside>
     </div>
     <details class="card findings-drawer"><summary>Message findings <span id="inspect-findings-count">0</span></summary><div id="inspect-findings"></div></details>
+      </div>
+      <div data-tool-panel="dicom-inspector" hidden>
+        <div class="page-heading compact"><p class="eyebrow">DICOM File Inspector</p><h1>Inspect without rendering.</h1><p>Files stay on this device and remain in browser memory.</p></div>
+        <div class="card"><label for="dicom-file">Choose a local DICOM file</label><input id="dicom-file" type="file" accept=".dcm,application/dicom"><p id="dicom-status" role="status">Select a DICOM Part 10 file.</p><label for="dicom-search">Search tag number, keyword, or name</label><input id="dicom-search" placeholder="0010,0020 or PatientID"><p id="dicom-definition"></p><p id="dicom-uid"></p><p id="dicom-summary"></p><pre id="dicom-findings"></pre><div id="dicom-tags"></div></div>
+        <div class="card"><h2>Redacted troubleshooting copy</h2><p id="dicom-copy-help">Only recognized SOP class, Transfer Syntax, and modality values are included. Patient and instance identifiers, dates, filenames, and free text are omitted. Review before sharing.</p><label for="dicom-redacted">Redacted preview</label><textarea id="dicom-redacted" rows="8" readonly aria-describedby="dicom-copy-help"></textarea><label><input id="dicom-reviewed" type="checkbox" disabled> I reviewed this redacted preview for sharing.</label><button id="dicom-copy" disabled>Copy redacted summary</button><p id="dicom-copy-status" role="status" aria-live="polite">Load a DICOM file to prepare a preview.</p></div>
+      </div>
+    </section>
   </section>
   <section data-workspace="compare" hidden>
     <div class="page-heading compact"><p class="eyebrow">Compare</p><h1>Make the differences clear.</h1><p>Choose exactly two messages. Ignore settings never rewrite content.</p></div>
@@ -69,11 +85,6 @@
   </section>
   <section data-workspace="validate" hidden>
     <div class="page-heading compact"><p class="eyebrow">Validate</p><h1>Know what was checked.</h1><p>Basic checks and the Kairo baseline run locally. Load a licensed local profile for organization-specific rules.</p></div><div class="card"><label for="validation-profile-file">Load local validation profile</label><input id="validation-profile-file" type="file" accept="application/json,.json"><p id="validation-profile-status" class="small" role="status" aria-live="polite">Kairo baseline profile loaded. Local profiles stay in this browser session.</p><button id="run-validation" class="primary">Validate selected message</button><p id="validation-summary">Select a message in Inspect first.</p><div id="validation-results"></div></div>
-  </section>
-  <section data-workspace="dicom" hidden>
-    <div class="page-heading compact"><p class="eyebrow">DICOM metadata</p><h1>Inspect without rendering.</h1><p>Files stay on this device and remain in browser memory.</p></div>
-    <div class="card"><label for="dicom-file">Choose a local DICOM file</label><input id="dicom-file" type="file" accept=".dcm,application/dicom"><p id="dicom-status" role="status">Select a DICOM Part 10 file.</p><label for="dicom-search">Search tag number, keyword, or name</label><input id="dicom-search" placeholder="0010,0020 or PatientID"><p id="dicom-definition"></p><p id="dicom-uid"></p><p id="dicom-summary"></p><pre id="dicom-findings"></pre><div id="dicom-tags"></div></div>
-    <div class="card"><h2>Redacted troubleshooting copy</h2><p id="dicom-copy-help">Only recognized SOP class, Transfer Syntax, and modality values are included. Patient and instance identifiers, dates, filenames, and free text are omitted. Review before sharing.</p><label for="dicom-redacted">Redacted preview</label><textarea id="dicom-redacted" rows="8" readonly aria-describedby="dicom-copy-help"></textarea><label><input id="dicom-reviewed" type="checkbox" disabled> I reviewed this redacted preview for sharing.</label><button id="dicom-copy" disabled>Copy redacted summary</button><p id="dicom-copy-status" role="status" aria-live="polite">Load a DICOM file to prepare a preview.</p></div>
   </section>
   <section data-workspace="case" hidden>
     <div class="page-heading compact"><p class="eyebrow">Guided troubleshooting</p><h1>Build an evidence-based case.</h1><p>This first checkpoint stays in this browser session. Do not enter patient-identifiable data, credentials, message bodies, or secrets.</p></div>
@@ -94,7 +105,16 @@
     <div class="card"><h2>Technical handoff</h2><p>Review before copying or transmitting through your approved workflow. Kairo does not send this summary.</p><button id="case-handoff-run" type="button">Generate handoff summary</button><label for="case-handoff">Case handoff</label><textarea id="case-handoff" rows="18" readonly></textarea></div>
   </section>
   <section data-workspace="diagnostics" hidden>
-    <div class="page-heading compact"><p class="eyebrow">Live endpoint diagnostics</p><h1>Find the failing connection layer.</h1><p>Test one endpoint you are authorized to access. Results stay in this session.</p></div>
+    <section id="diagnostics-landing" class="workspace-landing" tabindex="-1" aria-labelledby="diagnostics-landing-title">
+      <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1 id="diagnostics-landing-title">Choose a diagnostic tool.</h1><p>Open one focused workflow for an endpoint you are authorized to test. Results stay in this session.</p></div>
+      <div id="diagnostics-tool-host" class="tool-card-grid"></div>
+    </section>
+    <section id="diagnostics-tool-view" class="focused-tool-view" hidden>
+      <nav id="diagnostics-breadcrumb" class="tool-breadcrumb" aria-label="Current tool"></nav>
+      <button id="diagnostics-back" class="workspace-back" type="button">← Back to Diagnostics</button>
+      <h1 id="diagnostics-tool-heading" class="visually-hidden" tabindex="-1">Diagnostic tool</h1>
+    <div data-tool-panel="profiles-baselines" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>Endpoint Profiles / Baselines</h1><p>Manage nonclinical endpoints and qualified comparison evidence.</p></div>
     <form id="diagnostic-profile-form" class="card">
       <h2>Endpoint profiles</h2><p>Profiles are stored only in Kairo's local data folder. Do not enter credentials, PHI, or secrets.</p>
       <label for="diagnostic-profile-select">Saved endpoint</label><select id="diagnostic-profile-select"><option value="">New profile</option></select><button id="diagnostic-profile-load" type="button">Load local profiles</button>
@@ -107,6 +127,9 @@
       <h3>Known-good baseline</h3><button id="diagnostic-baseline-save" type="button">Save successful result as baseline</button><button id="diagnostic-baseline-load" type="button">Load and compare baseline</button><p id="diagnostic-baseline-status" role="status">No baseline loaded.</p><p id="diagnostic-baseline-comparison">Run a diagnostic, then save or load a baseline.</p>
       <h3>Evidence summary</h3><p>Uses the current diagnostic, loaded baseline comparison, and safe availability signals from existing HL7/DICOM evidence. It does not establish certainty.</p><button id="diagnostic-evidence-run" type="button">Summarize troubleshooting evidence</button><button id="diagnostic-case-attach" type="button">Add current diagnostic to case</button><p id="diagnostic-case-status" role="status">Run a diagnostic before adding evidence to a case.</p><p id="diagnostic-evidence-observed">OBSERVED: Run a diagnostic first.</p><p id="diagnostic-evidence-boundary">LIKELY BOUNDARY: Not evaluated.</p><p id="diagnostic-evidence-missing">MISSING EVIDENCE: Not evaluated.</p><p id="diagnostic-evidence-next">NEXT CHECK: Not evaluated.</p>
     </form>
+    </div>
+    <div data-tool-panel="dicom-connectivity" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>DICOM Connectivity</h1><p>Test one authorized endpoint explicitly.</p></div>
     <form id="diagnostic-form" class="card">
       <h2>TCP / DICOM</h2>
       <label for="diagnostic-host">Hostname or IP address</label><input id="diagnostic-host" required maxlength="253" placeholder="pacs.example" autocomplete="off" spellcheck="false">
@@ -123,6 +146,9 @@
       <p id="diagnostic-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-layer-association">DICOM association: NOT_RUN</p><p id="diagnostic-layer-echo">C-ECHO: NOT_RUN</p>
       <p>TCP success does not establish protocol support. C-ECHO success confirms Verification only; it does not prove storage, MWL, or Query/Retrieve support. One resolved address is tested; there is no automatic fallback.</p>
     </div>
+    </div>
+    <div data-tool-panel="mwl" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>DICOM Modality Worklist</h1><p>Query one authorized MWL SCP explicitly.</p></div>
     <form id="mwl-form" class="card">
       <h2>DICOM Modality Worklist</h2>
       <p>Run one authorized MWL C-FIND explicitly. Query criteria and returned patient data remain session-only and are not added to profiles, history, baselines, or cases.</p>
@@ -157,6 +183,27 @@
       <h3>Selected-item inspector</h3>
       <div class="table-wrap"><table id="mwl-inspector-table" class="mwl-inspector-table"><colgroup><col class="mwl-col-tag"><col class="mwl-col-keyword"><col class="mwl-col-value"><col class="mwl-col-definition"></colgroup><thead><tr><th scope="col">Tag</th><th scope="col">Keyword</th><th scope="col">Value</th><th scope="col">Definition</th></tr></thead><tbody id="mwl-inspector"></tbody></table></div>
     </form>
+    </div>
+    <div data-tool-panel="orm-mwl-comparison" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>ORM ↔ MWL Comparison</h1><p>Why is this exam missing?</p></div>
+    <section id="workflow-comparison" class="card">
+      <p class="eyebrow">DICOM Workflow</p><h2>Compare ORM to MWL</h2><h3>Why is this exam missing?</h3>
+      <p>Explicitly select one in-memory ORM order group and one current MWL target. Comparison values remain in this browser session and are not saved to cases, profiles, baselines, history, or handoffs.</p>
+      <div class="button-row"><button id="workflow-use-orm" type="button">Use selected HL7 ORM</button><button id="workflow-use-mwl" type="button">Use current MWL target</button></div>
+      <p id="workflow-orm-summary">Selected HL7 ORM: None selected</p>
+      <label for="workflow-order-group">ORM order group</label><select id="workflow-order-group"><option value="">Select an eligible ORM first</option></select>
+      <p id="workflow-order-group-summary">Order group: None selected</p>
+      <label for="workflow-accession-source">HL7 Accession Source</label><select id="workflow-accession-source"><option value="">Not established</option></select>
+      <p id="workflow-mwl-target">MWL comparison target: None selected</p>
+      <div class="button-row"><button id="workflow-compare" type="button" class="primary">Compare ORM to MWL</button><button id="workflow-clear" type="button">Clear comparison</button></div>
+      <p id="workflow-status" role="status" aria-live="polite">Select sources explicitly. No comparison runs automatically.</p>
+      <div class="table-wrap"><table id="workflow-comparison-table" class="workflow-comparison-table"><thead><tr><th scope="col">Concept</th><th scope="col">HL7 Source</th><th scope="col">HL7 Value</th><th scope="col">MWL Source</th><th scope="col">MWL Value</th><th scope="col">Result</th></tr></thead><tbody id="workflow-comparison-rows"></tbody></table></div>
+      <h3>Concept summaries</h3><div id="workflow-concepts"><p>No concepts compared.</p></div>
+      <h3>Evidence summary</h3><p id="workflow-observed">OBSERVED: No comparison has been run.</p><p id="workflow-boundary">LIKELY BOUNDARY: Not evaluated.</p><p id="workflow-missing">MISSING EVIDENCE: Not evaluated.</p><p id="workflow-next">NEXT CHECK: Not evaluated.</p>
+    </section>
+    </div>
+    <div data-tool-panel="http-tls" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>HTTP / TLS</h1><p>Inspect one authorized URL layer by layer.</p></div>
     <form id="diagnostic-http-form" class="card">
       <h2>HTTP / TLS</h2>
       <label for="diagnostic-http-target">HTTP or HTTPS URL (a hostname defaults to HTTPS)</label><input id="diagnostic-http-target" required maxlength="2048" placeholder="https://service.example/health" autocomplete="off" spellcheck="false">
@@ -169,6 +216,9 @@
       <p id="diagnostic-http-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-http-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-http-layer-tls">TLS: NOT_RUN</p><p id="diagnostic-http-layer-http">HTTP: NOT_RUN</p>
       <p id="diagnostic-http-certificate">Certificate: NOT_AVAILABLE</p><p id="diagnostic-http-tls-evidence">TLS evidence: NOT_AVAILABLE</p><p id="diagnostic-http-response">HTTP evidence: NOT_AVAILABLE</p>
     </div>
+    </div>
+    <div data-tool-panel="hl7-mllp" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>HL7 / MLLP</h1><p>Check reachability or send one synthetic test explicitly.</p></div>
     <form id="diagnostic-mllp-form" class="card">
       <h2>HL7 / MLLP</h2>
       <label for="diagnostic-mllp-host">Hostname or IP address</label><input id="diagnostic-mllp-host" required maxlength="253" placeholder="hl7.example" autocomplete="off" spellcheck="false">
@@ -185,6 +235,8 @@
       <p id="diagnostic-mllp-layer-dns">DNS: NOT_RUN</p><p id="diagnostic-mllp-layer-tcp">TCP: NOT_RUN</p><p id="diagnostic-mllp-layer-mllp">MLLP message: NOT_RUN</p><p id="diagnostic-mllp-layer-ack">ACK: NOT_RUN</p><p id="diagnostic-mllp-layer-application">Application: NOT_RUN</p>
       <p id="diagnostic-mllp-ack">ACK evidence: NOT_AVAILABLE</p><p>AA means application accept, AE means application error, and AR means application reject. A correlated AA does not independently prove downstream clinical processing.</p>
     </div>
+    </div>
+    </section>
   </section>
   <section data-workspace="send" hidden>
     <div class="page-heading compact"><p class="eyebrow">Outbound MLLP</p><h1>One message at a time.</h1><p>No queue, scheduled sending, or automatic retries. A connection check sends no HL7, but the destination may record the connection.</p></div>
@@ -203,6 +255,14 @@
   </section>
 </main>
 </div>
+<dialog id="tool-guide-dialog" class="tool-guide-dialog" aria-labelledby="tool-guide-title">
+  <div class="dialog-heading"><div><p class="eyebrow">Quick Guide</p><h2 id="tool-guide-title">Tool guide</h2></div><button id="tool-guide-close" type="button">Close</button></div>
+  <section><h3>What this tool does</h3><p id="tool-guide-purpose"></p></section>
+  <section><h3>Example</h3><p id="tool-guide-example"></p></section>
+  <section><h3>How to use it</h3><ol id="tool-guide-steps"></ol></section>
+  <section><h3>How to interpret common results</h3><p id="tool-guide-results"></p></section>
+  <section><h3>Troubleshooting tip</h3><p id="tool-guide-tip"></p></section>
+</dialog>
 <dialog id="quick-dialog" aria-labelledby="quick-title">
   <div class="dialog-heading"><div><p class="eyebrow">Quick Sanitize</p><h2 id="quick-title">Prepare text for research.</h2></div><button id="quick-close" aria-label="Close Quick Sanitize">Close</button></div>
   <p>Patient-PHI rules run locally. Providers remain visible. Review every output; this is not a de-identification certification.</p>

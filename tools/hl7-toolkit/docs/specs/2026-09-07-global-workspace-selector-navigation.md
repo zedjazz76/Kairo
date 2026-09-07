@@ -1,6 +1,6 @@
 # Kairo Global Workspace Selector and Tool Navigation
 
-**Status:** Proposed for user approval on September 7, 2026  
+**Status:** Implemented and accepted through the real Windows Kairo UI on September 7, 2026
 **Classification:** Architectural UI work  
 **Applies to:** Existing Kairo Stage 1 through Checkpoint 7.2 user interface  
 **Depends on:** The approved Checkpoint 7.2 specification and its current uncommitted implementation
@@ -292,3 +292,15 @@ This design does not:
 - add external help links or duplicate full documentation;
 - start Checkpoint 7.3, Query/Retrieve, Checkpoints 7.4/7.5, or Stage 8; or
 - commit the completed Checkpoint 7.2 implementation before real Windows manual acceptance.
+
+## 17. Final Windows Manual Acceptance
+
+Final manual acceptance passed through the real Windows Kairo UI on September 7, 2026. The accepted workflow verified:
+
+- exactly two Inspect cards and six Diagnostics cards, each with its description, synthetic example, Quick Guide, and designer Open Tool action;
+- focused tool views, workspace/tool breadcrumbs, Back navigation, hidden sibling controls, and preserved valid in-session tool state;
+- Quick Guides that did not trigger diagnostics, closed with Escape, and restored keyboard focus appropriately;
+- usable wide, medium, and narrow responsive layouts without page overflow;
+- direct Home, Compare, Validate, Case, Send, and History workflows;
+- globally available Quick Sanitize; and
+- unchanged Stage 1 through Checkpoint 7.2 behavior and privacy boundaries.
