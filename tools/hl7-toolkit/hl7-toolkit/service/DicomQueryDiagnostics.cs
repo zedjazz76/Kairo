@@ -36,7 +36,24 @@ namespace Kairo.Diagnostics {
         public List<MwlItem> items = new List<MwlItem>();
         public List<MwlDecodingWarning> warnings = new List<MwlDecodingWarning>();
     }
-    public static class MwlQueryClient {
+    public sealed class StudyQueryRequest {
+        public string host, callingAe, calledAe, accessionNumber, patientId, studyInstanceUid, studyDate, studyDateRange, modalitiesInStudy;
+        public int port, timeoutMs;
+    }
+    public sealed class StudyTag { public string tag = "", value = ""; public List<string> path = new List<string>(); }
+    public sealed class StudyItem {
+        public string patientName = "", patientId = "", accessionNumber = "", studyDate = "", studyTime = "", studyDescription = "", modalitiesInStudy = "", studyInstanceUid = "", numberOfStudyRelatedSeries = "", numberOfStudyRelatedInstances = "", referringPhysicianName = "", specificCharacterSet = "";
+        public List<StudyTag> tags = new List<StudyTag>();
+        public List<MwlDecodingWarning> decodingWarnings = new List<MwlDecodingWarning>();
+    }
+    public sealed class StudyQueryResult {
+        public string classification = "FAILED", resolvedAddress = "", queryRetrieveLevel = "STUDY", sopClassUid = "1.2.840.10008.5.1.4.1.2.2.1", acceptedTransferSyntax = "";
+        public MwlLayerResult dns = new MwlLayerResult(), tcp = new MwlLayerResult(), association = new MwlLayerResult(), cfind = new MwlLayerResult(), cancellation = new MwlLayerResult();
+        public MwlMatchResult matches = new MwlMatchResult();
+        public List<StudyItem> items = new List<StudyItem>();
+        public List<MwlDecodingWarning> warnings = new List<MwlDecodingWarning>();
+    }
+    internal static class DicomFindCore {
         const string Mwl = "1.2.840.10008.5.1.4.31", Implicit = "1.2.840.10008.1.2", Explicit = "1.2.840.10008.1.2.1", Application = "1.2.840.10008.3.1.1.1";
         sealed class Pdu { public byte type; public byte[] body; }
         static void Require(bool value) { if (!value) throw new InvalidDataException("MWL_PROTOCOL_ERROR"); }
@@ -196,7 +213,122 @@ namespace Kairo.Diagnostics {
                 result.cfind.Set("FAILED", status == 0xa900 ? "C_FIND_IDENTIFIER_REJECTED" : "C_FIND_FAILED", "The peer returned a terminal C-FIND failure status.", 0); result.classification = result.cfind.code; return;
             }
         }
-        public static MwlQueryResult Run(MwlQueryRequest request) {
+        const string StudyRoot = "1.2.840.10008.5.1.4.1.2.2.1";
+        static string AssociateStudy(NetworkStream stream, StudyQueryRequest request) {
+            byte[] fixedPart = new byte[68]; fixedPart[1] = 1;
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(request.calledAe.PadRight(16)), 0, fixedPart, 4, 16);
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(request.callingAe.PadRight(16)), 0, fixedPart, 20, 16);
+            byte[] context = Item(0x20, Join(new byte[] { 1, 0, 0, 0 }, Item(0x30, Encoding.ASCII.GetBytes(StudyRoot)), Item(0x40, Encoding.ASCII.GetBytes(Explicit)), Item(0x40, Encoding.ASCII.GetBytes(Implicit))));
+            byte[] user = Item(0x50, Join(Item(0x51, Be32(16384)), Item(0x52, Encoding.ASCII.GetBytes("2.25.25815942481606045106159218101014368293")), Item(0x55, Encoding.ASCII.GetBytes("KAIRO_STAGE7"))));
+            WritePdu(stream, 1, Join(fixedPart, Item(0x10, Encoding.ASCII.GetBytes(Application)), context, user));
+            Pdu response = ReadPdu(stream);
+            if (response.type == 3) throw new InvalidDataException("STUDY_ASSOCIATION_REJECTED");
+            if (response.type != 2 || response.body.Length < 68) throw new InvalidDataException("STUDY_ASSOCIATION_MALFORMED");
+            bool application = false; string syntax = ""; bool accepted = false;
+            for (int p = 68; p < response.body.Length;) {
+                if (p + 4 > response.body.Length) throw new InvalidDataException("STUDY_ASSOCIATION_MALFORMED");
+                int type = response.body[p], length = BeU16(response.body, p + 2); byte[] body = Slice(response.body, p + 4, length); p += 4 + length;
+                if (type == 0x10) application = Encoding.ASCII.GetString(body) == Application;
+                if (type == 0x21) {
+                    if (body.Length < 4 || body[0] != 1) throw new InvalidDataException("STUDY_ASSOCIATION_MALFORMED");
+                    accepted = body[2] == 0;
+                    for (int q = 4; q < body.Length;) { if (q + 4 > body.Length) throw new InvalidDataException("STUDY_ASSOCIATION_MALFORMED"); int subLength = BeU16(body, q + 2); if (q + 4 + subLength > body.Length) throw new InvalidDataException("STUDY_ASSOCIATION_MALFORMED"); if (body[q] == 0x40) syntax = Encoding.ASCII.GetString(body, q + 4, subLength); q += 4 + subLength; }
+                }
+            }
+            if (!application || !accepted) throw new InvalidDataException("STUDY_PRESENTATION_CONTEXT_REJECTED");
+            if (syntax != Implicit && syntax != Explicit) throw new InvalidDataException("STUDY_TRANSFER_SYNTAX_REJECTED");
+            return syntax;
+        }
+        static byte[] ExplicitElement(ushort group, ushort element, string vr, string value) {
+            byte[] raw = Encoding.ASCII.GetBytes(value ?? ""); if ((raw.Length & 1) != 0) raw = Join(raw, new byte[] { vr == "UI" ? (byte)0 : (byte)0x20 });
+            return Join(Le16(group), Le16(element), Encoding.ASCII.GetBytes(vr), Le16((ushort)raw.Length), raw);
+        }
+        static byte[] StudyElement(ushort group, ushort element, string vr, string value, string syntax) { return syntax == Explicit ? ExplicitElement(group, element, vr, value) : DatasetElement(group, element, value); }
+        static void SendStudyFind(NetworkStream stream, StudyQueryRequest request, string syntax) {
+            byte[] fields = Join(CommandElement(0x0002, Encoding.ASCII.GetBytes(StudyRoot + "\0")), CommandElement(0x0100, Le16(0x0020)), CommandElement(0x0110, Le16(1)), CommandElement(0x0700, Le16(0)), CommandElement(0x0800, Le16(0)));
+            byte[] command = Join(CommandElement(0, Le32((uint)fields.Length)), fields);
+            var elements = new List<byte[]>();
+            elements.Add(StudyElement(0x0008, 0x0052, "CS", "STUDY", syntax));
+            if (!String.IsNullOrEmpty(request.accessionNumber)) elements.Add(StudyElement(0x0008, 0x0050, "SH", request.accessionNumber, syntax));
+            if (!String.IsNullOrEmpty(request.patientId)) elements.Add(StudyElement(0x0010, 0x0020, "LO", request.patientId, syntax));
+            if (!String.IsNullOrEmpty(request.studyInstanceUid)) elements.Add(StudyElement(0x0020, 0x000d, "UI", request.studyInstanceUid, syntax));
+            string date = !String.IsNullOrEmpty(request.studyDate) ? request.studyDate : request.studyDateRange;
+            if (!String.IsNullOrEmpty(date)) elements.Add(StudyElement(0x0008, 0x0020, "DA", date, syntax));
+            if (!String.IsNullOrEmpty(request.modalitiesInStudy)) elements.Add(StudyElement(0x0008, 0x0061, "CS", request.modalitiesInStudy, syntax));
+            foreach (var key in new [] { new { g=(ushort)0x0010,e=(ushort)0x0010,vr="PN" }, new { g=(ushort)0x0008,e=(ushort)0x0030,vr="TM" }, new { g=(ushort)0x0008,e=(ushort)0x1030,vr="LO" }, new { g=(ushort)0x0008,e=(ushort)0x0090,vr="PN" }, new { g=(ushort)0x0020,e=(ushort)0x1206,vr="IS" }, new { g=(ushort)0x0020,e=(ushort)0x1208,vr="IS" } }) elements.Add(StudyElement(key.g, key.e, key.vr, "", syntax));
+            if (String.IsNullOrEmpty(request.patientId)) elements.Add(StudyElement(0x0010, 0x0020, "LO", "", syntax));
+            if (String.IsNullOrEmpty(request.accessionNumber)) elements.Add(StudyElement(0x0008, 0x0050, "SH", "", syntax));
+            if (String.IsNullOrEmpty(request.studyInstanceUid)) elements.Add(StudyElement(0x0020, 0x000d, "UI", "", syntax));
+            if (String.IsNullOrEmpty(date)) elements.Add(StudyElement(0x0008, 0x0020, "DA", "", syntax));
+            if (String.IsNullOrEmpty(request.modalitiesInStudy)) elements.Add(StudyElement(0x0008, 0x0061, "CS", "", syntax));
+            elements.Sort(delegate(byte[] left, byte[] right) { int group = U16(left, 0).CompareTo(U16(right, 0)); return group != 0 ? group : U16(left, 2).CompareTo(U16(right, 2)); });
+            byte[] dataset = Join(elements.ToArray());
+            WritePdu(stream, 4, Join(Join(Be32((uint)command.Length + 2), new byte[] { 1, 3 }, command), Join(Be32((uint)dataset.Length + 2), new byte[] { 1, 2 }, dataset)));
+        }
+        static void AddStudyValue(StudyItem item, StudyQueryResult result, ushort group, ushort element, string value) {
+            string tag = group.ToString("X4") + element.ToString("X4"); item.tags.Add(new StudyTag { tag = tag, value = value });
+            if (group == 0x0010 && element == 0x0010) item.patientName = value;
+            else if (group == 0x0010 && element == 0x0020) item.patientId = value;
+            else if (group == 0x0008 && element == 0x0050) item.accessionNumber = value;
+            else if (group == 0x0008 && element == 0x0020) item.studyDate = value;
+            else if (group == 0x0008 && element == 0x0030) item.studyTime = value;
+            else if (group == 0x0008 && element == 0x1030) item.studyDescription = value;
+            else if (group == 0x0008 && element == 0x0061) item.modalitiesInStudy = value;
+            else if (group == 0x0020 && element == 0x000d) item.studyInstanceUid = value;
+            else if (group == 0x0020 && element == 0x1206) item.numberOfStudyRelatedSeries = value;
+            else if (group == 0x0020 && element == 0x1208) item.numberOfStudyRelatedInstances = value;
+            else if (group == 0x0008 && element == 0x0090) item.referringPhysicianName = value;
+        }
+        static StudyItem ParseStudy(byte[] bytes, string syntax, StudyQueryResult result) {
+            if (bytes.Length > 1048576) throw new InvalidDataException("STUDY_RESPONSE_TOO_LARGE");
+            var entries = new List<Tuple<ushort,ushort,int,int>>(); string characterSet = ""; int p = 0;
+            while (p < bytes.Length) {
+                if (entries.Count >= 256 || p + 8 > bytes.Length) throw new InvalidDataException("STUDY_DATASET_MALFORMED");
+                ushort group=U16(bytes,p), element=U16(bytes,p+2); int header=8; uint length;
+                if (syntax == Explicit) { length=U16(bytes,p+6); } else length=U32(bytes,p+4);
+                if (length > 65536 || length > bytes.Length - p - header) throw new InvalidDataException("STUDY_DATASET_MALFORMED");
+                entries.Add(Tuple.Create(group,element,p+header,(int)length));
+                if (group==0x0008 && element==0x0005) { try { characterSet=StrictText(StrictAscii,bytes,p+header,(int)length); } catch { characterSet="INVALID"; } }
+                p += header + (int)length;
+            }
+            var item = new StudyItem(); item.specificCharacterSet=characterSet; Encoding textEncoding=CharacterEncoding(characterSet);
+            foreach(var entry in entries) {
+                ushort group=entry.Item1, element=entry.Item2; if (group==0x0008 && element==0x0005) { AddStudyValue(item,result,group,element,characterSet); continue; }
+                bool known=(group==0x0010&&(element==0x0010||element==0x0020))||(group==0x0008&&(element==0x0050||element==0x0020||element==0x0030||element==0x1030||element==0x0061||element==0x0090))||(group==0x0020&&(element==0x000d||element==0x1206||element==0x1208));
+                if(!known) continue; bool charsetText=(group==0x0010)||(group==0x0008&&(element==0x0050||element==0x1030||element==0x0090)); Encoding encoding=charsetText?textEncoding:StrictAscii; string value; string code=encoding==null?"CHARACTER_SET_NOT_SUPPORTED":"TEXT_DECODING_FAILED";
+                try { if(encoding==null) throw new DecoderFallbackException(); value=StrictText(encoding,bytes,entry.Item3,entry.Item4); }
+                catch { value=code; var warning=new MwlDecodingWarning{code=code,tag=group.ToString("X4")+","+element.ToString("X4"),keyword="StudyAttribute",characterSet=characterSet==""?"DICOM_DEFAULT":characterSet}; item.decodingWarnings.Add(warning); result.warnings.Add(warning); }
+                AddStudyValue(item,result,group,element,value);
+            }
+            return item;
+        }
+        static void ReadStudyResponses(NetworkStream stream, StudyQueryResult result, int timeoutMs, string syntax) {
+            bool truncated=false; var clock=new Stopwatch();var commandBuffer=new MemoryStream();var datasetBuffer=new MemoryStream();bool commandDone=false,dataDone=false;
+            while(true) {
+                Pdu pdu;
+                try { if(truncated){int remaining=timeoutMs-(int)clock.ElapsedMilliseconds;if(remaining<=0){SetStudyCancel(result,"CANCEL_TIMEOUT");return;}stream.ReadTimeout=remaining;} pdu=ReadPdu(stream); }
+                catch(EndOfStreamException){if(!truncated)throw;SetStudyCancel(result,"ASSOCIATION_CLOSED_AFTER_CANCEL");return;}
+                catch(IOException){if(!truncated)throw;SetStudyCancel(result,"CANCEL_TIMEOUT");return;}
+                if(pdu.type==7)throw new InvalidDataException("PEER_ABORT");if(pdu.type!=4) throw new InvalidDataException("STUDY_DIMSE_MALFORMED");
+                for(int p=0;p<pdu.body.Length;){if(p+6>pdu.body.Length)throw new InvalidDataException("STUDY_DIMSE_MALFORMED");uint length=BeU32(pdu.body,p);p+=4;if(length<2||length>pdu.body.Length-p)throw new InvalidDataException("STUDY_DIMSE_MALFORMED");if(pdu.body[p]!=1)throw new InvalidDataException("STUDY_RESPONSE_MISMATCH");byte control=pdu.body[p+1];byte[] value=Slice(pdu.body,p+2,(int)length-2);MemoryStream target=(control&1)!=0?commandBuffer:datasetBuffer;target.Write(value,0,value.Length);if(target.Length>((control&1)!=0?65536:1048576))throw new InvalidDataException((control&1)!=0?"STUDY_COMMAND_TOO_LARGE":"STUDY_RESPONSE_TOO_LARGE");if((control&2)!=0){if((control&1)!=0)commandDone=true;else dataDone=true;}p+=(int)length;}
+                if(!commandDone)continue;byte[] command=commandBuffer.ToArray();var fields=ParseCommand(command);
+                if(!fields.ContainsKey(0x0100)||U16(fields[0x0100],0)!=0x8020||!fields.ContainsKey(0x0120)||U16(fields[0x0120],0)!=1||!fields.ContainsKey(0x0900))throw new InvalidDataException("STUDY_RESPONSE_MISMATCH");
+                bool expectsDataset=fields.ContainsKey(0x0800)&&U16(fields[0x0800],0)!=0x0101;if(expectsDataset&&!dataDone)continue;byte[] dataset=expectsDataset?datasetBuffer.ToArray():null;commandBuffer.SetLength(0);datasetBuffer.SetLength(0);commandDone=false;dataDone=false;
+                ushort status=U16(fields[0x0900],0);result.cfind.dicomStatus="0x"+status.ToString("X4");
+                if(status==0xff00||status==0xff01){if(dataset==null)throw new InvalidDataException("STUDY_DATASET_MISSING");if(status==0xff01)result.warnings.Add(new MwlDecodingWarning{code="C_FIND_PENDING_WARNING",tag="",keyword="CFindStatus",characterSet=""});if(!truncated){result.items.Add(ParseStudy(dataset,syntax,result));if(result.items.Count==100){truncated=true;result.matches.state="SUCCESS";result.matches.code="MATCH_LIMIT_REACHED";result.matches.retained=100;result.matches.truncated=true;result.classification="SUCCESS_TRUNCATED";clock.Start();try{SendCancel(stream);}catch{SetStudyCancel(result,"CANCEL_SEND_FAILED");return;}}}continue;}
+                if(truncated){result.cfind.Set("SUCCESS",status==0xfe00?"C_FIND_CANCELLED":"C_FIND_FINAL_RESPONSE","The bounded query reached a terminal response.",0);SetStudyCancel(result,status==0xfe00?"CANCEL_CONFIRMED":"FINAL_RESPONSE_RACED_CANCEL");return;}
+                if(status==0){result.cfind.Set("SUCCESS","C_FIND_SUCCESS","The correlated Study Root C-FIND completed successfully.",0);result.matches.state="SUCCESS";result.matches.code=result.items.Count==0?"ZERO_MATCHES":"MATCHES_RETAINED";result.matches.retained=result.items.Count;result.classification=result.items.Count==0?"SUCCESS_ZERO_MATCHES":"SUCCESS_MATCHES";return;}
+                result.cfind.Set("FAILED",status==0xa900?"C_FIND_IDENTIFIER_REJECTED":"C_FIND_FAILED","The peer returned a terminal C-FIND failure status.",0);result.classification=result.cfind.code;return;
+            }
+        }
+        static void SetStudyCancel(StudyQueryResult result,string code){result.cancellation.Set(code=="CANCEL_CONFIRMED"?"SUCCESS":"WARNING",code,"Bounded C-FIND cancellation evidence.",0);}
+        public static StudyQueryResult RunStudy(StudyQueryRequest request) {
+            var result=new StudyQueryResult();TcpClient client=null;var phase=Stopwatch.StartNew();string stage="DNS";
+            try { IPAddress address;if(IPAddress.TryParse(request.host,out address))result.dns.Set("SUCCESS","NOT_REQUIRED","IP literal supplied; DNS was not required.",0);else{IPAddress[] addresses=Dns.GetHostAddresses(request.host);if(addresses.Length==0)throw new InvalidDataException("STUDY_DNS_FAILED");address=addresses[0];result.dns.Set("SUCCESS","RESOLVED","DNS resolved to one selected address.",phase.ElapsedMilliseconds);}result.resolvedAddress=address.ToString();stage="TCP";phase.Restart();client=new TcpClient(address.AddressFamily);IAsyncResult connect=client.BeginConnect(address,request.port,null,null);if(!connect.AsyncWaitHandle.WaitOne(request.timeoutMs))throw new TimeoutException();client.EndConnect(connect);connect.AsyncWaitHandle.Close();result.tcp.Set("SUCCESS","TCP_CONNECTED","One TCP connection was established.",phase.ElapsedMilliseconds);NetworkStream stream=client.GetStream();stream.ReadTimeout=request.timeoutMs;stream.WriteTimeout=request.timeoutMs;stage="ASSOCIATION";phase.Restart();string syntax=AssociateStudy(stream,request);result.acceptedTransferSyntax=syntax;result.association.Set("SUCCESS","ASSOCIATION_ACCEPTED","Association accepted with a Study Root FIND presentation context.",phase.ElapsedMilliseconds);stage="C_FIND";SendStudyFind(stream,request,syntax);ReadStudyResponses(stream,result,request.timeoutMs,syntax);try{WritePdu(stream,5,new byte[4]);}catch{}
+            } catch(Exception error) { string code=error.Message.StartsWith("STUDY_")||error.Message=="PEER_ABORT"?error.Message:(error is TimeoutException?"TIMEOUT":(stage=="DNS"?"DNS_FAILED":stage=="TCP"?"CONNECTION_FAILED":stage=="ASSOCIATION"?"ASSOCIATION_FAILED":"C_FIND_FAILED"));MwlLayerResult layer=stage=="DNS"?result.dns:stage=="TCP"?result.tcp:stage=="ASSOCIATION"?result.association:result.cfind;layer.Set("FAILED",code,"The Study Root query stopped at this protocol layer.",phase.ElapsedMilliseconds);result.classification=code;
+            } finally {if(client!=null)client.Close();}return result;
+        }
+        public static MwlQueryResult RunMwl(MwlQueryRequest request) {
             var result = new MwlQueryResult(); TcpClient client = null; var phase = Stopwatch.StartNew();
             try {
                 IPAddress address;
@@ -208,4 +340,6 @@ namespace Kairo.Diagnostics {
             return result;
         }
     }
+    public static class MwlQueryClient { public static MwlQueryResult Run(MwlQueryRequest request) { return DicomFindCore.RunMwl(request); } }
+    public static class StudyQueryClient { public static StudyQueryResult Run(StudyQueryRequest request) { return DicomFindCore.RunStudy(request); } }
 }

@@ -19,6 +19,16 @@ const raw = 'MSH|^~\\&|TOOL|TEST|STUB|TEST|202609031200||ORM^O01|RAWCANARYCONTRO
 const audit = (result, type = 'message-save') => ({ schema: 'hl7-toolkit.sanitized-event.v1', type, policyVersion: rules.version, mode: 'chat-safe', sanitizedText: historySafeText(result), warningCounts: countWarningTypes(result.warnings), overrideCount: 0 });
 const diskText = (root) => readdirSync(root, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => readFileSync(path.join(entry.parentPath, entry.name), 'utf8')).join('\n');
 
+test('Study Query browser modules have no persistence logging export or lifecycle-monitoring sink', () => {
+  const source = [
+    'hl7-toolkit/app/scripts/study-query-model.mjs',
+    'hl7-toolkit/app/scripts/study-query-ui.mjs'
+  ].map(file => readFileSync(file, 'utf8')).join('\n');
+  assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB|console\.|telemetry|clipboard|createObjectURL|location\.(?:search|hash)|setInterval|EventSource|WebSocket/);
+  assert.doesNotMatch(source, /\/api\/(?:history|cases?|diagnostics\/baseline|profiles\/endpoint).*\b(?:POST|PUT|PATCH)\b/i);
+  assert.match(source, /\/api\/dicom\/studies\/find/);
+});
+
 test('import, edit, compare, copy, and actual local send persist no raw patient canary', async () => {
   const service = await startService();
   const api = createApi({ ...service, sessionId: 'integrated-privacy' });

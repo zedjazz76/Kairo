@@ -113,3 +113,7 @@ Automated verification and final real Windows manual acceptance passed September
 Inspect now opens a two-card selector for the existing HL7 Message Inspector and DICOM File Inspector. Diagnostics opens a six-card selector for Profiles/Baselines, DICOM Connectivity, Modality Worklist, ORM ↔ MWL Comparison, HTTP/TLS, and HL7/MLLP. Shared designer Open Tool and Quick Guide buttons, an in-Kairo guide dialog, breadcrumbs, and Back navigation wrap the existing tools without remounting or changing them.
 
 Home, Compare, Validate, Case, Send, and History remain direct workflows, and Quick Sanitize remains global. Final real Windows acceptance passed for cards, guides, focused views, navigation, responsive layout, keyboard/focus behavior, preserved state, and unchanged privacy boundaries.
+
+## Pending manual acceptance — Stage Seven Checkpoint 7.3 Study Root C-FIND
+
+Diagnostics now includes **DICOM Query / Retrieve**, a read-only Study Root FIND tool. It requires one visible narrowing criterion, runs only after **Run Study C-FIND**, displays DNS/TCP/association/C-FIND/match evidence, retains at most 100 session-only study results, and provides a selected-row DICOM tag inspector. It performs no retrieval, retry, broadening, scanning, or persistence. Automated verification is recorded in `hl7-toolkit/VERIFICATION.md`; real Windows UI acceptance is still required before commit.

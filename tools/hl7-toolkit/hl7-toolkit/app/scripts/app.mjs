@@ -4,6 +4,7 @@ import { mountSend } from './send-ui.mjs';
 import { mountDicom } from './dicom-ui.mjs';
 import { mountDiagnostics } from './diagnostics-ui.mjs';
 import { mountMwl } from './mwl-ui.mjs';
+import { mountStudyQuery } from './study-query-ui.mjs';
 import { mountCase } from './case-ui.mjs';
 import { mountWorkflowComparison } from './workflow-comparison-ui.mjs';
 import { createWorkspaceNavigation } from './workspace-navigation.mjs';
@@ -34,6 +35,7 @@ if (!token) {
     mountCase(document);
     mountDiagnostics(document, api);
     const mwlController = mountMwl(document, api);
+    mountStudyQuery(document, api);
     mountWorkflowComparison(document, { hl7Source: controller, mwlSource: mwlController });
   } catch {
     status.textContent = 'The protected local helper or policy is unavailable. Close the helper window and launch the toolkit again.';

@@ -21,6 +21,12 @@ test('finds modality worklist sequence definitions', () => {
   assert.equal(findDicomTag('0040,0100').keyword, 'ScheduledProcedureStepSequence');
   assert.equal(findDicomTag('0040,0002').keyword, 'ScheduledProcedureStepStartDate');
 });
+test('finds provenance-controlled Study Root query definitions', () => {
+  assert.equal(findDicomTag('0008,0061').keyword, 'ModalitiesInStudy');
+  assert.equal(findDicomTag('0008,0090').keyword, 'ReferringPhysicianName');
+  assert.equal(findDicomTag('0020,1206').keyword, 'NumberOfStudyRelatedSeries');
+  assert.equal(findDicomTag('0020,1208').keyword, 'NumberOfStudyRelatedInstances');
+});
 test('reports missing identifiers as possible integration concerns', () => {
   assert.deepEqual(validateDicomMetadata({ PatientID: 'P' }).map(({ code, severity }) => ({ code, severity })), [
     { code: 'DICOM_ACCESSION_MISSING', severity: 'warning' }, { code: 'DICOM_STUDY_UID_MISSING', severity: 'error' },

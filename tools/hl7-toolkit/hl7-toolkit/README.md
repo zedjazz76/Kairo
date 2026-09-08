@@ -114,6 +114,12 @@ Original values and provenance remain visible. Comparison trims only surrounding
 
 Automated gates and final real Windows UI acceptance using synthetic ORM/MWL evidence passed September 7, 2026. The accepted workflow covered explicit eligibility/source/group/target selection, selected-item and zero-match modes, provenance, conservative results, guidance, invalidation, Clear, and session-only disposal. The shared navigation shell was also manually accepted. Checkpoint 7.3 has not started.
 
+## DICOM Query / Retrieve — Checkpoint 7.3 pending manual acceptance
+
+In **Diagnostics → DICOM Query / Retrieve**, explicitly enter or fill one authorized endpoint and supply at least one visible Accession Number, Patient ID, Study Instance UID, Study Date, closed Study Date range, or Modalities in Study criterion. **Run Study C-FIND** issues one read-only Study Root FIND at `QueryRetrieveLevel=STUDY`. Empty and wildcard criteria are blocked locally; Kairo does not retry, broaden, discover, retrieve, move, store, or modify anything.
+
+The tool separates DNS, TCP, association, C-FIND, and match evidence; preserves actual DICOM status; distinguishes successful zero matches from failure; retains at most 100 results with C-CANCEL; and exposes a TAG / KEYWORD / VALUE / DEFINITION inspector. Criteria and returned PHI remain only in active browser memory and are removed by Clear Results, End Session, reload, or tab/window closure. Closing only the helper stops further service access but cannot erase content already visible in an independently open browser tab.
+
 ## Current limitations
 
 - The Kairo baseline is a small project-owned policy pack, not a full HL7 standard, table, grammar, or certified conformance profile. Kairo does not distribute copied HL7 definitions. An organization may load only a profile it is licensed and authorized to use; that profile stays in the active browser session and is not saved to history.

@@ -250,6 +250,19 @@ function Invoke-HL7HttpConnection {
                 }
                 return
             }
+            if ($path -eq '/api/dicom/studies/find') {
+                try {
+                    if ($request.Method -ne 'POST') { throw 'STUDY_METHOD_REJECTED' }
+                    if ($request.Body.Length -gt 4096) { throw 'STUDY_INPUT_REJECTED' }
+                    $result = Invoke-KairoStudyQuery -Payload ($request.Body | ConvertFrom-Json)
+                    Write-HL7HttpResponse -Stream $stream -Body ($result | ConvertTo-Json -Depth 16 -Compress)
+                } catch {
+                    $code = if ($_.Exception.Message -match '^STUDY_[A-Z_]+$') { $_.Exception.Message } else { 'STUDY_INPUT_REJECTED' }
+                    $statusCode = if ($code -eq 'STUDY_RUNTIME_UNAVAILABLE') { 503 } else { 400 }
+                    Write-HL7HttpResponse -Stream $stream -StatusCode $statusCode -Reason $(if($statusCode -eq 503){'Service Unavailable'}else{'Bad Request'}) -Body ('{"error":"' + $code + '"}')
+                }
+                return
+            }
             if ($path -in @('/api/profiles/endpoint', '/api/diagnostics/baseline', '/api/mllp/check', '/api/mllp/send-one')) {
                 try {
                     $payload = if ($request.Body) { $request.Body | ConvertFrom-Json } else { $null }

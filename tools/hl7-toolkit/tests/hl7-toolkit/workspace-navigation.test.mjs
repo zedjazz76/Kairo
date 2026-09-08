@@ -19,7 +19,7 @@ function harness() {
 
 test('registry defines exact selector inventories and complete concise guides', () => {
   assert.deepEqual(WORKSPACE_TOOLS.inspect.map(tool => tool.id), ['hl7-inspector', 'dicom-inspector']);
-  assert.deepEqual(WORKSPACE_TOOLS.diagnostics.map(tool => tool.id), ['profiles-baselines', 'dicom-connectivity', 'mwl', 'orm-mwl-comparison', 'http-tls', 'hl7-mllp']);
+  assert.deepEqual(WORKSPACE_TOOLS.diagnostics.map(tool => tool.id), ['profiles-baselines', 'dicom-connectivity', 'mwl', 'orm-mwl-comparison', 'dicom-query-retrieve', 'http-tls', 'hl7-mllp']);
   for (const tool of [...WORKSPACE_TOOLS.inspect, ...WORKSPACE_TOOLS.diagnostics]) {
     assert.ok(tool.name && tool.description && tool.example);
     assert.ok(tool.guide.purpose && tool.guide.results && tool.guide.tip);

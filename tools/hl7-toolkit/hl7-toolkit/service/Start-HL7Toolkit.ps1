@@ -19,6 +19,7 @@ Import-Module (Join-Path $serviceRoot 'HL7Toolkit.History.psm1') -Force
 Import-Module (Join-Path $serviceRoot 'HL7Toolkit.Profiles.psm1') -Force -DisableNameChecking
 Import-Module (Join-Path $serviceRoot 'HL7Toolkit.Mllp.psm1') -Force -DisableNameChecking
 Import-Module (Join-Path $serviceRoot 'HL7Toolkit.Mwl.psm1') -Force -DisableNameChecking
+Import-Module (Join-Path $serviceRoot 'HL7Toolkit.StudyQuery.psm1') -Force -DisableNameChecking
 Import-Module (Join-Path $serviceRoot 'HL7Toolkit.Http.psm1') -Force
 
 if ([string]::IsNullOrWhiteSpace($Token)) { $Token = New-HL7SessionToken }

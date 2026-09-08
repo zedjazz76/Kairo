@@ -130,3 +130,49 @@ Each selector card contains a concise description, synthetic example, in-Kairo Q
 Automated verification on September 7, 2026 passed 66 affected browser tests, nine JavaScript syntax checks, 25 Windows MWL/endpoint protocol tests, the standard-user real Chrome launcher/navigation harness, the protected service probe, and whitespace checks. The real browser harness confirmed the six-card Diagnostics landing, two-card Inspect landing, guide content/focus restoration without diagnostic mutation, focused sibling hiding, and DICOM access through Inspect.
 
 Final manual acceptance passed through the real Windows Kairo UI. It covered exact Inspect and Diagnostics card inventories; descriptions and synthetic examples; Quick Guides without diagnostic actions; designer Open buttons; focused views and hidden siblings; breadcrumbs and Back navigation; wide, medium, and narrow layouts without overflow; keyboard, Escape, and focus restoration; preserved in-session state; direct Home, Compare, Validate, Case, Send, and History workflows; global Quick Sanitize; and unchanged Stage 1 through Checkpoint 7.2 privacy boundaries.
+
+## Stage Seven Checkpoint 7.3 — complete
+
+The implementation adds one read-only Study Root Query/Retrieve Information Model FIND workflow at `QueryRetrieveLevel=STUDY`. It uses the shared internal C-FIND mechanics while retaining the accepted MWL public boundary. Browser results are session-only, capped at 100, and never attached to persistence, logging, telemetry, exports, or other Kairo workflows.
+
+Fresh automated results on September 7, 2026:
+
+- 81 affected browser/model/navigation and Stage 7.1–7.2 regression tests passed after the interoperability correction.
+- 45 focused Windows service/protocol regression tests passed after the latest interoperability correction: Study Root FIND, unchanged MWL FIND, and endpoint diagnostics/C-ECHO. Earlier full service/protocol/safety verification also passed.
+- Eight changed JavaScript modules/tests passed `node --check`.
+- The focused Q/R sink-boundary privacy assertion passed.
+- The standard-user Windows PowerShell service probe printed `service probe passed`.
+- `git diff --check`, untracked-file whitespace checks, and the full working-tree scope/privacy review passed.
+
+The controlled Study Root service path also passed all four manual-SCP scenarios through the real Windows Kairo route: `SUCCESS_ZERO_MATCHES` with zero retained studies, `SUCCESS_MATCHES` with one retained study, `SUCCESS_MATCHES` with three retained studies, and `SUCCESS_TRUNCATED` with exactly 100 retained studies plus `CANCEL_CONFIRMED`.
+
+The first authorized Orthanc acceptance attempt reached `100.106.197.58:4242`, connected, and negotiated the Study Root FIND presentation context using Explicit VR Little Endian. Orthanc then issued an A-ABORT before returning DIMSE response data. Safe protocol-shape diagnostics identified PDU type `0x07`, abort source `0`, and abort reason `0`; no patient, accession, or raw dataset content was logged. A strict synthetic peer reproduced one request defect: Kairo emitted Study request elements outside ascending tag order. The request encoder now orders only the Study FIND identifier elements by tag. A separate regression establishes that a peer A-ABORT is classified as `PEER_ABORT`, not `STUDY_DIMSE_MALFORMED`. The temporary protocol trace was removed.
+
+The first real Orthanc retest confirmed the corrected `PEER_ABORT` classification but Orthanc still aborted before a DIMSE response. A second outbound-structure audit found that the Study Root association's user-information item omitted the DICOM Implementation Class UID, unlike standards-conforming SCUs and Kairo's accepted C-ECHO association. No existing `pynetdicom`, DCMTK `findscu`, or local Orthanc log was available in this environment, and no software was installed. An Orthanc-sensitive controlled peer now accepts the association but aborts its first C-FIND request when this required identity sub-item is absent; this reproduced the observed boundary and failed against the pre-correction client. The Study Root association now advertises Kairo's existing Implementation Class UID and a bounded implementation version name. This change is isolated to Study Root negotiation; the MWL association and behavior remain byte-for-byte unchanged. The focused regression is green, but a second real Orthanc retest is the decisive interoperability confirmation.
+
+An independent real `pynetdicom` control then proved the authorized Orthanc Study Root query returns one pending `0xFF00` response with an Identifier followed by terminal `0x0000`. After the association correction, real Kairo reached the pending `0xFF00` status but reported `STUDY_DATASET_MISSING`. The receive-state root cause was a nonconformant equality check: Kairo treated only Command Data Set Type `0x0000` as dataset-present, although `0x0101` is the no-dataset sentinel and other values indicate a dataset follows. An Orthanc-shaped regression sends the pending command in one P-DATA PDU with dataset type `0x0001`, the Identifier in a subsequent P-DATA PDU, and terminal `0x0000` afterward. It reproduced `STUDY_DATASET_MISSING` before the correction and now reaches `SUCCESS_MATCHES`. The receive loop preserves the correlated command until the later Identifier is complete while retaining presentation-context, size, timeout, malformed-response, and missing-dataset protections. A further real Orthanc retest remains required.
+
+Final real Windows manual acceptance passed against the authorized controlled Orthanc endpoint using Calling AE `KAIROTEST`, Called AE `ORTHANC`, and the approved synthetic accession and patient criteria. Kairo reported DNS `SUCCESS / NOT_REQUIRED`, TCP `SUCCESS / TCP_CONNECTED`, association `SUCCESS / ASSOCIATION_ACCEPTED`, terminal C-FIND `SUCCESS / C_FIND_SUCCESS / 0x0000`, overall `SUCCESS_MATCHES`, and one retained study. The returned study rendered correctly in the seven-column table and provenance inspector. Independent `pynetdicom` validation confirmed the same protocol sequence: pending `0xFF00`, one matching Identifier, then terminal `0x0000`.
+
+The accepted interoperability boundary includes the controlled Orthanc authorization for `KAIROTEST`, ordered Study request elements, explicit `PEER_ABORT` classification, and correct Command Data Set Type handling in which `0x0101` alone means no dataset. Checkpoint 7.3 manual and automated verification is complete.
+
+Controlled manual SCP commands, run from `tools/hl7-toolkit` in a separate Windows PowerShell window:
+
+```powershell
+node.exe tests/hl7-toolkit/helpers/study-query-manual-scp.mjs zero
+node.exe tests/hl7-toolkit/helpers/study-query-manual-scp.mjs one
+node.exe tests/hl7-toolkit/helpers/study-query-manual-scp.mjs multiple
+node.exe tests/hl7-toolkit/helpers/study-query-manual-scp.mjs cap
+```
+
+For each scenario, keep the SCP window open, launch Kairo normally, open **Diagnostics → DICOM Query / Retrieve**, and enter the printed Host/IP, Port, Calling AE, Called AE, and the one printed nonblank criterion. Confirm an all-empty query is first blocked locally. Then run explicitly and verify:
+
+- `zero`: DNS/TCP/association/C-FIND succeed, actual status is `0x0000`, retained matches are zero, and the UI states this is not a PACS connectivity failure;
+- `one`: one seven-column synthetic study row appears; selecting it produces aligned TAG / KEYWORD / VALUE / DEFINITION evidence including Study Instance UID;
+- `multiple`: three distinct rows appear and each selected row deterministically replaces the inspector;
+- `cap`: exactly 100 rows are retained, classification is `SUCCESS_TRUNCATED`, and cancellation is separately reported as `CANCEL_CONFIRMED`;
+- **Clear results** removes table, inspector, status/warnings, request snapshot, and all returned patient-bearing text without another query;
+- Back/reopen preserves uncleared state, while End Session or reload removes active Q/R state; helper-only closure is described accurately and makes no browser-erasure claim; and
+- no Quick Guide/profile action triggers a query, no retrieval control exists, and accepted MWL/C-ECHO/Stage 1–7.2 behavior remains available.
+
+The controlled manual-SCP procedure above remains the repeatable regression workflow for future verification. It contains synthetic data only.

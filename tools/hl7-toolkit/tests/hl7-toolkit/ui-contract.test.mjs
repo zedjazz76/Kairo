@@ -93,6 +93,15 @@ test('Diagnostics exposes the explicit ORM to MWL workflow comparison contract',
   assert.match(app, /mountWorkflowComparison/);
 });
 
+test('Diagnostics exposes one focused read-only Study Root Query tool', () => {
+  const html = readFileSync('hl7-toolkit/app/index.html', 'utf8');
+  for (const id of ['study-profile-select','study-host','study-port','study-timeout','study-calling','study-called','study-accession','study-patient-id','study-study-uid','study-study-date','study-study-date-start','study-study-date-end','study-modalities','study-run','study-clear','study-results','study-inspector']) assert.match(html,new RegExp(`id="${id}"`));
+  const table=html.match(/<table[^>]*id="study-results-table"[\s\S]*?<\/table>/)?.[0]??'';
+  assert.deepEqual([...table.matchAll(/<th[^>]*>([^<]+)<\/th>/g)].map(match=>match[1]),['Patient Name','Patient ID','Accession','Study Date','Modalities in Study','Study Description','Study Instance UID']);
+  assert.match(html,/Study Root FIND/); assert.match(html,/QueryRetrieveLevel: STUDY/); assert.doesNotMatch(html,/Run C-MOVE|Run C-GET|Retrieve Study/);
+  assert.match(readFileSync('hl7-toolkit/app/scripts/app.mjs','utf8'),/mountStudyQuery\(document, api\)/);
+});
+
 test('Inspect and Diagnostics expose shared selector navigation without duplicating tools', () => {
   const html = readFileSync('hl7-toolkit/app/index.html', 'utf8');
   assert.doesNotMatch(html, /data-nav="dicom"/);
@@ -103,7 +112,7 @@ test('Inspect and Diagnostics expose shared selector navigation without duplicat
     assert.match(html, new RegExp(`id="${workspace}-back"`));
     assert.match(html, new RegExp(`id="${workspace}-tool-host"`));
   }
-  for (const tool of ['hl7-inspector', 'dicom-inspector', 'profiles-baselines', 'dicom-connectivity', 'mwl', 'orm-mwl-comparison', 'http-tls', 'hl7-mllp']) {
+  for (const tool of ['hl7-inspector', 'dicom-inspector', 'profiles-baselines', 'dicom-connectivity', 'mwl', 'orm-mwl-comparison', 'dicom-query-retrieve', 'http-tls', 'hl7-mllp']) {
     assert.equal((html.match(new RegExp(`data-tool-panel="${tool}"`, 'g')) ?? []).length, 1, `${tool} must have exactly one panel`);
   }
   assert.equal((html.match(/id="tool-guide-dialog"/g) ?? []).length, 1);

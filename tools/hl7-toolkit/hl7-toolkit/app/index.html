@@ -202,6 +202,38 @@
       <h3>Evidence summary</h3><p id="workflow-observed">OBSERVED: No comparison has been run.</p><p id="workflow-boundary">LIKELY BOUNDARY: Not evaluated.</p><p id="workflow-missing">MISSING EVIDENCE: Not evaluated.</p><p id="workflow-next">NEXT CHECK: Not evaluated.</p>
     </section>
     </div>
+    <div data-tool-panel="dicom-query-retrieve" hidden>
+    <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>DICOM Query / Retrieve</h1><p>Is this study actually present in PACS?</p></div>
+    <form id="study-form" class="card">
+      <h2>Study Root FIND</h2><p><strong>QueryRetrieveLevel: STUDY</strong>. This tool queries only. It does not retrieve, store, move, modify, or delete DICOM objects.</p>
+      <h3>Endpoint</h3>
+      <label for="study-profile-select">Saved DICOM endpoint profile</label><select id="study-profile-select"><option value="">Select a DICOM profile</option></select>
+      <button id="study-profile-load" type="button">Load DICOM profiles</button><button id="study-profile-fill" type="button">Fill endpoint</button>
+      <label for="study-host">Host or IP</label><input id="study-host" required maxlength="253" autocomplete="off" spellcheck="false">
+      <label for="study-port">Port</label><input id="study-port" type="number" required min="1" max="65535" value="104">
+      <label for="study-timeout">Response timeout (ms)</label><input id="study-timeout" type="number" required min="100" max="10000" value="3000">
+      <label for="study-calling">Calling AE</label><input id="study-calling" required maxlength="16" value="KAIRO" autocomplete="off" spellcheck="false">
+      <label for="study-called">Called AE</label><input id="study-called" required maxlength="16" autocomplete="off" spellcheck="false">
+      <h3>Visible narrowing criteria</h3>
+      <p>Enter at least one. All criteria start blank; Kairo does not add wildcards or broaden the query.</p>
+      <label for="study-accession">Accession Number</label><input id="study-accession" maxlength="16" autocomplete="off">
+      <label for="study-patient-id">Patient ID</label><input id="study-patient-id" maxlength="64" autocomplete="off">
+      <label for="study-study-uid">Study Instance UID</label><input id="study-study-uid" maxlength="64" autocomplete="off" spellcheck="false">
+      <label for="study-study-date">Study Date (exact)</label><input id="study-study-date" type="date">
+      <label for="study-study-date-start">Study Date range start</label><input id="study-study-date-start" type="date">
+      <label for="study-study-date-end">Study Date range end</label><input id="study-study-date-end" type="date">
+      <label for="study-modalities">Modalities in Study</label><input id="study-modalities" maxlength="16" autocomplete="off">
+      <div class="button-row"><button id="study-run" type="button" class="primary">Run Study C-FIND</button><button id="study-clear" type="button">Clear results</button></div>
+      <p id="study-status" role="status" aria-live="polite">Review one endpoint and at least one visible criterion, then run explicitly.</p>
+      <h3>DNS → TCP → DICOM association → C-FIND → Matches</h3>
+      <p id="study-summary">No Study Query result is retained.</p><p id="study-layer-dns">DNS: NOT_RUN</p><p id="study-layer-tcp">TCP: NOT_RUN</p><p id="study-layer-association">DICOM association: NOT_RUN</p><p id="study-layer-cfind">C-FIND: NOT_RUN</p>
+      <p id="study-match-summary">Matches retained: 0 · Query truncated: NO · Cancellation: NOT_RUN</p><p id="study-warnings" role="status" aria-live="polite"></p>
+      <p class="alert">Patient Name, Patient ID, criteria, and returned values are session-only and are not persisted. Clear results or End Session when finished. Closing only the helper cannot erase values already displayed in an open browser tab.</p>
+      <div class="table-wrap"><table id="study-results-table" class="mwl-results-table"><thead><tr><th scope="col">Patient Name</th><th scope="col">Patient ID</th><th scope="col">Accession</th><th scope="col">Study Date</th><th scope="col">Modalities in Study</th><th scope="col">Study Description</th><th scope="col">Study Instance UID</th></tr></thead><tbody id="study-results"></tbody></table></div>
+      <h3>Selected-study inspector</h3>
+      <div class="table-wrap"><table id="study-inspector-table" class="mwl-inspector-table"><thead><tr><th scope="col">Tag</th><th scope="col">Keyword</th><th scope="col">Value</th><th scope="col">Definition</th></tr></thead><tbody id="study-inspector"></tbody></table></div>
+    </form>
+    </div>
     <div data-tool-panel="http-tls" hidden>
     <div class="page-heading compact"><p class="eyebrow">Diagnostics</p><h1>HTTP / TLS</h1><p>Inspect one authorized URL layer by layer.</p></div>
     <form id="diagnostic-http-form" class="card">
