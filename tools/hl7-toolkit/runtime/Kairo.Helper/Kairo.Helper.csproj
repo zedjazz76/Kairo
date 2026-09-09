@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Kairo.Helper</AssemblyName>
+    <RootNamespace>Kairo.Helper</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);SYSLIB0057</NoWarn>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.7.3</Version>
+    <AssemblyVersion>0.7.3.1</AssemblyVersion>
+    <FileVersion>0.7.3.1</FileVersion>
+    <InformationalVersion>0.7.3-workstation.1</InformationalVersion>
+    <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishAot>false</PublishAot>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kairo.Helper.Tests" />
+    <Compile Include="../../hl7-toolkit/service/EndpointDiagnostics.cs" Link="Diagnostics/EndpointDiagnostics.cs" />
+    <Compile Include="../../hl7-toolkit/service/HttpTlsDiagnostics.cs" Link="Diagnostics/HttpTlsDiagnostics.cs" />
+    <Compile Include="../../hl7-toolkit/service/DicomQueryDiagnostics.cs" Link="Diagnostics/DicomQueryDiagnostics.cs" />
+  </ItemGroup>
+</Project>

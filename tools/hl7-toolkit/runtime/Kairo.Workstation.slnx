@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Kairo.Helper/Kairo.Helper.csproj" />
+  <Project Path="Kairo.Helper.Tests/Kairo.Helper.Tests.csproj" />
+</Solution>
