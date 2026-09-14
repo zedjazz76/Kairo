@@ -55,5 +55,25 @@ public sealed class LoopbackHostTests : IDisposable
         await Assert.ThrowsAnyAsync<HttpRequestException>(() => client.GetAsync($"http://127.0.0.1:{port}/"));
     }
 
+    [Fact]
+    public async Task ServesPackagedLocalOcrAssetsFromTheWorkstationAppRoot()
+    {
+        string packageRoot = Environment.GetEnvironmentVariable("KAIRO_PACKAGE_PATH") ?? throw new InvalidOperationException("KAIRO_PACKAGE_PATH is required");
+        await using LoopbackHost host = await LoopbackHost.StartAsync(
+            Path.Combine(packageRoot, "app"), Path.Combine(packageRoot, "data", "runtime"), new string('c', 64));
+        using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.EndPoint.Port}") };
+        foreach (string path in new[] {
+            "/ocr/tesseract.esm.min.js", "/ocr/worker.min.js", "/ocr/tesseract-core-lstm.wasm.js",
+            "/ocr/tesseract-core-lstm.wasm", "/ocr/lang/eng.traineddata.gz"
+        })
+        {
+            using HttpResponseMessage response = await client.GetAsync(path);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.True((await response.Content.ReadAsByteArrayAsync()).Length > 0);
+            string mime = response.Content.Headers.ContentType!.MediaType!;
+            Assert.Equal(path.EndsWith(".js", StringComparison.Ordinal) ? "text/javascript" : "application/octet-stream", mime);
+        }
+    }
+
     public void Dispose() => Directory.Delete(root, true);
 }

@@ -4,14 +4,18 @@ import { redactPatterns } from './residual-scan.mjs';
 const MAX_LINES = 500;
 const MAX_COLUMNS = 8;
 const MAX_CHARS = 50000;
-const LABEL = /^\s*([A-Za-z][A-Za-z0-9 /_-]{1,32})\s*[:=]\s*(.+?)\s*$/;
-const BARE_LABEL = /^\s*(PATIENT NAME|PATIENT ID|MEDICAL RECORD NUMBER|MEDICAL RECORD|DATE OF BIRTH|BIRTH DATE|VISIT DATE|STUDY DATE|ACCOUNT NUMBER|ORDER NUMBER|ACCESSION NUMBER|PATIENT|PHYSICIAN|PROVIDER|DOCTOR|FACILITY|INSTITUTION|HOSPITAL|CLINIC|ACCESSION|ACCOUNT|ENCOUNTER|ADDRESS|TELEPHONE|CONTACT|PHONE|EMAIL|E-MAIL|ORDER|MRN|DOB)\s+(.+?)\s*$/i;
+const ALIASES = 'MEDICAL RECORD NUMBER|ACCESSION NUMBER|ACCOUNT NUMBER|ORDER NUMBER|PATIENT NAME|PATIENT ID|MEDICAL RECORD|DATE OF BIRTH|BIRTH DATE|VISIT DATE|STUDY DATE|PHYSICIAN|PROVIDER|FACILITY|INSTITUTION|HOSPITAL|CLINIC|ACCESSION|PATIENTID|PATIENT|ENCOUNTER|TELEPHONE|CONTACT|ADDRESS|ACCOUNT|ORDER|DOCTOR|PHONE|E-MAIL|EMAIL|NAME|MRN|DOB|ACC'
+  .split('|').map(label => label.replaceAll(' ', '[\\s_-]+')).join('|');
+const LABEL = /^(\s*([A-Za-z][A-Za-z0-9 /_-]{1,32})\s*[:=.]\s*)(.+?)\s*$/;
+const BARE_LABEL = new RegExp(`^(\\s*(${ALIASES})\\s+)(.+?)\\s*$`, 'i');
+const STANDALONE_LABEL = new RegExp(`^\\s*(${ALIASES})\\s*[:=.]?\\s*$`, 'i');
+const CLINICAL_LABEL = /^(?:MODALITY|PROCEDURE|RESULT|FINDINGS|IMPRESSION|EXAM|DIAGNOSIS|REPORT|STATUS)\b/i;
 const PREFIX = { name: 'NAME', mrn: 'MRN', accession: 'ACCESSION', account: 'ACCOUNT', order: 'ORDER', date: 'DATE', contact: 'PHONE', email: 'EMAIL', address: 'ADDRESS', facility: 'FACILITY', 'national-id': 'IDENTIFIER', 'unique-id': 'IDENTIFIER', 'ip-address': 'IP', url: 'URL' };
 
 function category(label) {
-  const value = String(label).trim().toUpperCase();
+  const value = String(label).trim().replace(/[:=.]+$/, '').replace(/[\s_-]+/g, ' ').toUpperCase();
   if (/^(?:PATIENT(?: NAME)?|NAME|PHYSICIAN|PROVIDER|DOCTOR)$/.test(value)) return 'name';
-  if (/^(?:MRN|MEDICAL RECORD(?: NUMBER)?|PATIENT ID)$/.test(value)) return 'mrn';
+  if (/^(?:MRN|MEDICAL RECORD(?: NUMBER)?|PATIENT ID|PATIENTID)$/.test(value)) return 'mrn';
   if (/^(?:ACCESSION|ACC(?:ESSION)?(?: NUMBER| ID)?)$/.test(value)) return 'accession';
   if (/^(?:ACCOUNT|ACCOUNT NUMBER|ENCOUNTER|ENCOUNTER ID)$/.test(value)) return 'account';
   if (/^(?:ORDER|ORDER ID|ORDER NUMBER)$/.test(value)) return 'order';
@@ -107,12 +111,28 @@ export function createImageContentSession() {
     return replacement;
   };
   const sanitizeLine = (line) => {
+    if (STANDALONE_LABEL.test(line)) return line;
     const match = LABEL.exec(line) || BARE_LABEL.exec(line);
     if (match) {
-      const type = category(match[1]);
-      if (type) return `${match[1]}: ${replace(type, match[2])}`;
+      const type = category(match[2]);
+      if (type) return `${match[1]}${replace(type, match[3])}`;
     }
     return redactPatterns(known.replace(line), replace);
+  };
+  const pairedValue = (label, value, type) => {
+    const first = label.bbox; const second = value.bbox;
+    const gap = second.y0 - first.y1;
+    const height = first.y1 - first.y0;
+    const nextRow = gap >= -2 && gap <= Math.max(35, height * 1.5) && Math.abs(second.x0 - first.x0) <= 60;
+    const sameRow = Math.abs((second.y0 + second.y1 - first.y0 - first.y1) / 2) <= height * 0.6
+      && second.x0 >= first.x1 && second.x0 - first.x1 <= Math.max(100, height * 5);
+    if (!nextRow && !sameRow) return false;
+    const text = value.text.trim();
+    if (STANDALONE_LABEL.test(text) || LABEL.test(text) || BARE_LABEL.test(text) || CLINICAL_LABEL.test(text) || /[:=]/.test(text)) return false;
+    if (type === 'name') return /^(?:[A-Z][A-Za-z'’]*)(?:[ ,^-]+[A-Z][A-Za-z'’]*){1,4}$/.test(text);
+    if (type === 'mrn' || type === 'accession' || type === 'account' || type === 'order') return /^[A-Za-z0-9][A-Za-z0-9./-]{1,63}$/.test(text);
+    if (type === 'date') return calendarDate(text) !== null;
+    return false;
   };
   return {
     load(regions) { extracted = extractImageContent([]); sanitized = null; review = []; maps.clear(); counts.clear(); known.clear(); dateAnchor = null; extracted = extractImageContent(regions); return extracted; },
@@ -123,7 +143,17 @@ export function createImageContentSession() {
       review = []; maps.clear(); counts.clear(); known.clear(); dateAnchor = null;
       const initialRows = extracted.table.status === 'READY' ? extracted.table.rows.map((row, rowIndex) => row.map((cell, columnIndex) => rowIndex === 0 ? cell : (category(extracted.table.rows[0][columnIndex]) ? replace(category(extracted.table.rows[0][columnIndex]), cell) : redactPatterns(known.replace(cell), replace)))) : [];
       const rows = initialRows.map(row => row.map(cell => known.replace(cell)));
-      const text = extracted.table.status === 'READY' ? rows.map(row => row.join('  ')).join('\n') : extracted.lines.map(line => sanitizeLine(line.text)).join('\n');
+      const text = extracted.table.status === 'READY' ? rows.map(row => row.join('  ')).join('\n') : (() => {
+        const output = [];
+        for (let index = 0; index < extracted.lines.length; index += 1) {
+          const line = extracted.lines[index]; const type = category(STANDALONE_LABEL.exec(line.text)?.[1]);
+          const next = extracted.lines[index + 1];
+          if (type && next && pairedValue(line, next, type)) {
+            output.push(line.text, replace(type, next.text)); index += 1;
+          } else output.push(sanitizeLine(line.text));
+        }
+        return output.join('\n');
+      })();
       sanitized = { text: known.replace(text), table: { status: extracted.table.status, rows }, identifierCount: review.length };
       return sanitized;
     },

@@ -27,11 +27,126 @@ test('OCR field labels without punctuation still sanitize their values', () => {
   const session = createImageContentSession();
   session.load([line('PATIENT TEST PATIENT', 10), line('MRN TEST123456', 40), line('ACCESSION TESTACC001', 70), line('DOB 19800101', 100)]);
   const { text } = session.sanitize();
-  assert.match(text, /PATIENT: NAME-0001/);
-  assert.match(text, /MRN: MRN-0001/);
-  assert.match(text, /ACCESSION: ACCESSION-0001/);
-  assert.match(text, /DOB: REL-DAY\+0/);
+  assert.match(text, /PATIENT NAME-0001/);
+  assert.match(text, /MRN MRN-0001/);
+  assert.match(text, /ACCESSION ACCESSION-0001/);
+  assert.match(text, /DOB REL-DAY\+0/);
   assert.doesNotMatch(text, /TEST PATIENT|TEST123456|TESTACC001|19800101/);
+});
+
+test('text mode recognizes explicit patient, record and accession aliases without punctuation', () => {
+  const session = createImageContentSession();
+  session.load([
+    line('PATIENT: JOHN SMITH', 10), line('PATIENT NAME JOHN SMITH', 40), line('NAME JOHN SMITH', 70),
+    line('mRn: 00123456', 100), line('medical record number 00123456', 130),
+    line('Patient ID ABC-123456', 160), line('PATIENTID ABC-123456', 190),
+    line('ACCESSION: AB12345', 220), line('Acc AB12345', 250), line('accession number XY-0002', 280),
+    line('DOB: 01/01/1980', 310), line('MODALITY: MR', 340), line('PROCEDURE CT CHEST', 370),
+  ]);
+  const result = session.sanitize();
+  assert.match(result.text, /^PATIENT: NAME-0001\nPATIENT NAME NAME-0001\nNAME NAME-0001/m);
+  assert.match(result.text, /mRn: MRN-0001\nmedical record number MRN-0001/);
+  assert.match(result.text, /Patient ID MRN-0002\nPATIENTID MRN-0002/);
+  assert.match(result.text, /ACCESSION: ACCESSION-0001\nAcc ACCESSION-0001\naccession number ACCESSION-0002/);
+  assert.match(result.text, /DOB: REL-DAY\+0/);
+  assert.match(result.text, /MODALITY: MR\nPROCEDURE CT CHEST/);
+  assert.doesNotMatch(result.text, /JOHN SMITH|00123456|ABC-123456|AB12345|XY-0002|01\/01\/1980/);
+  assert.equal(session.review().filter(item => item.category === 'name').length, 1);
+  assert.equal(session.review().filter(item => item.category === 'mrn').length, 2);
+  assert.equal(session.review().filter(item => item.category === 'accession').length, 2);
+});
+
+test('label spelling tolerates bounded spacing and punctuation variants without guessing unlabeled clinical text', () => {
+  const session = createImageContentSession();
+  session.load([
+    line('Patient-Name: Jane Doe', 10), line('PATIENT_ID: 0000999', 40),
+    line('medical   record   number 0000888', 70), line('Acc. ZX-00001', 100),
+    line('MODALITY: CT', 130), line('PROCEDURE: MRI BRAIN', 160),
+  ]);
+  const result = session.sanitize();
+  assert.match(result.text, /Patient-Name: NAME-0001/);
+  assert.match(result.text, /PATIENT_ID: MRN-0001\nmedical   record   number MRN-0002/);
+  assert.match(result.text, /Acc\. ACCESSION-0001/);
+  assert.match(result.text, /MODALITY: CT\nPROCEDURE: MRI BRAIN/);
+  assert.doesNotMatch(result.text, /Jane Doe|0000999|0000888|ZX-00001/);
+});
+
+test('text mode pairs only adjacent OCR label and value lines while preserving source line order', () => {
+  const session = createImageContentSession();
+  session.load([
+    line('PATIENT NAME', 10), line('SMITH, JOHN', 40),
+    line('MRN', 70), line('000123-4', 100),
+    line('ACCESSION:', 130), line('AB-00123', 160),
+    line('PATIENT NAME', 190), line('SMITH, JOHN', 220),
+    line('MODALITY MR', 250), line('PROCEDURE CT CHEST', 280),
+  ]);
+  assert.equal(session.extracted().text.split('\n')[0], 'PATIENT NAME');
+  const result = session.sanitize();
+  assert.equal(result.text, 'PATIENT NAME\nNAME-0001\nMRN\nMRN-0001\nACCESSION:\nACCESSION-0001\nPATIENT NAME\nNAME-0001\nMODALITY MR\nPROCEDURE CT CHEST');
+  assert.doesNotMatch(result.text, /SMITH, JOHN|000123-4|AB-00123/);
+});
+
+test('spatially adjacent same-row OCR regions pair identifiers but unrelated regions do not', () => {
+  const session = createImageContentSession();
+  session.load([
+    { text: 'MRN', bbox: { x0: 10, y0: 10, x1: 60, y1: 30 } },
+    { text: '00001234', bbox: { x0: 90, y0: 11, x1: 190, y1: 31 } },
+    { text: 'ACCESSION', bbox: { x0: 10, y0: 60, x1: 100, y1: 80 } },
+    { text: 'AB-12345', bbox: { x0: 130, y0: 61, x1: 230, y1: 81 } },
+    { text: 'PATIENT NAME', bbox: { x0: 10, y0: 110, x1: 160, y1: 130 } },
+    { text: 'PROCEDURE: CT CHEST', bbox: { x0: 10, y0: 210, x1: 250, y1: 230 } },
+  ]);
+  const result = session.sanitize();
+  assert.match(result.text, /^MRN\nMRN-0001\nACCESSION\nACCESSION-0001/m);
+  assert.match(result.text, /PATIENT NAME\nPROCEDURE: CT CHEST$/);
+  assert.doesNotMatch(result.text, /00001234|AB-12345/);
+});
+
+test('standalone patient label does not consume adjacent clinical field lines as a name', () => {
+  const session = createImageContentSession();
+  session.load([
+    line('PATIENT NAME', 10), line('MODALITY MR', 40),
+    line('PATIENT NAME', 70), line('PROCEDURE CT CHEST', 100),
+    line('PATIENT NAME', 130), line('JOHN SMITH', 160),
+  ]);
+  assert.equal(session.sanitize().text, 'PATIENT NAME\nMODALITY MR\nPATIENT NAME\nPROCEDURE CT CHEST\nPATIENT NAME\nNAME-0001');
+});
+
+test('token-split OCR lines and distinct name formats use label context, not arbitrary clinical phrases', () => {
+  const session = createImageContentSession();
+  session.load([
+    line('MRN 12345678', 10, [['MRN', 10, 70], ['12345678', 90, 220]]),
+    line('NAME DOE^JANE', 40, [['NAME', 10, 85], ['DOE^JANE', 100, 250]]),
+    line('NAME JANE-MARY-DOE', 70), line('PHYSICIAN: TEST DOCTOR', 100),
+    line('FACILITY: TEST IMAGING CENTER', 130), line('PHONE 555-010-2233', 160),
+    line('EMAIL test.patient@example.com', 190), line('ADDRESS 123 SYNTHETIC ST', 220),
+    line('RESULT: No acute abnormality', 250),
+  ]);
+  const result = session.sanitize();
+  assert.match(result.text, /MRN MRN-0001\nNAME NAME-0001\nNAME NAME-0002/);
+  assert.match(result.text, /PHYSICIAN: NAME-0003\nFACILITY: FACILITY-0001/);
+  assert.match(result.text, /PHONE PHONE-0001\nEMAIL EMAIL-0001\nADDRESS ADDRESS-0001/);
+  assert.match(result.text, /RESULT: No acute abnormality/);
+  assert.doesNotMatch(result.text, /12345678|DOE\^JANE|JANE-MARY-DOE|TEST DOCTOR|TEST IMAGING CENTER|555-010-2233|test\.patient@example\.com|123 SYNTHETIC/);
+});
+
+test('table mode classifies PATIENTID and ACC headers independently and exports only sanitized cells', () => {
+  const session = createImageContentSession();
+  session.load([
+    line('PATIENT PATIENTID ACC MODALITY', 10, [['PATIENT', 10, 110], ['PATIENTID', 180, 300], ['ACC', 370, 430], ['MODALITY', 500, 620]]),
+    line('JOHN SMITH 001234 AB12345 MR', 45, [['JOHN', 10, 65], ['SMITH', 70, 135], ['001234', 180, 260], ['AB12345', 370, 460], ['MR', 500, 530]]),
+    line('JANE DOE 002345 CD67890 CT', 80, [['JANE', 10, 65], ['DOE', 70, 125], ['002345', 180, 260], ['CD67890', 370, 460], ['CT', 500, 530]]),
+    line('JOHN SMITH 001234 AB12345 MR', 115, [['JOHN', 10, 65], ['SMITH', 70, 135], ['001234', 180, 260], ['AB12345', 370, 460], ['MR', 500, 530]]),
+  ]);
+  assert.equal(session.extracted().table.status, 'READY');
+  const result = session.sanitize();
+  assert.deepEqual(result.table.rows[1], ['NAME-0001', 'MRN-0001', 'ACCESSION-0001', 'MR']);
+  assert.deepEqual(result.table.rows[2], ['NAME-0002', 'MRN-0002', 'ACCESSION-0002', 'CT']);
+  assert.deepEqual(result.table.rows[3], ['NAME-0001', 'MRN-0001', 'ACCESSION-0001', 'MR']);
+  for (const output of [result.text, sanitizedCsv(result.table)]) assert.doesNotMatch(output, /JOHN SMITH|JANE DOE|001234|002345|AB12345|CD67890/);
+  session.clear();
+  assert.equal(session.review().length, 0);
+  assert.equal(session.sanitized(), null);
 });
 
 test('synthetic multi-patient grid yields bounded cells and sanitized CSV only', () => {

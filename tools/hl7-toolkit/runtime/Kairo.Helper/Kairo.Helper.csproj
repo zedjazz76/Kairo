@@ -10,9 +10,9 @@
     <NoWarn>$(NoWarn);SYSLIB0057</NoWarn>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>0.7.3</Version>
-    <AssemblyVersion>0.7.3.4</AssemblyVersion>
-    <FileVersion>0.7.3.4</FileVersion>
-    <InformationalVersion>0.7.3-workstation.4</InformationalVersion>
+    <AssemblyVersion>0.7.3.5</AssemblyVersion>
+    <FileVersion>0.7.3.5</FileVersion>
+    <InformationalVersion>0.7.3-workstation.5</InformationalVersion>
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishAot>false</PublishAot>

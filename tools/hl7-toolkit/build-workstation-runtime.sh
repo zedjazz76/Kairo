@@ -4,7 +4,7 @@ set -euo pipefail
 toolkit_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 repo_root=$(cd "$toolkit_root/../.." && pwd -P)
 dotnet_bin=${DOTNET_BIN:-dotnet}
-release_name=Kairo-HL7-Toolkit-v0.7.3-win4
+release_name=Kairo-HL7-Toolkit-v0.7.3-win5
 dist_root="$toolkit_root/dist"
 release_root="$dist_root/$release_name"
 zip_path="$dist_root/$release_name.zip"
@@ -22,7 +22,7 @@ fi
 
 mkdir -p "$dist_root"
 if [[ -e "$release_root" || -e "$zip_path" || -e "$zip_path.sha256" ]]; then
-  echo 'Build 4 target already exists; refusing to overwrite release artifacts.' >&2
+  echo 'Build 5 target already exists; refusing to overwrite release artifacts.' >&2
   exit 1
 fi
 source_snapshot_sha256=$(node "$toolkit_root/verify-workstation-release.mjs" --source-hash "$toolkit_root")
@@ -49,7 +49,7 @@ test -f "$stage_root/app/ocr/lang/eng.traineddata.gz"
 printf '%s\n' \
   'Product: Kairo HL7 Toolkit' \
   'Feature Version: 0.7.3' \
-  'Workstation Runtime Build: 4' \
+  'Workstation Runtime Build: 5' \
   'Release Type: Workstation Runtime' \
   'Source Feature Checkpoint: 714e5c9d24a471f0c39e95e65441d2416e65ad53' \
   "Source Base Commit: $source_base_commit" \
@@ -59,7 +59,7 @@ printf '%s\n' \
   'Publish Model: Self-contained folder' > "$stage_root/VERSION.txt"
 
 printf '%s\n' \
-  'Kairo HL7 Toolkit v0.7.3 - Workstation Runtime Build 4' \
+  'Kairo HL7 Toolkit v0.7.3 - Workstation Runtime Build 5' \
   '' \
   '1. Extract this complete folder to a user-writable location.' \
   '2. Double-click Kairo.Helper.exe. Do not move the executable out of this folder.' \
@@ -70,15 +70,15 @@ printf '%s\n' \
   'The executable is unsigned. Windows may show Unknown Publisher or SmartScreen; follow your organization’s approval process. No security bypass is included.' > "$stage_root/README-RUN.txt"
 
 printf '%s\n' \
-  '# Kairo HL7 Toolkit v0.7.3 - Workstation Runtime Build 4' \
+  '# Kairo HL7 Toolkit v0.7.3 - Workstation Runtime Build 5' \
   '' \
-  '- Laptop manual acceptance passed for the primary PNG/JPEG Image Sanitize flow: local OCR, extracted text, conservative table/cell structure, session-local identifier replacement, review, sanitized copy/CSV, and clear.' \
+  '- Real Windows manual acceptance passed for local OCR and Image Extract & Sanitize in the normal authenticated runtime, including patient names, MRN/Patient ID, accession, supported dates, consistent placeholders, text mode, table/cell mode, and preserved non-PHI clinical text.' \
   '- The original image remains unchanged. Optional pixel-redacted image output remains secondary.' \
-  '- OCR worker, WebAssembly core, and English language data are bundled locally; no cloud OCR or external runtime is required.' \
+  '- Tesseract.js 6.0.1, compatible worker and core 6.1.2, and English language data are bundled locally; no cloud OCR or external runtime is required.' \
   '- Preserves Stage 1–7.3 functionality, HL7 segment-purpose help, and direct-launch Kairo.Helper.exe.' \
   '- Automated extraction and identifier detection may miss information. Review sanitized output before sharing; no PHI-free or de-identification guarantee is made.' \
   '- DICOM image sanitization is not included.' \
-  '- Build 1 remains the accepted baseline; Build 2 failed manual acceptance; Build 3 was a temporary overlaid test runtime. Build 4 is a fresh package from the accepted source tree.' \
+  '- Build 1 remains the accepted baseline; Build 2 failed manual acceptance; Build 3 was a temporary overlaid test runtime; Build 4 is unaccepted and not reused. Build 5 is a fresh package from the accepted source tree.' \
   '- The executable is unsigned and may show Unknown Publisher or SmartScreen; no security bypass is included.' \
   '- This is a workstation runtime build of feature version 0.7.3, not 0.7.4.' > "$stage_root/RELEASE-NOTES.md"
 
@@ -114,7 +114,7 @@ const files = walk(root).filter(file => path.basename(file) !== 'RELEASE-MANIFES
   return { path: path.relative(root, file).split(path.sep).join('/'), size: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') };
 });
 const manifest = {
-  product: 'Kairo HL7 Toolkit', version: '0.7.3', runtimeBuild: 4,
+  product: 'Kairo HL7 Toolkit', version: '0.7.3', runtimeBuild: 5,
   releaseType: 'Workstation Runtime', sourceCheckpoint: '714e5c9d24a471f0c39e95e65441d2416e65ad53',
   sourceBaseCommit: process.env.SOURCE_BASE_COMMIT, sourceSnapshotSha256: process.env.SOURCE_SNAPSHOT_SHA256,
   candidateStatus: 'ready-for-work-desktop-transfer',
@@ -129,7 +129,7 @@ unzip_bin=${UNZIP_BIN:-unzip}
 (cd "$publish_root" && sha256sum "$release_name.zip") > "$stage_sha"
 UNZIP_BIN="$unzip_bin" node "$toolkit_root/verify-workstation-release.mjs" "$stage_root" "$stage_zip" "$stage_sha"
 if [[ -e "$release_root" || -e "$zip_path" || -e "$zip_path.sha256" ]]; then
-  echo 'Build 4 target appeared during staging; refusing to overwrite release artifacts.' >&2
+  echo 'Build 5 target appeared during staging; refusing to overwrite release artifacts.' >&2
   exit 1
 fi
 mv -T "$stage_root" "$release_root"

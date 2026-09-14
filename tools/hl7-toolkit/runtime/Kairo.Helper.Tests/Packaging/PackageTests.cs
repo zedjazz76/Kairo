@@ -16,7 +16,7 @@ public sealed class PackageTests
         Assert.DoesNotContain(Directory.GetFiles(root, "*", SearchOption.AllDirectories), path => new[] { ".ps1", ".psm1", ".cmd", ".cs", ".pdb" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase));
         Assert.DoesNotContain("0.7.4", File.ReadAllText(Path.Combine(root, "VERSION.txt")), StringComparison.Ordinal);
         Assert.Contains("Feature Version: 0.7.3", File.ReadAllText(Path.Combine(root, "VERSION.txt")), StringComparison.Ordinal);
-        Assert.Contains("Workstation Runtime Build: 4", File.ReadAllText(Path.Combine(root, "VERSION.txt")), StringComparison.Ordinal);
+        Assert.Contains("Workstation Runtime Build: 5", File.ReadAllText(Path.Combine(root, "VERSION.txt")), StringComparison.Ordinal);
         string html = File.ReadAllText(Path.Combine(root, "app", "index.html"));
         Assert.Contains("Image Sanitize", html, StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(root, "app", "scripts", "image-sanitize-ui.mjs")));

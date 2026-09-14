@@ -8,37 +8,21 @@ import test from 'node:test';
 import * as release from '../../verify-workstation-release.mjs';
 import { verifyReleaseManifest, verifyZipChecksum } from '../../verify-workstation-release.mjs';
 
-test('Build 4 builder targets a fresh runtime and never removes previous or existing release artifacts', () => {
-  const script = readFileSync('build-workstation-runtime.sh', 'utf8');
-  const project = readFileSync('runtime/Kairo.Helper/Kairo.Helper.csproj', 'utf8');
-  const identity = readFileSync('runtime/Kairo.Helper/RuntimeIdentity.cs', 'utf8');
-  assert.match(project, /<Version>0\.7\.3<\/Version>/);
-  assert.match(project, /<AssemblyVersion>0\.7\.3\.4<\/AssemblyVersion>/);
-  assert.match(project, /0\.7\.3-workstation\.4/);
-  assert.match(identity, /RuntimeBuild = 4/);
-  assert.match(identity, /Workstation Runtime Build 4/);
-  assert.match(script, /release_name=Kairo-HL7-Toolkit-v0\.7\.3-win4/);
-  assert.match(script, /if \[\[ -e "\$release_root" \|\| -e "\$zip_path" \|\| -e "\$zip_path\.sha256" \]\]/);
-  assert.doesNotMatch(script, /rm -rf "\$release_root"|rm -f "\$zip_path"/);
-  assert.match(script, /cp -a "\$toolkit_root\/hl7-toolkit\/app"/);
-  assert.doesNotMatch(script, /cp -a .*win3/);
-  assert.match(script, /Workstation Runtime Build: 4/);
-  assert.match(script, /runtimeBuild: 4/);
-  assert.match(script, /Unknown Publisher|SmartScreen/);
+test('historical Build 4 keeps its own identity after the release tooling advances', () => {
+  const root = 'dist/Kairo-HL7-Toolkit-v0.7.3-win4';
+  const version = readFileSync(`${root}/VERSION.txt`, 'utf8');
+  const manifest = JSON.parse(readFileSync(`${root}/RELEASE-MANIFEST.json`, 'utf8'));
+  assert.match(version, /Feature Version: 0\.7\.3/);
+  assert.match(version, /Workstation Runtime Build: 4/);
+  assert.equal(manifest.runtimeBuild, 4);
+  assert.match(readFileSync(`${root}/README-RUN.txt`, 'utf8'), /Unknown Publisher|SmartScreen/);
 });
 
-test('published Build 4 contains the accepted source assets and clean runtime data', () => {
+test('historical Build 4 remains independently verifiable and untouched', () => {
   const root = 'dist/Kairo-HL7-Toolkit-v0.7.3-win4';
   const manifest = verifyReleaseManifest(root);
   assert.ok(manifest.fileCount > 200);
-  for (const path of ['index.html', 'styles/app.css', 'scripts/image-content.mjs', 'scripts/image-sanitize-ui.mjs', 'scripts/image-phi-assist.mjs', 'scripts/segment-help.mjs', 'definitions/hl7-segments.v1.json', 'ocr/worker.min.js', 'ocr/tesseract-core-lstm.wasm', 'ocr/lang/eng.traineddata.gz']) {
-    const source = readFileSync(`hl7-toolkit/app/${path}`);
-    const packaged = readFileSync(`${root}/app/${path}`);
-    assert.deepEqual(packaged, source, path);
-  }
   assert.equal(verifyZipChecksum(`${root}.zip`, `${root}.zip.sha256`), true);
-  const published = JSON.parse(readFileSync(`${root}/RELEASE-MANIFEST.json`, 'utf8'));
-  assert.equal(published.sourceSnapshotSha256, release.computeSourceSnapshotHash('.'));
   assert.equal(release.verifyReleaseArchive(root, `${root}.zip`, `${root}.zip.sha256`, { unzipBin: process.env.UNZIP_BIN || 'unzip' }).fileCount, manifest.fileCount);
 });
 

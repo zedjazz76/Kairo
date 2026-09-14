@@ -34,7 +34,7 @@ export function computeSourceSnapshotHash(toolkitRoot) {
 
 export function verifyReleaseManifest(root) {
   const manifest = JSON.parse(readFileSync(join(root, 'RELEASE-MANIFEST.json'), 'utf8'));
-  if (manifest.product !== 'Kairo HL7 Toolkit' || manifest.version !== '0.7.3' || manifest.runtimeBuild !== 4 || !Array.isArray(manifest.files)) throw new Error('MANIFEST_MISMATCH');
+  if (manifest.product !== 'Kairo HL7 Toolkit' || manifest.version !== '0.7.3' || ![4, 5].includes(manifest.runtimeBuild) || !Array.isArray(manifest.files)) throw new Error('MANIFEST_MISMATCH');
   const actual = walk(root).filter(path => path !== join(root, 'RELEASE-MANIFEST.json'))
     .map(path => { const bytes = readFileSync(path); return { path: relative(root, path).split(sep).join('/'), size: bytes.length, sha256: sha256(bytes) }; })
     .sort((a, b) => a.path.localeCompare(b.path));
