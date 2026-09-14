@@ -8,6 +8,7 @@ import { mountStudyQuery } from './study-query-ui.mjs';
 import { mountCase } from './case-ui.mjs';
 import { mountWorkflowComparison } from './workflow-comparison-ui.mjs';
 import { createWorkspaceNavigation } from './workspace-navigation.mjs';
+import { mountImageSanitize } from './image-sanitize-ui.mjs';
 
 const token = new URLSearchParams(location.search).get('token') || new URLSearchParams(location.hash.slice(1)).get('session') || '';
 const status = document.querySelector('#service-status');
@@ -25,11 +26,15 @@ if (!token) {
     const fieldResponse = await fetch('/definitions/basic-fields.v1.json', { cache: 'no-store' });
     if (!fieldResponse.ok) throw new Error('LABELS_NOT_AVAILABLE');
     const basicFields = await fieldResponse.json();
+    const segmentResponse = await fetch('/definitions/hl7-segments.v1.json', { cache: 'no-store' });
+    if (!segmentResponse.ok) throw new Error('SEGMENT_DEFINITIONS_NOT_AVAILABLE');
+    const segmentDefinitions = await segmentResponse.json();
     const validationResponse = await fetch('/definitions/kairo-validation-baseline.v1.json', { cache: 'no-store' });
     if (!validationResponse.ok) throw new Error('VALIDATION_PROFILE_NOT_AVAILABLE');
     const validationPack = await validationResponse.json();
     const navigation = createWorkspaceNavigation(document);
-    const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields, validationPack, navigation });
+    const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields, segmentDefinitions, validationPack, navigation });
+    mountImageSanitize(document);
     await mountSend(controller, api);
     mountDicom(document);
     mountCase(document);

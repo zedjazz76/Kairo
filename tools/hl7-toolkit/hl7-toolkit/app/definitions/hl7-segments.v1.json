@@ -1,0 +1,41 @@
+{
+  "schema": "kairo.hl7-segment-purposes.v1",
+  "version": "1.0.0",
+  "scope": "General HL7 v2 segment purposes; no version-specific differences are asserted.",
+  "provenance": {
+    "standard": "HL7 Version 2 messaging standard segment definitions",
+    "derivation": "Concise original paraphrases derived from the standard segment roles and names. These are troubleshooting aids, not reproduced normative text or conformance rules.",
+    "approval": "Approved for Kairo segment-purpose help on 2026-09-10.",
+    "licenseNote": "No long standards passages are reproduced. Existing field/component definitions retain their separate provenance."
+  },
+  "segments": [
+    { "id": "MSH", "name": "Message Header", "purpose": "Identifies how an HL7 message is encoded, routed, processed, and interpreted, including the sending and receiving systems, message type, control identifier, and declared HL7 version.", "examples": [] },
+    { "id": "MSA", "name": "Message Acknowledgment", "purpose": "Reports acknowledgment of a received message and correlates the response to the original message control identifier.", "examples": [{ "code": "AA", "label": "Application accept" }, { "code": "AE", "label": "Application error" }, { "code": "AR", "label": "Application reject" }] },
+    { "id": "ERR", "name": "Error", "purpose": "Describes message-processing errors or warnings, including where a problem occurred, its coded identity, severity, and supporting diagnostic information.", "examples": [] },
+    { "id": "PID", "name": "Patient Identification", "purpose": "Carries patient identity and demographic information used to identify the subject of the message.", "examples": [] },
+    { "id": "PD1", "name": "Additional Demographics", "purpose": "Carries additional patient demographic and administrative information that supplements PID.", "examples": [] },
+    { "id": "PV1", "name": "Patient Visit", "purpose": "Carries information about a patient encounter or visit, including patient class, assigned location, responsible providers, and visit identifiers.", "examples": [] },
+    { "id": "PV2", "name": "Patient Visit — Additional Information", "purpose": "Carries additional encounter information that supplements the patient visit details in PV1.", "examples": [] },
+    { "id": "ORC", "name": "Common Order", "purpose": "Carries common order-control information shared across order-related messages, including order control, placer and filler identifiers, order status, timing, and ordering context.", "examples": [{ "code": "NW", "label": "New order" }, { "code": "XO", "label": "Change order" }, { "code": "CA", "label": "Cancel order" }, { "code": "SC", "label": "Status change" }] },
+    { "id": "OBR", "name": "Observation Request", "purpose": "Describes a requested observation, diagnostic service, or study and carries the identifiers, service details, timing, specimen context, and ordering information associated with that request.", "examples": [] },
+    { "id": "OBX", "name": "Observation/Result", "purpose": "Carries one observation or result value together with its identifier, datatype, units, reference information, interpretation, and result status.", "examples": [] },
+    { "id": "NTE", "name": "Notes and Comments", "purpose": "Carries free-text notes or comments associated with the message or a nearby segment according to the message structure.", "examples": [] },
+    { "id": "DG1", "name": "Diagnosis", "purpose": "Carries diagnosis information relevant to the patient, encounter, account, or clinical event represented by the message.", "examples": [] },
+    { "id": "AL1", "name": "Patient Allergy Information", "purpose": "Carries recorded allergy or adverse-reaction information, including the substance, reaction, severity, and identification details when available.", "examples": [] },
+    { "id": "IN1", "name": "Insurance", "purpose": "Carries primary insurance-plan, coverage, insured-party, authorization, and policy information.", "examples": [] },
+    { "id": "IN2", "name": "Insurance — Additional Information", "purpose": "Carries additional insured-party and insurance information that supplements IN1.", "examples": [] },
+    { "id": "IN3", "name": "Insurance — Additional Information, Certification", "purpose": "Carries additional insurance certification, authorization, and benefits information associated with an insurance occurrence.", "examples": [] },
+    { "id": "GT1", "name": "Guarantor", "purpose": "Carries information about the person or organization financially responsible for the patient account.", "examples": [] },
+    { "id": "NK1", "name": "Next of Kin / Associated Parties", "purpose": "Carries information about a patient's next of kin or another associated person or organization and their relationship to the patient.", "examples": [] },
+    { "id": "SCH", "name": "Scheduling Activity Information", "purpose": "Carries the identifiers, timing, duration, status, reason, and administrative context for a scheduled activity or appointment.", "examples": [] },
+    { "id": "RGS", "name": "Resource Group", "purpose": "Groups related scheduling resources so personnel, locations, services, and other resources can be associated with the same scheduled activity.", "examples": [] },
+    { "id": "AIG", "name": "Appointment Information — General Resource", "purpose": "Identifies a general resource assigned or requested for a scheduled appointment and its timing or allocation details.", "examples": [] },
+    { "id": "AIL", "name": "Appointment Information — Location Resource", "purpose": "Identifies a location resource assigned or requested for a scheduled appointment and its timing or status details.", "examples": [] },
+    { "id": "AIP", "name": "Appointment Information — Personnel Resource", "purpose": "Identifies a personnel resource assigned or requested for a scheduled appointment and its role, timing, or status details.", "examples": [] },
+    { "id": "FT1", "name": "Financial Transaction", "purpose": "Carries a financial transaction associated with patient care, such as a charge, credit, adjustment, or payment-related entry.", "examples": [] },
+    { "id": "PR1", "name": "Procedures", "purpose": "Carries information about a procedure performed or recorded for a patient, including its code, date or time, providers, and related clinical context.", "examples": [] },
+    { "id": "EVN", "name": "Event Type", "purpose": "Carries administrative event information associated with a trigger event, including recorded timing and responsible personnel when present.", "examples": [] },
+    { "id": "MRG", "name": "Merge Patient Information", "purpose": "Carries prior patient identifiers and account or visit identifiers used when patient records are merged or otherwise linked by an administrative event.", "examples": [] },
+    { "id": "AIS", "name": "Appointment Information — Service", "purpose": "Identifies a service associated with a scheduled appointment and carries its timing, duration, status, and related scheduling details.", "examples": [] }
+  ]
+}

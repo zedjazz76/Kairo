@@ -197,7 +197,7 @@ public sealed class LoopbackHost : IAsyncDisposable
         var headers = new List<(string, string)>
         {
             ("Cache-Control", "no-store, max-age=0"),
-            ("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"),
+            ("Content-Security-Policy", "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"),
             ("Cross-Origin-Opener-Policy", "same-origin"), ("Referrer-Policy", "no-referrer"),
             ("X-Content-Type-Options", "nosniff"), ("X-Frame-Options", "DENY"),
             ("Connection", "close"), ("Content-Length", body.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)),

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390">
+  <rect width="1200" height="390" fill="#fff"/>
+  <g fill="#000" font-family="DejaVu Sans" font-size="43" font-weight="bold">
+    <text x="45" y="70">PATIENT: TEST PATIENT</text>
+    <text x="45" y="140">MRN: TEST123456</text>
+    <text x="45" y="210">ACCESSION: TESTACC001</text>
+    <text x="45" y="280">DOB: 19800101</text>
+    <text x="45" y="350">PHYSICIAN: TEST DOCTOR</text>
+  </g>
+</svg>

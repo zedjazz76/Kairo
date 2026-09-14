@@ -8,10 +8,17 @@ import { createHistoryQueue } from './history-queue.mjs';
 import { createWorkerRequests } from './worker-requests.mjs';
 import { createFilterResultGate, filterMessages, isDeepFilter, validateFilter } from './search-filter.mjs';
 import { evaluateCollection, evaluateProfile, validateProfilePack } from './profile-validator.mjs';
+import { createSegmentHelpIndex, renderSegmentPurpose } from './segment-help.mjs';
 
 export function createWorkbenchState() {
   return { messages: [], activeId: null, workspace: 'home', compareA: null, compareB: null, selectedPath: null, findings: [], acknowledgedFindingIds: [], intakeRunning: false, historyHealthy: true,
     sourceGeneration: 0, catalogFilter: { conditions: [], matchingIds: null, running: false, error: '' } };
+}
+
+export function fieldDefinitionText(basicFields, path) {
+  const base = path.replace(/\[\d+\]/g, '').split('.')[0];
+  const definition = basicFields.fields[base];
+  return definition ? definition.label + ' · ' + definition.datatype : 'No Phase 1 label for this path — not evaluated.';
 }
 
 export function getSelectedMessageSnapshot(state) {
@@ -64,7 +71,7 @@ export function redoActiveMessage(state) {
   state.sourceGeneration += 1;
 }
 
-export function mountWorkbench(root, state, { api, rules, token, basicFields = { fields: {} }, validationPack, navigation }) {
+export function mountWorkbench(root, state, { api, rules, token, basicFields = { fields: {} }, segmentDefinitions = { schema: 'kairo.hl7-segment-purposes.v1', segments: [] }, validationPack, navigation }) {
   const document = root.ownerDocument || root;
   const $ = (selector) => root.querySelector(selector);
   const all = (selector) => [...root.querySelectorAll(selector)];
@@ -95,12 +102,14 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
     return element;
   };
   const active = () => state.messages.find((message) => message.id === state.activeId);
+  const segmentHelp = createSegmentHelpIndex(segmentDefinitions);
   const fieldDescription = node('p', 'Choose a field to see its Phase 1 label.', 'small');
   $('#field-path').insertAdjacentElement('afterend', fieldDescription);
   function describeField(path) {
-    const base = path.replace(/\[\d+\]/g, '').split('.')[0];
-    const definition = basicFields.fields[base];
-    fieldDescription.textContent = definition ? definition.label + ' · ' + definition.datatype : 'No Phase 1 label for this path — not evaluated.';
+    fieldDescription.textContent = fieldDefinitionText(basicFields, path);
+  }
+  function showSegmentPurpose(segment, parsed) {
+    renderSegmentPurpose(document, $('#segment-purpose'), segmentHelp.get(segment, getValue(parsed, 'MSH-12') || ''));
   }
   function status(text, error = false) {
     $('#service-status').textContent = text;
@@ -225,7 +234,10 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
     tree.replaceChildren();
     for (const segment of parsed.segments) {
       const segmentDetails = node('details');
-      segmentDetails.append(node('summary', (segment.index + 1) + '. ' + segment.name + ' · ' + (segment.fields.length - 1) + ' fields'));
+      const segmentSummary = node('summary', (segment.index + 1) + '. ' + segment.name + ' · ' + (segment.fields.length - 1) + ' fields');
+      segmentSummary.addEventListener('click', () => showSegmentPurpose(segment.name, parsed));
+      segmentDetails.addEventListener('toggle', () => { if (segmentDetails.open) showSegmentPurpose(segment.name, parsed); });
+      segmentDetails.append(segmentSummary);
       const segmentPath = segment.name + (segment.occurrence > 1 ? '[' + segment.occurrence + ']' : '');
       segment.fields.forEach((field, fieldIndex) => {
         if (!field) return;
@@ -241,7 +253,7 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
             const button = node('button', path + ' = ' + (value || '(empty)'), 'tree-value');
             button.addEventListener('click', () => {
               state.selectedPath = path; $('#field-path').value = path; $('#field-value').value = value;
-              $('#segment-index').value = String(segment.index); describeField(path); $('#field-value').focus();
+              $('#segment-index').value = String(segment.index); showSegmentPurpose(segment.name, parsed); describeField(path); $('#field-value').focus();
             });
             repeatDetails.append(button);
           }));
@@ -359,10 +371,12 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
     }
     $('#acknowledge-warnings').hidden = result.warnings.length === 0; $('#copy-sanitized').disabled = false;
   }
-  function openQuick(text = '') {
+  function openQuick(text = '', textOnly = Boolean(text)) {
     $('#quick-input').value = text; $('#quick-output').value = ''; $('#sanitize-warnings').replaceChildren(); $('#sanitize-summary').textContent = '';
     $('#copy-sanitized').disabled = true; $('#acknowledge-warnings').hidden = true; quickResult = null;
-    $('#quick-dialog').showModal(); $('#quick-input').focus();
+    $('#quick-selector').hidden = textOnly; $('#quick-text-view').hidden = !textOnly; $('#quick-image-view').hidden = true; $('#quick-inline-guide').hidden = true;
+    $('#quick-title').textContent = textOnly ? 'Prepare text for review.' : 'Choose what to sanitize.';
+    $('#quick-dialog').showModal(); (textOnly ? $('#quick-input') : $('#quick-text-open')).focus();
   }
   async function refreshHistory() {
     const result = await api.getHistory();
@@ -453,6 +467,8 @@ export function mountWorkbench(root, state, { api, rules, token, basicFields = {
   bind('#save-comparison', 'click', async () => { if (!comparisonPair) return; const results = await Promise.all(comparisonPair.map((text) => workerCall('sanitize', text))); await saveEvent({ schema: 'hl7-toolkit.sanitized-event.v1', type: 'comparison-save', sanitizedText: results.map(historySafeText).join('\r\r'), policyVersion: rules.version, mode: 'chat-safe', warningCounts: countWarningTypes(results.flatMap((item) => item.warnings)), overrideCount: 0 }); status('Sanitized comparison messages saved.'); });
   bind('#quick-open', 'click', () => openQuick());
   bind('#sanitize-active', 'click', () => openQuick(active()?.text || ''));
+  bind('#quick-text-open', 'click', () => { $('#quick-selector').hidden = true; $('#quick-text-view').hidden = false; $('#quick-title').textContent = 'Prepare text for review.'; $('#quick-input').focus(); });
+  bind('#quick-text-back', 'click', () => { $('#quick-text-view').hidden = true; $('#quick-selector').hidden = false; $('#quick-title').textContent = 'Choose what to sanitize.'; $('#quick-text-open').focus(); });
   bind('#quick-close', 'click', () => $('#quick-dialog').close());
   bind('#quick-input', 'input', () => { quickResult = null; $('#copy-sanitized').disabled = true; });
   bind('#sanitize-mode', 'change', () => { quickResult = null; $('#copy-sanitized').disabled = true; });
