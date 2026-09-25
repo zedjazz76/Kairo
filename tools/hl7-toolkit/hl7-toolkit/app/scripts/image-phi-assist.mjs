@@ -12,6 +12,13 @@ export function classifyOcrText(value) {
   return 'NOT_CLASSIFIED';
 }
 
+// Read-only diagnostic view of existing detectors; no new recognition rules.
+export function probeOcrTextSignals(value) {
+  const text = String(value ?? '').trim();
+  return { date: DATE.test(text), identifier: IDENTIFIER.test(text),
+    sensitive: classifyOcrText(text) !== 'NOT_CLASSIFIED' };
+}
+
 function rectangleFrom(bbox, width, height) {
   const x0 = Math.max(0, Math.min(width, Math.floor(Number(bbox?.x0))));
   const y0 = Math.max(0, Math.min(height, Math.floor(Number(bbox?.y0))));
@@ -125,7 +132,9 @@ export function bootstrapFailureCode(stage) {
   return 'OCR_INIT_FAILED_UNKNOWN';
 }
 
-export async function recognizeOcrRegions(worker, image, { onRecognitionStatus = () => {} } = {}) {
+export const OCR_DIAGNOSTIC_BUILD_ID = 'ocr-regions-windows-diag-1';
+
+export async function recognizeOcrRegions(worker, image, { onRecognitionStatus = () => {}, onDiagnosticRegions } = {}) {
   if (image == null) throw new Error('OCR_RECOGNIZE_FAILED_INPUT');
   onRecognitionStatus({ invoked: true, completed: false, rawRegionCount: 0, filteredRegionCount: 0 });
   let result;
@@ -135,6 +144,8 @@ export async function recognizeOcrRegions(worker, image, { onRecognitionStatus =
   const rawRegions = Array.isArray(blocks)
     ? blocks.flatMap(block => (block.paragraphs || []).flatMap(paragraph => paragraph.lines || []))
     : [];
+  if (onDiagnosticRegions) onDiagnosticRegions(rawRegions.map(region => ({ text: region?.text, bbox: region?.bbox,
+    words: (Array.isArray(region?.words) ? region.words : []).map(word => ({ text: word?.text, bbox: word?.bbox })) })));
   const words = rawRegions.filter(region => {
     const bbox = region?.bbox;
     return typeof region?.text === 'string' && region.text.trim().length > 0
@@ -159,7 +170,7 @@ export function createBrowserOcrAdapter({ assetBase = '/ocr/' } = {}) {
   let workerPromise;
   const paths = ocrAssetPaths(assetBase);
   return {
-    async recognize(image, { onAssetStatus = () => {}, onRecognitionStatus = () => {} } = {}) {
+    async recognize(image, { onAssetStatus = () => {}, onRecognitionStatus = () => {}, onDiagnosticRegions } = {}) {
       if (!workerPromise) workerPromise = (async () => {
         await probeLocalOcrAssets({ assetBase, onAssetStatus });
         const createWorker = await loadLocalTesseractWorkerFactory(paths.module);
@@ -176,7 +187,7 @@ export function createBrowserOcrAdapter({ assetBase = '/ocr/' } = {}) {
         }
       })();
       const worker = await workerPromise;
-      return recognizeOcrRegions(worker, image, { onRecognitionStatus });
+      return recognizeOcrRegions(worker, image, { onRecognitionStatus, onDiagnosticRegions });
     },
     async dispose() { const pending = workerPromise; workerPromise = null; const worker = await pending?.catch(() => null); await worker?.terminate?.(); },
   };
