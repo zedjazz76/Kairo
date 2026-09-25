@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFailureMuseum, normalizeFailureCode, sanitizeClipboardText, runClipboardSanitize } from '../../hl7-toolkit/hl7-toolkit/app/scripts/operator-kit.mjs';
-import { createFieldCoach } from '../../hl7-toolkit/hl7-toolkit/app/scripts/field-coach.mjs';
-import { createOcrEngineRoster, TESSERACT_ENGINE, WINDOWS_ENGINE } from '../../hl7-toolkit/hl7-toolkit/app/scripts/ocr-engines.mjs';
+import { createFailureMuseum, normalizeFailureCode, sanitizeClipboardText, runClipboardSanitize } from '../../hl7-toolkit/app/scripts/operator-kit.mjs';
+import { createFieldCoach } from '../../hl7-toolkit/app/scripts/field-coach.mjs';
+import { createOcrEngineRoster, TESSERACT_ENGINE, WINDOWS_ENGINE } from '../../hl7-toolkit/app/scripts/ocr-engines.mjs';
 
 test('failure museum keeps only codes and a bounded list', () => {
   const museum = createFailureMuseum({ limit: 3 });
