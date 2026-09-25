@@ -1,5 +1,5 @@
 const LABELS = /\b(PATIENT|PATIENT NAME|MRN|MEDICAL RECORD|PATIENT ID|DOB|BIRTH DATE|DATE OF BIRTH|ACCESSION|ACC|ORDER|PHYSICIAN|PROVIDER|FACILITY|INSTITUTION|HOSPITAL|CLINIC)\b/i;
-const DATE = /\b(?:0?[1-9]|1[0-2])[\/-](?:0?[1-9]|[12]\d|3[01])[\/-](?:19|20)\d{2}\b/;
+const DATE = /\b(?:0?[1-9]|1[0-2])[/-](?:0?[1-9]|[12]\d|3[01])[/-](?:19|20)\d{2}\b/;
 const PHONE = /\b(?:\+?\d[\d ().-]{7,}\d)\b/;
 const EMAIL = /\b[^\s@]+@[^\s@]+\.[A-Za-z]{2,}\b/;
 const IDENTIFIER = /\b(?=[A-Z0-9-]{5,}\b)(?=[A-Z0-9-]*[A-Z])(?=[A-Z0-9-]*\d)[A-Z0-9-]+\b/;
@@ -10,13 +10,6 @@ export function classifyOcrText(value) {
   if (LABELS.test(text) || DATE.test(text)) return 'LIKELY_PHI';
   if (PHONE.test(text) || EMAIL.test(text) || IDENTIFIER.test(text)) return 'POSSIBLE_PHI';
   return 'NOT_CLASSIFIED';
-}
-
-// Read-only diagnostic view of existing detectors; no new recognition rules.
-export function probeOcrTextSignals(value) {
-  const text = String(value ?? '').trim();
-  return { date: DATE.test(text), identifier: IDENTIFIER.test(text),
-    sensitive: classifyOcrText(text) !== 'NOT_CLASSIFIED' };
 }
 
 function rectangleFrom(bbox, width, height) {
@@ -132,11 +125,87 @@ export function bootstrapFailureCode(stage) {
   return 'OCR_INIT_FAILED_UNKNOWN';
 }
 
-export const OCR_DIAGNOSTIC_BUILD_ID = 'ocr-regions-windows-diag-1';
+function scaleForCapture(width, height) {
+  const minSide = Math.min(width, height);
+  const maxSide = Math.max(width, height);
+  if (minSide <= 0) return 1;
+  if (minSide < 900) return 3;
+  if (maxSide < 1800) return 2;
+  return 1;
+}
 
-export async function recognizeOcrRegions(worker, image, { onRecognitionStatus = () => {}, onDiagnosticRegions } = {}) {
+export async function prepareCaptureForOcr(image, { environment = globalThis } = {}) {
+  if (image == null) throw new Error('OCR_RECOGNIZE_FAILED_INPUT');
+  const createImageBitmap = environment.createImageBitmap;
+  const OffscreenCanvas = environment.OffscreenCanvas;
+  const documentRef = environment.document;
+  if (typeof createImageBitmap !== 'function') return image;
+  let bitmap;
+  try { bitmap = await createImageBitmap(image); }
+  catch { return image; }
+  const scale = scaleForCapture(bitmap.width, bitmap.height);
+  const width = Math.min(4096, Math.round(bitmap.width * scale));
+  const height = Math.min(4096, Math.round(bitmap.height * scale));
+  let canvas;
+  try {
+    if (typeof OffscreenCanvas === 'function') canvas = new OffscreenCanvas(width, height);
+    else if (documentRef?.createElement) {
+      canvas = documentRef.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+    } else {
+      bitmap.close?.();
+      return image;
+    }
+  } catch {
+    bitmap.close?.();
+    return image;
+  }
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) {
+    bitmap.close?.();
+    return image;
+  }
+  context.imageSmoothingEnabled = true;
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+  const pixels = context.getImageData(0, 0, width, height);
+  const data = pixels.data;
+  let min = 255;
+  let max = 0;
+  for (let index = 0; index < data.length; index += 4) {
+    const gray = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+    if (gray < min) min = gray;
+    if (gray > max) max = gray;
+  }
+  const span = Math.max(1, max - min);
+  for (let index = 0; index < data.length; index += 4) {
+    const gray = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+    let stretched = (gray - min) * 255 / span;
+    if (stretched < 40) stretched = 0;
+    else if (stretched > 220) stretched = 255;
+    const value = Math.round(stretched);
+    data[index] = value;
+    data[index + 1] = value;
+    data[index + 2] = value;
+  }
+  context.putImageData(pixels, 0, 0);
+  if (typeof canvas.convertToBlob === 'function') return canvas.convertToBlob({ type: 'image/png' });
+  return new Promise(resolve => canvas.toBlob(blob => resolve(blob || image), 'image/png'));
+}
+
+export async function recognizeOcrRegions(worker, image, { onRecognitionStatus = () => {} } = {}) {
   if (image == null) throw new Error('OCR_RECOGNIZE_FAILED_INPUT');
   onRecognitionStatus({ invoked: true, completed: false, rawRegionCount: 0, filteredRegionCount: 0 });
+  if (typeof worker.setParameters === 'function') {
+    try {
+      await worker.setParameters({
+        tessedit_pageseg_mode: '6',
+        tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/,.-:()[]' ",
+        preserve_interword_spaces: '1',
+      });
+    } catch { /* keep default parameters if this runtime rejects them */ }
+  }
   let result;
   try { result = await worker.recognize(image, { rotateAuto: true }, { blocks: true }); }
   catch { throw new Error('OCR_RECOGNIZE_FAILED_RUNTIME'); }
@@ -144,8 +213,6 @@ export async function recognizeOcrRegions(worker, image, { onRecognitionStatus =
   const rawRegions = Array.isArray(blocks)
     ? blocks.flatMap(block => (block.paragraphs || []).flatMap(paragraph => paragraph.lines || []))
     : [];
-  if (onDiagnosticRegions) onDiagnosticRegions(rawRegions.map(region => ({ text: region?.text, bbox: region?.bbox,
-    words: (Array.isArray(region?.words) ? region.words : []).map(word => ({ text: word?.text, bbox: word?.bbox })) })));
   const words = rawRegions.filter(region => {
     const bbox = region?.bbox;
     return typeof region?.text === 'string' && region.text.trim().length > 0
@@ -187,7 +254,10 @@ export function createBrowserOcrAdapter({ assetBase = '/ocr/' } = {}) {
         }
       })();
       const worker = await workerPromise;
-      return recognizeOcrRegions(worker, image, { onRecognitionStatus, onDiagnosticRegions });
+      const prepared = await prepareCaptureForOcr(image);
+      const recognized = await recognizeOcrRegions(worker, prepared, { onRecognitionStatus });
+      onDiagnosticRegions?.(recognized.words);
+      return recognized;
     },
     async dispose() { const pending = workerPromise; workerPromise = null; const worker = await pending?.catch(() => null); await worker?.terminate?.(); },
   };

@@ -36,9 +36,17 @@ function validBox(box) {
   return [box?.x0, box?.y0, box?.x1, box?.y1].every(Number.isFinite) && box.x1 > box.x0 && box.y1 > box.y0;
 }
 
+const CLINICAL_TERM = /^(?:TUMOR|IMAGE|IMAGING|PET|CT|MR|MRI|US|NM|XR|CR|DX|MG|RF|XA|PT|SKULL|BRAIN|CHEST|ABDOMEN|PELVIS|HEAD|NECK|SPINE|THORAX|CONTRAST|SCREENING|NUCLEAR|CARDIAC|BONE|LUNG|LIVER|KIDNEY|THYROID|WHOLE|BODY|SKULL-TH|W|WO|WITH|WITHOUT)$/i;
+
 function isDateToken(value) {
   const text = String(value).trim();
-  return US_DATE.test(text) || ISO_DATE.test(text) || calendarDate(text) !== null;
+  if (US_DATE.test(text) || ISO_DATE.test(text)) return calendarDate(text) !== null;
+  if (/^\d{8}$/.test(text)) {
+    const iso = `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+    const mdy = `${text.slice(0, 2)}/${text.slice(2, 4)}/${text.slice(4, 8)}`;
+    return calendarDate(iso) !== null || calendarDate(mdy) !== null;
+  }
+  return false;
 }
 
 function splitCells(line) {
@@ -65,90 +73,106 @@ function splitWideGaps(line) {
   return splitCells({ ...line, words });
 }
 
+function isIdToken(token) {
+  const text = String(token).trim();
+  if (/^\d{5,12}$/.test(text)) return true;
+  if (/^[A-Za-z]{1,4}\d{5,}$/.test(text)) return true;
+  if (/^\d{3,}[-/]\d{2,}$/.test(text)) return true;
+  return ACCESSION_TOKEN.test(text) && /\d{5,}/.test(text) && !/[ ,]/.test(text);
+}
+
+function explodeText(text) {
+  const pieces = [];
+  const source = String(text).replace(/\s+/g, ' ').trim();
+  const re = /(\d{1,2}[/-]\d{1,2}[/-](?:\d{2}|\d{4}))|(\b(?:19|20)\d{2}[/-]\d{1,2}[/-]\d{1,2}\b)|(\b\d{8}\b)|(\b(?:IMAGING|RADIOLOGY|NUCLEAR|CARDIOLOGY|ULTRASOUND)\b)|(\b(?:PT|CT|MR|US|NM|XR|PET|CR|DX|MG)\b)|(\b[A-Za-z]{0,4}\d{5,12}[A-Za-z0-9-]*\b)|(\b\d{5,12}\b)|(\S+)/gi;
+  let match;
+  while ((match = re.exec(source))) {
+    const token = match[0].trim();
+    if (token) pieces.push(token);
+  }
+  return pieces;
+}
+
 function tokenizeRow(text) {
-  return String(text).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  const wide = String(text).split(/\s{2,}/).map(part => part.trim()).filter(Boolean);
+  if (wide.length >= 4) return wide.flatMap(part => explodeText(part).length > 1 ? explodeText(part) : [part]);
+  return explodeText(text);
+}
+
+function isNameToken(token) {
+  const text = String(token).trim().replace(/,$/, '');
+  if (!text || /\d/.test(text) || /[\\/]/.test(text)) return false;
+  if (DEPARTMENT.test(text) || MODALITY.test(text) || CLINICAL_TERM.test(text)) return false;
+  return /^[A-Za-z][A-Za-z'.-]*$/.test(text);
+}
+
+function tokenKind(token) {
+  const text = String(token).trim();
+  if (isDateToken(text)) return 'date';
+  if (DEPARTMENT.test(text)) return 'dept';
+  if (MODALITY.test(text) || CLINICAL_TERM.test(text)) return /^(?:PT|CT|MR|US|NM|XR|PET|CR|DX|MG|OT|RF|XA)$/i.test(text) ? 'mod' : 'clinical';
+  if (isIdToken(text)) return 'id';
+  if (isNameToken(text)) return 'name';
+  return 'other';
 }
 
 function parseWorklistRow(text) {
   const tokens = tokenizeRow(text);
-  if (tokens.length < 4) return null;
+  if (tokens.length < 3) return null;
   const cells = [];
   let index = 0;
-  const takeDates = (limit) => {
-    const taken = [];
-    while (index < tokens.length && taken.length < limit && isDateToken(tokens[index])) {
-      taken.push(tokens[index]);
-      index += 1;
+  while (index < tokens.length) {
+    const kind = tokenKind(tokens[index]);
+    if (kind === 'name') {
+      const name = [];
+      while (index < tokens.length && tokenKind(tokens[index]) === 'name' && name.length < 4) {
+        name.push(tokens[index].replace(/,$/, name.length === 0 ? ',' : ''));
+        index += 1;
+      }
+      cells.push(name.join(' ').replace(' ,', ','));
+      continue;
     }
-    return taken;
-  };
-  const takeUntil = (stop) => {
-    const taken = [];
-    while (index < tokens.length && !stop(tokens[index], taken)) {
-      taken.push(tokens[index]);
-      index += 1;
-    }
-    return taken;
-  };
-
-  const leadingDates = takeDates(2);
-  if (leadingDates.length < 1) return null;
-  cells.push(...leadingDates);
-
-  const patient = takeUntil((token) => isDateToken(token) || DEPARTMENT.test(token) || (ACCESSION_TOKEN.test(token) && /\d{5,}/.test(token)));
-  if (patient.length === 0) return null;
-  cells.push(patient.join(' '));
-
-  if (index < tokens.length && isDateToken(tokens[index])) {
     cells.push(tokens[index]);
     index += 1;
   }
-
-  const physician = takeUntil((token) => DEPARTMENT.test(token) || MODALITY.test(token) || (ACCESSION_TOKEN.test(token) && /^\d{6,}$/.test(token)));
-  if (physician.length) cells.push(physician.join(' '));
-
-  if (index < tokens.length && DEPARTMENT.test(tokens[index])) {
-    cells.push(tokens[index]);
-    index += 1;
-  }
-
-  if (index < tokens.length && ACCESSION_TOKEN.test(tokens[index]) && /\d/.test(tokens[index])) {
-    cells.push(tokens[index]);
-    index += 1;
-  }
-
-  if (index < tokens.length) {
-    const trailing = tokens.slice(index);
-    if (trailing.length && MODALITY.test(trailing.at(-1))) {
-      if (trailing.length > 1) cells.push(trailing.slice(0, -1).join(' '));
-      cells.push(trailing.at(-1));
-    } else if (trailing.length) cells.push(trailing.join(' '));
-  }
-
   if (cells.length < 3 || cells.length > MAX_COLUMNS) return null;
-  if (!cells.some(isDateToken)) return null;
+  if (!cells.some(cell => tokenKind(cell) === 'name' || isNameToken(cell.split(' ')[0] || ''))) return null;
   return cells.map(cell => cell.slice(0, 1000));
 }
 
 function inferHeaders(sample) {
-  const used = { patient: false, dob: false };
+  const used = { patient: false, dob: false, mrn: false, physician: false };
   return sample.map((cell, index) => {
-    if (isDateToken(cell)) {
-      const year = Number(String(cell).slice(-4));
-      if (!used.dob && year >= 1920 && year <= 2018 && index > 0) {
+    const kind = tokenKind(cell);
+    if (kind === 'date' || isDateToken(cell)) {
+      const year = Number(String(cell).replace(/\D/g, '').slice(-4));
+      if (!used.dob && year >= 1920 && year <= 2012 && index > 0) {
         used.dob = true;
         return 'DOB';
       }
       return index === 0 ? 'STUDY DATE' : 'DATE';
     }
-    if (DEPARTMENT.test(cell)) return 'DEPARTMENT';
-    if (MODALITY.test(cell)) return 'MODALITY';
-    if (ACCESSION_TOKEN.test(cell) && /\d{5,}/.test(cell) && !/[ ,]/.test(cell)) return 'ACCESSION';
-    if (!used.patient && /[A-Za-z]/.test(cell)) {
-      used.patient = true;
-      return 'PATIENT';
+    if (kind === 'dept') return 'DEPARTMENT';
+    if (kind === 'mod') return 'MODALITY';
+    if (kind === 'clinical') return 'PROCEDURE';
+    if (kind === 'id') {
+      if (!used.mrn) {
+        used.mrn = true;
+        return 'MRN';
+      }
+      return 'ACCESSION';
     }
-    if (/[A-Za-z]/.test(cell) && /[ ,]/.test(cell)) return 'PHYSICIAN';
+    if (kind === 'name' || isNameToken((cell.split(/\s+/)[0] || ''))) {
+      if (!used.patient) {
+        used.patient = true;
+        return 'PATIENT';
+      }
+      if (!used.physician) {
+        used.physician = true;
+        return 'PHYSICIAN';
+      }
+      return 'NAME';
+    }
     if (/[A-Za-z]{3,}/.test(cell) && /[ /]/.test(cell)) return 'PROCEDURE';
     return `COLUMN ${index + 1}`;
   });
@@ -197,6 +221,27 @@ function tableFromWorklistText(lines) {
   return { status: 'READY', rows: [header, ...rows], reason: 'WORKLIST_TEXT' };
 }
 
+export const SANITIZER_BUILD_ID = 'clinical-context-v3';
+export const CONTENT_DIAGNOSTIC_BUILD_ID = 'worklist-text-v1';
+
+function tableReconstruction(table) {
+  const ready = table?.status === 'READY';
+  const rows = ready ? table.rows.length : 0;
+  const columns = ready && table.rows[0] ? table.rows[0].length : 0;
+  return {
+    TABLE_RECONSTRUCTION_INVOKED: true,
+    TABLE_RECONSTRUCTION_RESULT: ready ? 'SUCCESS' : (table?.reason === 'MISSING_GEOMETRY' ? 'MISSING_GEOMETRY' : 'FAILED'),
+    TABLE_RECONSTRUCTED_ROWS: rows,
+    TABLE_RECONSTRUCTED_COLUMNS: columns,
+    TABLE_RECONSTRUCTED_CELLS: rows * columns,
+    TABLE_EMPTY_CELLS: 0,
+    TABLE_AMBIGUOUS_CELLS: 0,
+    TABLE_GEOMETRY_CERTIFICATION: ready ? 'ROW_CERTIFIED' : 'UNRESOLVED',
+    RAW_CSV_AVAILABLE: ready,
+    SANITIZED_CSV_AVAILABLE: ready,
+  };
+}
+
 export function extractImageContent(regions) {
   const candidates = (Array.isArray(regions) ? regions : []).filter(region => validBox(region?.bbox) && String(region?.text ?? '').trim());
   if (candidates.length > MAX_LINES || candidates.some(region => String(region.text).trim().length > 1000)
@@ -206,7 +251,8 @@ export function extractImageContent(regions) {
     .map(region => ({ text: String(region.text).trim(), bbox: { ...region.bbox }, words: Array.isArray(region.words) ? region.words : [] }));
   const text = lines.map(line => line.text).join('\n');
   const table = tableFromGeometry(lines) || tableFromWorklistText(lines) || { status: 'UNCERTAIN', rows: [], reason: 'MISSING_GEOMETRY' };
-  return { text, lines, table };
+  const reconstruction = tableReconstruction(table);
+  return { text, lines, table, reconstructedTable: table, tableReconstruction: reconstruction };
 }
 
 function calendarDate(value) {
@@ -222,6 +268,48 @@ function calendarDate(value) {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date.getTime() : null;
 }
 
+function emptyDiagnostics(extra = {}) {
+  return {
+    sanitizerBuildId: SANITIZER_BUILD_ID,
+    sanitizeInvoked: false,
+    headerScanInvoked: false,
+    classifierInvoked: false,
+    normalizedLines: 0,
+    ocrLines: 0,
+    labelsDetected: 0,
+    identifiersClassified: 0,
+    nameReplacements: 0,
+    mrnReplacements: 0,
+    accessionReplacements: 0,
+    orderReplacements: 0,
+    dateReplacements: 0,
+    providerReplacements: 0,
+    ambiguousDates: 0,
+    headerFieldsDetected: 0,
+    sensitiveColumnsDetected: 0,
+    rowsClassified: 0,
+    unresolvedSensitiveCells: 0,
+    unresolvedLabels: 0,
+    sanitizedLines: 0,
+    REJECTED_ROW_COUNT: 0,
+    UNKNOWN_COLUMNS_CLASSIFIED: 0,
+    UNKNOWN_COLUMN_CELLS_REDACTED: 0,
+    POSITIONED_HEADER: false,
+    HEADER_SOURCE: 'UNKNOWN',
+    TABLE_RECONSTRUCTION_INVOKED: false,
+    TABLE_RECONSTRUCTION_RESULT: 'FAILED',
+    TABLE_RECONSTRUCTED_ROWS: 0,
+    TABLE_RECONSTRUCTED_COLUMNS: 0,
+    TABLE_RECONSTRUCTED_CELLS: 0,
+    TABLE_EMPTY_CELLS: 0,
+    TABLE_AMBIGUOUS_CELLS: 0,
+    TABLE_GEOMETRY_CERTIFICATION: 'UNRESOLVED',
+    RAW_CSV_AVAILABLE: false,
+    SANITIZED_CSV_AVAILABLE: false,
+    ...extra,
+  };
+}
+
 export function createImageContentSession() {
   let extracted = extractImageContent([]);
   let sanitized = null;
@@ -230,6 +318,7 @@ export function createImageContentSession() {
   let counts = new Map();
   let known = createKnownValueIndex();
   let dateAnchor = null;
+  let phases = emptyDiagnostics();
   const replace = (type, source) => {
     const value = String(source).trim();
     if (!value || /^(?:NAME|MRN|ACCESSION|PHONE|EMAIL|ADDRESS|ACCOUNT|ORDER|FACILITY|DATE|IDENTIFIER|REL-DAY)-?\d{4}$/i.test(value)) return value;
@@ -279,10 +368,23 @@ export function createImageContentSession() {
     return false;
   };
   return {
-    load(regions) { extracted = extractImageContent([]); sanitized = null; review = []; maps.clear(); counts.clear(); known.clear(); dateAnchor = null; extracted = extractImageContent(regions); return extracted; },
+    load(regions) {
+      extracted = extractImageContent([]); sanitized = null; review = []; maps.clear(); counts.clear(); known.clear(); dateAnchor = null;
+      extracted = extractImageContent(regions);
+      phases = emptyDiagnostics({
+        normalizedLines: extracted.lines.length,
+        ocrLines: extracted.lines.length,
+        headerScanInvoked: true,
+        classifierInvoked: true,
+        ...extracted.tableReconstruction,
+      });
+      return extracted;
+    },
     extracted: () => extracted,
     sanitized: () => sanitized,
     review: () => review.map(item => ({ ...item })),
+    diagnostics: () => ({ ...phases }),
+    pipelineDiagnostic: () => ({ extracted, sanitized, phases }),
     sanitize() {
       review = []; maps.clear(); counts.clear(); known.clear(); dateAnchor = null;
       const initialRows = extracted.table.status === 'READY' ? extracted.table.rows.map((row, rowIndex) => row.map((cell, columnIndex) => rowIndex === 0 ? cell : (category(extracted.table.rows[0][columnIndex]) ? replace(category(extracted.table.rows[0][columnIndex]), cell) : redactPatterns(known.replace(cell), replace)))) : [];
@@ -298,18 +400,53 @@ export function createImageContentSession() {
         }
         return output.join('\n');
       })();
-      sanitized = { text: known.replace(text), table: { status: extracted.table.status, rows, reason: extracted.table.reason }, identifierCount: review.length };
+      const reconstruction = tableReconstruction(extracted.table);
+      const diagnostics = emptyDiagnostics({
+        sanitizeInvoked: true,
+        headerScanInvoked: true,
+        classifierInvoked: true,
+        normalizedLines: extracted.lines.length,
+        ocrLines: extracted.lines.length,
+        identifiersClassified: review.length,
+        nameReplacements: review.filter(item => item.category === 'name').length,
+        mrnReplacements: review.filter(item => item.category === 'mrn').length,
+        accessionReplacements: review.filter(item => item.category === 'accession').length,
+        orderReplacements: review.filter(item => item.category === 'order').length,
+        dateReplacements: review.filter(item => item.category === 'date').length,
+        providerReplacements: review.filter(item => item.category === 'name' && /PHYSICIAN|PROVIDER|DOCTOR/.test(String(extracted.table.rows[0]?.[extracted.table.rows[0]?.indexOf?.()]))).length,
+        headerFieldsDetected: extracted.table.status === 'READY' ? extracted.table.rows[0].filter(cell => category(cell)).length : 0,
+        sensitiveColumnsDetected: extracted.table.status === 'READY' ? extracted.table.rows[0].filter(cell => category(cell)).length : 0,
+        rowsClassified: extracted.table.status === 'READY' ? Math.max(0, extracted.table.rows.length - 1) : 0,
+        sanitizedLines: extracted.table.status === 'READY' ? rows.length : extracted.lines.length,
+        POSITIONED_HEADER: extracted.table.status === 'READY',
+        HEADER_SOURCE: extracted.table.reason === 'GEOMETRY' ? 'POSITIONAL' : extracted.table.status === 'READY' ? 'ALIAS_FALLBACK' : 'UNKNOWN',
+        SANITIZED_CSV_AVAILABLE: extracted.table.status === 'READY',
+        ...reconstruction,
+      });
+      phases = diagnostics;
+      sanitized = {
+        text: known.replace(text),
+        table: { status: extracted.table.status, rows, reason: extracted.table.reason },
+        identifierCount: review.length,
+        complete: true,
+        diagnostics,
+      };
       return sanitized;
     },
-    clear() { extracted = extractImageContent([]); sanitized = null; review = []; maps.clear(); counts.clear(); known.clear(); dateAnchor = null; },
+    clear() { extracted = extractImageContent([]); sanitized = null; review = []; maps.clear(); counts.clear(); known.clear(); dateAnchor = null; phases = emptyDiagnostics(); },
   };
 }
 
-export function sanitizedCsv(table) {
+function csvRows(table, delimiter) {
   if (table?.status !== 'READY') return '';
   return table.rows.map(row => row.map(value => {
     let cell = String(value ?? '');
     if (/^[\s]*[=+@-]/.test(cell)) cell = `'${cell}`;
-    return /[",\r\n]/.test(cell) ? `"${cell.replaceAll('"', '""')}"` : cell;
-  }).join(',')).join('\r\n');
+    const special = delimiter === ',' ? /[",\r\n]/ : /["\t\r\n]/;
+    return special.test(cell) ? `"${cell.replaceAll('"', '""')}"` : cell;
+  }).join(delimiter)).join('\r\n');
 }
+
+export function sanitizedCsv(table) { return csvRows(table, ','); }
+export function rawCsv(table) { return csvRows(table, ','); }
+export function sanitizedTsv(table) { return csvRows(table, '\t'); }
