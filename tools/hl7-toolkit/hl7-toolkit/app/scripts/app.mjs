@@ -9,6 +9,9 @@ import { mountCase } from './case-ui.mjs';
 import { mountWorkflowComparison } from './workflow-comparison-ui.mjs';
 import { createWorkspaceNavigation } from './workspace-navigation.mjs';
 import { mountImageSanitize } from './image-sanitize-ui.mjs';
+import { mountOperatorKit } from './operator-kit-ui.mjs';
+import { createSanitizerSession } from './sanitizer.mjs';
+import { createSegmentHelpIndex } from './segment-help.mjs';
 
 const token = new URLSearchParams(location.search).get('token') || new URLSearchParams(location.hash.slice(1)).get('session') || '';
 const status = document.querySelector('#service-status');
@@ -33,8 +36,11 @@ if (!token) {
     if (!validationResponse.ok) throw new Error('VALIDATION_PROFILE_NOT_AVAILABLE');
     const validationPack = await validationResponse.json();
     const navigation = createWorkspaceNavigation(document);
+    const sanitizer = createSanitizerSession(rules);
+    const segmentHelp = createSegmentHelpIndex(segmentDefinitions);
     const controller = mountWorkbench(document, createWorkbenchState(), { api, rules, token, basicFields, segmentDefinitions, validationPack, navigation });
     mountImageSanitize(document);
+    mountOperatorKit(document, { sanitizer, basicFields, segmentHelp, api });
     await mountSend(controller, api);
     mountDicom(document);
     mountCase(document);
