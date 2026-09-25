@@ -2,7 +2,8 @@ import { inspectImageBytes } from './image-format.mjs';
 import { createBrowserRasterAdapter, sanitizeRaster } from './image-raster.mjs';
 import { createImageSanitizeSession } from './image-sanitize-model.mjs';
 import { createBrowserOcrAdapter, createPhiAssistModel } from './image-phi-assist.mjs';
-import { createImageContentSession, sanitizedCsv } from './image-content.mjs';
+import * as imageContent from './image-content.mjs';
+const { createImageContentSession, sanitizedCsv, rawCsv, sanitizedTsv } = imageContent;
 
 export function sanitizedImageName(_sourceName, format) { return `sanitized-image.${format === 'jpeg' ? 'jpg' : 'png'}`; }
 
@@ -86,30 +87,44 @@ export function mountImageSanitize(root, { environment = globalThis, download } 
     for (const row of table.rows) { const tr = root.createElement('tr'); for (const value of row) { const td = root.createElement('td'); td.textContent = value; tr.append(td); } element.append(tr); }
     host.append(element);
   };
+  const activeTable = extracted => extracted.reconstructedTable || extracted.table || { status: 'UNCERTAIN', rows: [], reason: 'MISSING_GEOMETRY' };
   const renderContent = () => {
     const extracted = contentSession.extracted(); const sanitized = contentSession.sanitized();
+    const table = activeTable(extracted);
+    const ready = table.status === 'READY';
     $('#image-content-extracted-text').value = extracted.text;
     $('#image-content-sanitized-text').value = sanitized?.text || '';
-    renderTable('#image-content-extracted-table', extracted.table); renderTable('#image-content-sanitized-table', sanitized?.table);
-    $('#image-content-table-status').textContent = extracted.table.status === 'READY' ? 'TABLE STRUCTURE DETECTED · Review cell alignment' : 'TABLE STRUCTURE UNCERTAIN · Text mode preserved';
+    renderTable('#image-content-extracted-table', table);
+    renderTable('#image-content-sanitized-table', sanitized?.table);
+    const rows = ready ? table.rows.length : 0;
+    const cols = ready && table.rows[0] ? table.rows[0].length : 0;
+    const reason = table.reason || extracted.table?.reason || 'MISSING_GEOMETRY';
+    $('#image-content-table-status').textContent = ready
+      ? `TABLE STRUCTURE DETECTED \u00b7 ${rows} rows \u00d7 ${cols} columns \u00b7 ${reason} \u00b7 Review cells`
+      : `TABLE STRUCTURE UNCERTAIN \u00b7 Text mode preserved \u00b7 ${reason}`;
     for (const [id, view] of [['#image-content-text-view', 'text'], ['#image-content-table-view', 'table']]) $(id).setAttribute('aria-pressed', String(contentView === view));
     for (const id of ['#image-content-extracted-text', '#image-content-sanitized-text']) $(id).hidden = contentView !== 'text';
     for (const id of ['#image-content-extracted-table', '#image-content-sanitized-table']) $(id).hidden = contentView !== 'table';
-    $('#image-content-table-view').disabled = extracted.table.status !== 'READY';
+    $('#image-content-table-view').disabled = !ready;
     $('#image-content-extract').disabled = !sourceFile;
     $('#image-content-sanitize').disabled = !extracted.text;
     $('#image-content-reviewed').disabled = !sanitized;
     const approved = Boolean(sanitized && $('#image-content-reviewed').checked);
+    const sanitizedReady = approved && sanitized?.table?.status === 'READY';
     $('#image-content-copy-text').disabled = !approved;
-    $('#image-content-copy-table').disabled = !approved || sanitized.table.status !== 'READY';
-    $('#image-content-export-csv').disabled = !approved || sanitized.table.status !== 'READY';
+    $('#image-content-copy-table').disabled = !sanitizedReady;
+    $('#image-content-export-csv').disabled = !sanitizedReady;
+    const rawAck = $('#image-content-raw-csv-ack');
+    const rawExport = $('#image-content-export-raw-csv');
+    if (rawAck) { rawAck.disabled = !ready; if (!ready) rawAck.checked = false; }
+    if (rawExport) rawExport.disabled = !ready || !rawAck?.checked;
     const list = $('#image-content-review'); list.replaceChildren();
-    for (const item of contentSession.review()) { const li = root.createElement('li'); li.textContent = `${item.category.toUpperCase()}: ${item.source} → ${item.replacement}`; list.append(li); }
+    for (const item of contentSession.review()) { const li = root.createElement('li'); li.textContent = `${item.category.toUpperCase()}: ${item.source} \u2192 ${item.replacement}`; list.append(li); }
   };
   const invalidateOutput = () => { clearOutput(); renderState(); };
   const syncRedactions = () => { session.reset(); for (const rectangle of [...manualRedactions, ...(phiModel?.selectedRectangles() || [])]) session.addRedaction(rectangle); clearOutput(); renderSource(); renderPhi(); renderState(); };
   const addRectangle = rectangle => { manualRedactions.push(rectangle); syncRedactions(); };
-  const resetAll = () => { ocrGeneration += 1; void ocrAdapter.dispose(); session.clear(); contentSession.clear(); sourceBytes = null; sourceBitmap = null; sourceFile = null; phiModel = null; manualRedactions = []; contentView = 'text'; clearOutput(); $('#image-file').value = ''; $('#image-source-status').textContent = 'Select one local image.'; $('#image-ocr-status').textContent = 'Detect visible text locally after selecting an image.'; $('#image-content-ocr-status').textContent = 'Select a local image, then extract.'; $('#image-content-assurance').textContent = ''; $('#image-content-reviewed').checked = false; for (const id of ['image-worker-asset', 'image-wasm-asset', 'image-traineddata-asset']) $(`#${id}`).textContent = '—'; renderRecognitionDiagnostics(root); setOcrDiagnostics({ stage: 'EMPTY' }); hideError(); renderSource(); renderPhi(); renderState(); renderContent(); };
+  const resetAll = () => { ocrGeneration += 1; void ocrAdapter.dispose(); session.clear(); contentSession.clear(); sourceBytes = null; sourceBitmap = null; sourceFile = null; phiModel = null; manualRedactions = []; contentView = 'text'; clearOutput(); $('#image-file').value = ''; $('#image-source-status').textContent = 'Select one local image.'; $('#image-ocr-status').textContent = 'Detect visible text locally after selecting an image.'; $('#image-content-ocr-status').textContent = 'Select a local image, then extract.'; $('#image-content-assurance').textContent = ''; $('#image-content-reviewed').checked = false; for (const id of ['image-worker-asset', 'image-wasm-asset', 'image-traineddata-asset']) $(`#${id}`).textContent = '\u2014'; renderRecognitionDiagnostics(root); setOcrDiagnostics({ stage: 'EMPTY' }); hideError(); renderSource(); renderPhi(); renderState(); renderContent(); };
   const open = () => { $('#quick-selector').hidden = true; $('#quick-text-view').hidden = true; $('#quick-inline-guide').hidden = true; $('#quick-image-view').hidden = false; $('#quick-title').textContent = 'Extract & Sanitize Content from a PNG or JPEG.'; $('#image-file').focus(); };
   const showSelector = () => { $('#quick-selector').hidden = false; $('#quick-text-view').hidden = true; $('#quick-image-view').hidden = true; $('#quick-inline-guide').hidden = true; $('#quick-title').textContent = 'Choose what to sanitize.'; $('#quick-text-open').focus(); };
   const guide = (kind) => {
@@ -126,7 +141,7 @@ export function mountImageSanitize(root, { environment = globalThis, download } 
     if (!sourceFile || !phiModel) return;
     const file = sourceFile; const currentOcrGeneration = ++ocrGeneration;
     contentSession.clear(); contentView = 'text'; $('#image-content-reviewed').checked = false; $('#image-content-assurance').textContent = '';
-    $('#image-content-ocr-status').textContent = 'Local OCR running…'; $('#image-ocr-status').textContent = 'Detecting visible text locally…';
+    $('#image-content-ocr-status').textContent = 'Local OCR running\u2026'; $('#image-ocr-status').textContent = 'Detecting visible text locally\u2026';
     renderContent(); $('#image-content-extract').disabled = true; setOcrDiagnostics({ stage: 'OCR_INVOKED' });
     try {
       const recognized = await ocrAdapter.recognize(file, {
@@ -137,18 +152,18 @@ export function mountImageSanitize(root, { environment = globalThis, download } 
       phiModel.setFindings(recognized.words); contentSession.load(recognized.words);
       const rendered = renderPhi(); renderSource(); renderContent();
       setOcrDiagnostics({ stage: 'UI_RENDERED', initialized: recognized.initialized === true, regionCount: rendered.regionCount, candidateCount: rendered.candidateCount, renderedCount: rendered.renderedCount, errorCode: recognized.diagnosticCode });
-      $('#image-content-ocr-status').textContent = recognized.diagnosticCode ? `OCR completed · ${recognized.diagnosticCode} · Review the source image.` : `OCR EXTRACTION COMPLETE · ${recognized.filteredRegionCount} text regions. Review extracted content.`;
-      $('#image-ocr-status').textContent = recognized.diagnosticCode ? 'Local OCR completed without usable positioned text. Final visual review and manual redaction are still required.' : 'AUTOMATED PHI REVIEW ASSISTANCE COMPLETE · Review each highlighted finding and the complete image.';
+      $('#image-content-ocr-status').textContent = recognized.diagnosticCode ? `OCR completed \u00b7 ${recognized.diagnosticCode} \u00b7 Review the source image.` : `OCR EXTRACTION COMPLETE \u00b7 ${recognized.filteredRegionCount} text regions. Review extracted content.`;
+      $('#image-ocr-status').textContent = recognized.diagnosticCode ? 'Local OCR completed without usable positioned text. Final visual review and manual redaction are still required.' : 'AUTOMATED PHI REVIEW ASSISTANCE COMPLETE \u00b7 Review each highlighted finding and the complete image.';
     } catch (ocrError) {
       if (currentOcrGeneration !== ocrGeneration) return;
       const code = ocrError?.message === 'IMAGE_CONTENT_LIMIT' ? 'IMAGE_CONTENT_LIMIT' : safeOcrDiagnosticCode(ocrError);
       setOcrDiagnostics({ stage: code, errorCode: code, initialized: $('#image-recognize-invoked').textContent === 'YES' });
-      $('#image-content-ocr-status').textContent = code === 'IMAGE_CONTENT_LIMIT' ? 'OCR output exceeds the bounded extraction limit. No partial content is available to copy or export.' : `Local OCR unavailable · ${code}. No content is ready to sanitize.`;
+      $('#image-content-ocr-status').textContent = code === 'IMAGE_CONTENT_LIMIT' ? 'OCR output exceeds the bounded extraction limit. No partial content is available to copy or export.' : `Local OCR unavailable \u00b7 ${code}. No content is ready to sanitize.`;
       $('#image-ocr-status').textContent = code === 'IMAGE_CONTENT_LIMIT' ? 'OCR completed, but text extraction exceeded the content limit. Manual image review is still required.' : 'Local PHI review assistance unavailable. Final visual review and manual redaction are still required.';
     } finally { if (currentOcrGeneration === ocrGeneration) renderContent(); }
   };
   $('#image-file').addEventListener('change', async event => {
-    const file = event.target.files?.[0]; if (!file) return; resetAll(); const loadToken = ocrGeneration; sourceFile = file; $('#image-file').disabled = true; $('#image-source-status').textContent = 'Reading one local image…';
+    const file = event.target.files?.[0]; if (!file) return; resetAll(); const loadToken = ocrGeneration; sourceFile = file; $('#image-file').disabled = true; $('#image-source-status').textContent = 'Reading one local image\u2026';
     try {
       const bytes = new Uint8Array(await file.arrayBuffer()); if (loadToken !== ocrGeneration) return;
       sourceBytes = bytes; const inspection = inspectImageBytes(sourceBytes); const bitmap = await adapter.decode(sourceBytes, inspection.format);
@@ -157,20 +172,37 @@ export function mountImageSanitize(root, { environment = globalThis, download } 
       sourceBitmap = bitmap; const loadedGeneration = await session.loadSource({ bytes: sourceBytes, inspection, readAgain: () => file.arrayBuffer(), dispose: () => { adapter.dispose(bitmap); if (sourceBitmap === bitmap) sourceBitmap = null; } });
       if (loadToken !== ocrGeneration) { if (session.snapshot().generation === loadedGeneration) session.clear(); return; }
       phiModel = createPhiAssistModel({ width: inspection.width, height: inspection.height });
-      $('#image-output-format').value = inspection.format; $('#image-source-status').textContent = `Loaded locally: ${inspection.format.toUpperCase()} · ${inspection.width} × ${inspection.height} pixels.`;
+      $('#image-output-format').value = inspection.format; $('#image-source-status').textContent = `Loaded locally: ${inspection.format.toUpperCase()} \u00b7 ${inspection.width} \u00d7 ${inspection.height} pixels.`;
       renderSource(); renderPhi(); hideError(); renderState(); renderContent(); $('#image-content-ocr-status').textContent = 'Image loaded. Select Extract to run local OCR.';
     } catch (error) { if (loadToken === ocrGeneration) { resetAll(); showError(error); } }
     finally { $('#image-file').disabled = false; }
   });
   $('#image-content-extract').addEventListener('click', runOcr);
   $('#image-content-text-view').addEventListener('click', () => { contentView = 'text'; renderContent(); });
-  $('#image-content-table-view').addEventListener('click', () => { if (contentSession.extracted().table.status === 'READY') { contentView = 'table'; renderContent(); } });
-  $('#image-content-sanitize').addEventListener('click', () => { contentSession.sanitize(); $('#image-content-reviewed').checked = false; $('#image-content-assurance').textContent = 'SANITIZED CONTENT READY · Review detected identifiers and all remaining content.'; renderContent(); });
-  $('#image-content-reviewed').addEventListener('change', () => { $('#image-content-assurance').textContent = $('#image-content-reviewed').checked ? 'IDENTIFIER REVIEW COMPLETE · SANITIZED CONTENT READY' : 'SANITIZED CONTENT READY · Review required before copy or export.'; renderContent(); });
+  $('#image-content-table-view').addEventListener('click', () => { if (activeTable(contentSession.extracted()).status === 'READY') { contentView = 'table'; renderContent(); } });
+  $('#image-content-sanitize').addEventListener('click', () => { contentSession.sanitize(); $('#image-content-reviewed').checked = false; $('#image-content-assurance').textContent = 'SANITIZED CONTENT READY \u00b7 Review detected identifiers and all remaining content.'; renderContent(); });
+  $('#image-content-reviewed').addEventListener('change', () => { $('#image-content-assurance').textContent = $('#image-content-reviewed').checked ? 'IDENTIFIER REVIEW COMPLETE \u00b7 SANITIZED CONTENT READY' : 'SANITIZED CONTENT READY \u00b7 Review required before copy or export.'; renderContent(); });
   const copyContent = async value => { try { await environment.navigator.clipboard.writeText(value); $('#image-content-assurance').textContent = 'Sanitized content copied. Review it before sharing.'; } catch { $('#image-content-assurance').textContent = 'Clipboard unavailable. No content was copied.'; } };
   $('#image-content-copy-text').addEventListener('click', () => { if ($('#image-content-reviewed').checked && contentSession.sanitized()) void copyContent(contentSession.sanitized().text); });
-  $('#image-content-copy-table').addEventListener('click', () => { if ($('#image-content-reviewed').checked && contentSession.sanitized()?.table.status === 'READY') void copyContent(sanitizedCsv(contentSession.sanitized().table)); });
-  $('#image-content-export-csv').addEventListener('click', () => { if ($('#image-content-reviewed').checked && contentSession.sanitized()?.table.status === 'READY') saveBlob(new Blob([sanitizedCsv(contentSession.sanitized().table)], { type: 'text/csv;charset=utf-8' }), 'sanitized-image-content.csv'); });
+  $('#image-content-copy-table').addEventListener('click', () => {
+    const table = contentSession.sanitized()?.table;
+    if ($('#image-content-reviewed').checked && table?.status === 'READY') {
+      void copyContent(typeof sanitizedTsv === 'function' ? sanitizedTsv(table) : sanitizedCsv(table).replaceAll(',', '\t'));
+    }
+  });
+  $('#image-content-export-csv').addEventListener('click', () => {
+    const table = contentSession.sanitized()?.table;
+    if ($('#image-content-reviewed').checked && table?.status === 'READY') {
+      saveBlob(new Blob([sanitizedCsv(table)], { type: 'text/csv;charset=utf-8' }), 'sanitized-image-content.csv');
+    }
+  });
+  $('#image-content-raw-csv-ack')?.addEventListener('change', () => renderContent());
+  $('#image-content-export-raw-csv')?.addEventListener('click', () => {
+    const table = activeTable(contentSession.extracted());
+    if ($('#image-content-raw-csv-ack')?.checked && table.status === 'READY') {
+      saveBlob(new Blob([(typeof rawCsv === 'function' ? rawCsv : sanitizedCsv)(table)], { type: 'text/csv;charset=utf-8' }), 'raw-image-content-may-contain-phi.csv');
+    }
+  });
   $('#image-content-clear').addEventListener('click', resetAll);
   $('#image-add-redaction').addEventListener('click', () => { try { addRectangle({ x: $('#image-redact-x').value, y: $('#image-redact-y').value, width: $('#image-redact-width').value, height: $('#image-redact-height').value }); hideError(); } catch (error) { showError(error); } });
   const canvas = $('#image-source-canvas');
